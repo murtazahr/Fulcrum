@@ -1,0 +1,46 @@
+# Setting C — canonical CIFAR-10 synthetic with η coupling
+#
+# 50 clients on a ring topology, Dirichlet(α=0.5) heterogeneity, η=0.5 coupling.
+# Statistical vehicle for the headline claims (the only setting where AUROC has
+# meaningful sample size). See Redesign/02_threat_model_partitioning.md §2.6.
+
+setting: C
+
+experiment:
+  name: setting_c_canonical
+  seed: 0
+  mode: target
+  output_dir: runs
+
+data:
+  data_root: data
+  n_clients: 50
+  eta: 0.5                    # IID at 0, position-determined at 1
+  alpha: 0.5                  # Dirichlet concentration
+  sensitive_class: 0          # rare-class proxy
+
+topology:
+  type: ring
+  num_nodes: 50
+
+training:
+  rounds: 100
+  local_epochs: 1
+  batch_size: 64
+  learning_rate: 0.01
+
+dp:
+  enabled: true
+  allocation: topology_aware
+  utility_budget_U: 0.5
+  observation_window: 100
+  max_grad_norm: 1.0
+  delta: 1.0e-5
+
+leverage:
+  proxy: eta_position         # function of η; collapses to ~uniform when η is small
+
+attack:
+  enabled: true
+  channels: [A1, A2_topo, A2_org, A2_full]
+  regressor: lightgbm

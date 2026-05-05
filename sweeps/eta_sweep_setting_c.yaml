@@ -1,0 +1,18 @@
+# Setting C η-sweep — central topology-coupling experiment.
+#
+# Sweep η ∈ {0, 0.25, 0.5, 0.75, 1.0} × {topology_aware, uniform} × 3 seeds = 30 runs.
+# η=0 is the IID null condition: leverage = 0 ⇒ allocation collapses to uniform ⇒
+# attack lift should be near zero (sanity check from Stage 2 design).
+#
+# η > 0 progressively increases lateral leverage. The gap between topology-aware
+# and uniform Pareto curves should grow monotonically with η — this is the
+# headline empirical claim that Theorem 2's allocation is worth doing.
+
+base: configs/setting_c_canonical.yaml
+output_dir: runs
+db_path: experiments.db
+
+sweep:
+  data.eta: [0.0, 0.25, 0.5, 0.75, 1.0]
+  dp.allocation: [topology_aware, uniform]
+  experiment.seed: [0, 1, 2]

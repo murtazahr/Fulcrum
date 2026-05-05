@@ -1,0 +1,17 @@
+# Setting A Pareto frontier — defense-side headline experiment.
+#
+# Sweep: 6 utility budgets × 3 observation windows × 2 allocation strategies × 3 seeds
+# = 108 runs. Generates the per-(U, T_max) point cloud from which the Pareto curve
+# is extracted. Compare topology-aware vs uniform allocation curves.
+#
+# See Redesign/04_defense_design.md §4.6.10 for plot spec.
+
+base: configs/setting_a_canonical.yaml
+output_dir: runs
+db_path: experiments.db
+
+sweep:
+  dp.utility_budget_U: [0.05, 0.1, 0.2, 0.4, 0.8, 1.6]   # 6 log-spaced budgets
+  dp.observation_window: [25, 50, 100]                   # 3 T_max values
+  dp.allocation: [topology_aware, uniform]               # 2 strategies
+  experiment.seed: [0, 1, 2]                             # 3 seeds

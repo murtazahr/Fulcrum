@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+.python-version
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Experiment artifacts (per-run outputs are large and reproducible from configs)
+experiments.db
+experiments.db-journal
+experiments.db-wal
+experiments.db-shm
+runs/
+analysis/
+
+# Datasets (large, externally hosted)
+data/
+.flamby_src/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+.tox/
+.hypothesis/
+
+# Type checking
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Misc
+*.log
+*.tmp
