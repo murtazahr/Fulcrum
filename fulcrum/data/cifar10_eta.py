@@ -79,9 +79,12 @@ def make_partition(cfg: PartitionConfig, dataset_root: str | Path) -> list[Clien
 
     rng = np.random.default_rng(cfg.seed)
 
-    # Load CIFAR-10 (expects download already completed by scripts/download_data.py)
-    train = torchvision.datasets.CIFAR10(root=str(dataset_root), train=True, download=False)
-    test = torchvision.datasets.CIFAR10(root=str(dataset_root), train=False, download=False)
+    # Load CIFAR-10 (expects download already completed by scripts/download_data.py).
+    # download_data.py places CIFAR-10 under <data_root>/cifar10/, so we append
+    # that suffix here for torchvision's root argument.
+    cifar_root = Path(dataset_root) / "cifar10"
+    train = torchvision.datasets.CIFAR10(root=str(cifar_root), train=True, download=False)
+    test = torchvision.datasets.CIFAR10(root=str(cifar_root), train=False, download=False)
     train_targets = np.asarray(train.targets, dtype=np.int64)
     test_targets = np.asarray(test.targets, dtype=np.int64)
 
@@ -200,9 +203,11 @@ def make_client_datasets(cfg: PartitionConfig, dataset_root: str | Path):
 
     partitions = make_partition(cfg, dataset_root)
 
-    # Reload the underlying torchvision datasets once to wrap with Subset
-    train_full = torchvision.datasets.CIFAR10(root=str(dataset_root), train=True, download=False)
-    test_full = torchvision.datasets.CIFAR10(root=str(dataset_root), train=False, download=False)
+    # Reload the underlying torchvision datasets once to wrap with Subset.
+    # Same <data_root>/cifar10/ subdir convention as make_partition.
+    cifar_root = Path(dataset_root) / "cifar10"
+    train_full = torchvision.datasets.CIFAR10(root=str(cifar_root), train=True, download=False)
+    test_full = torchvision.datasets.CIFAR10(root=str(cifar_root), train=False, download=False)
 
     clients: list[ClientDataset] = []
     for i, part in enumerate(partitions):
