@@ -36,8 +36,9 @@ experiments.db-shm
 /runs/
 /analysis/
 
-# Datasets (large, externally hosted)
-data/
+# Datasets (large, externally hosted) — anchored to repo root so source files
+# under fulcrum/data/ are still tracked.
+/data/
 .flamby_src/
 
 # Test / coverage
