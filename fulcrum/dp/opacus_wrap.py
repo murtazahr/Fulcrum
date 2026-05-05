@@ -113,6 +113,20 @@ def make_private_client(
     )
 
 
+def underlying_module(model: nn.Module) -> nn.Module:
+    """Return the un-wrapped module, or ``model`` if it's not Opacus-wrapped.
+
+    Opacus's :class:`~opacus.grad_sample.GradSampleModule` wraps a model and
+    prefixes every parameter name with ``_module.``. State-dict operations
+    (load/save, key-matching) need the unwrapped module so its keys match
+    the un-privatized global model's keys.
+
+    Idempotent: calling on an already-unwrapped model returns it unchanged.
+    """
+    inner = getattr(model, "_module", None)
+    return inner if isinstance(inner, nn.Module) else model
+
+
 def get_epsilon(
     handles: PrivateClientHandles,
     delta: float = 1e-5,

@@ -336,6 +336,7 @@ def run_experiment(
         # 4. Training loop with feature collection
         T_max = min(cfg.training.rounds, cfg.dp.observation_window)
         from fulcrum.attacks.features import collect_round_features
+        from fulcrum.dp.opacus_wrap import underlying_module
         feature_buffer: list[list[np.ndarray]] = [[] for _ in range(n)]
 
         for t in range(T_max):
@@ -350,18 +351,22 @@ def run_experiment(
                     local_model.load_state_dict(global_model.state_dict())
                     opt = torch.optim.SGD(local_model.parameters(), lr=cfg.training.learning_rate)
                     loader = per_client_loaders[i]
-                # Sync local from global at the start of each round
-                local_model.load_state_dict(global_model.state_dict())
+                # Sync local from global at the start of each round.
+                # If the local is Opacus-wrapped, load into the underlying module
+                # so the (unprefixed) global keys match.
+                underlying_module(local_model).load_state_dict(global_model.state_dict())
                 # Local training
                 for _ in range(cfg.training.local_epochs):
                     _train_one_round(local_model, loader, opt, criterion, device)
-                # Collect features
+                # Collect features — use the underlying module's state_dict so its
+                # keys match the global's for cosine-similarity feature computation.
+                local_state = underlying_module(local_model).state_dict()
                 feat = collect_round_features(
-                    local_model.state_dict(),
+                    local_state,
                     global_state_dict=global_model.state_dict(),
                 )
                 feature_buffer[i].append(feat)
-                round_state_dicts.append({k: v.detach().cpu() for k, v in local_model.state_dict().items()})
+                round_state_dicts.append({k: v.detach().cpu() for k, v in local_state.items()})
             # Aggregate
             if cfg.setting == "A" and cfg.topology.type == "hierarchical":
                 new_state = _hierarchical_aggregate(round_state_dicts, omega, weights)
