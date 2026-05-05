@@ -71,9 +71,24 @@ def expand_sweep(sweep_path: Path) -> tuple[list[dict], dict[str, Any]]:
     with sweep_path.open("r") as fh:
         spec = yaml.safe_load(fh)
 
-    base_path = Path(spec["base"])
-    if not base_path.is_absolute():
-        base_path = sweep_path.parent / base_path
+    # Resolve `base:` relative to the current working directory first
+    # (typical run pattern: invoke from repo root, paths are like 'configs/X.yaml').
+    # Fall back to relative-to-sweep-file for portability.
+    base_raw = Path(spec["base"])
+    if base_raw.is_absolute():
+        base_path = base_raw
+    else:
+        candidate_cwd = Path.cwd() / base_raw
+        candidate_sibling = sweep_path.parent / base_raw
+        if candidate_cwd.exists():
+            base_path = candidate_cwd
+        elif candidate_sibling.exists():
+            base_path = candidate_sibling
+        else:
+            raise FileNotFoundError(
+                f"Could not resolve base config {base_raw!s} from sweep {sweep_path!s}. "
+                f"Tried: {candidate_cwd} and {candidate_sibling}"
+            )
     with base_path.open("r") as fh:
         base = yaml.safe_load(fh)
 
