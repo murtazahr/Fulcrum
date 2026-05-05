@@ -56,6 +56,11 @@ uv pip install -e "$FLAMBY_DIR"
 # Optional dataset extras (Fed-Heart-Disease has a pip extra; Fed-ISIC2019 needs manual download — see download_data.py)
 uv pip install -e "$FLAMBY_DIR[heart_disease]" || true
 
+# FLamby's dataset_creation_scripts/download.py uses the `wget` Python package
+# at runtime. It's not declared in FLamby's own deps, so we install it here
+# proactively to avoid surprising users during data download.
+uv pip install wget
+
 echo
 echo "==> Done. Activate the venv with:  source .venv/bin/activate"
 echo "==> Then download datasets:        python scripts/download_data.py"
