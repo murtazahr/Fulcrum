@@ -41,24 +41,43 @@ def download_cifar10(data_root: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def download_fed_heart_disease(data_root: Path) -> None:
-    """Trigger FLamby's auto-download for Fed-Heart-Disease."""
+    """Run FLamby's Fed-Heart-Disease download script.
+
+    FLamby does NOT auto-download on dataset instantiation — each dataset has
+    its own ``dataset_creation_scripts/download.py`` that fetches data + writes
+    a ``dataset_location.yaml`` config so subsequent imports can find it.
+    """
     target = data_root / "fed_heart_disease"
     target.mkdir(parents=True, exist_ok=True)
     print(f"==> Fed-Heart-Disease → {target}")
 
-    # FLamby downloads to its own cache by default. Point it at our data root.
-    os.environ.setdefault("FLAMBY_DATASET_PATH", str(target))
-
-    try:
-        from flamby.datasets.fed_heart_disease import FedHeartDisease
-    except ImportError as exc:
-        print(f"    SKIP: FLamby not installed ({exc}). Run scripts/setup_env.sh first.")
+    # Locate FLamby's bundled download script (cloned by scripts/setup_env.sh)
+    repo_root = Path(__file__).resolve().parent.parent
+    script = (
+        repo_root / ".flamby_src" / "flamby" / "datasets" / "fed_heart_disease"
+        / "dataset_creation_scripts" / "download.py"
+    )
+    if not script.exists():
+        print(f"    SKIP: FLamby download script not found at {script}")
+        print( "          Re-run scripts/setup_env.sh to clone FLamby.")
         return
 
-    # Iterating over the dataset triggers the download lazily on first access
-    ds = FedHeartDisease(center=0, train=True)
-    _ = len(ds)
-    print(f"    OK ({len(ds)} samples in center 0, train split)")
+    import subprocess
+    cmd = [sys.executable, str(script), "--output-folder", str(target)]
+    print(f"    Running: {' '.join(cmd)}")
+    result = subprocess.run(cmd, cwd=script.parent)
+    if result.returncode != 0:
+        print(f"    FAILED with exit code {result.returncode}")
+        return
+
+    # Sanity-check by instantiating the dataset
+    try:
+        from flamby.datasets.fed_heart_disease import FedHeartDisease
+        ds = FedHeartDisease(center=0, train=True)
+        print(f"    OK ({len(ds)} samples in center 0, train split)")
+    except Exception as exc:
+        print(f"    Download succeeded but FedHeartDisease instantiation failed: {exc}")
+        print( "    Check that FLamby's dataset_location.yaml was written correctly.")
 
 
 # ---------------------------------------------------------------------------

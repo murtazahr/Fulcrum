@@ -121,9 +121,19 @@ You should see torchvision's progress bar followed by:
     OK (199 samples in center 0, train split)
 ```
 
-### Fed-Heart-Disease (Setting B) — automatic, ~1 MB
+### Fed-Heart-Disease (Setting B) — semi-automatic, ~1 MB
 
-Already triggered by the same `download_data.py` call above. FLamby handles it.
+Triggered by the same `download_data.py` call above. The script invokes
+FLamby's bundled `download.py` (via subprocess) which fetches the UCI heart
+disease data and writes `dataset_location.yaml` so subsequent FLamby imports
+can find the data.
+
+If you ever need to invoke it manually (e.g., to re-download after deleting):
+
+```bash
+python .flamby_src/flamby/datasets/fed_heart_disease/dataset_creation_scripts/download.py \
+    --output-folder data/fed_heart_disease
+```
 
 ### Fed-ISIC2019 (Setting A) — **manual, ~9 GB**
 
