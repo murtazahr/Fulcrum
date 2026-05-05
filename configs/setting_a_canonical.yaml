@@ -1,7 +1,13 @@
 # Setting A — canonical Fed-ISIC2019 hierarchical FL configuration
 #
 # 6 sites partitioned across 3 regional aggregators (2 sites each).
-# Topology-aware DP allocation with leverage = organizational group size.
+# Topology-aware DP allocation with leverage = dataset-size (FedAvg-influence heuristic).
+# Native FLamby site sizes [9930, 3163, 2691, 1807, 655, 351] →
+# leverage [3.20, 1.02, 0.87, 0.58, 0.21, 0.11] — strong asymmetry (29× ratio)
+# from real cross-silo heterogeneity, ensuring Theorem 2 doesn't degenerate.
+# 'group_size' was the original choice but with [2,2,2] balanced regions it
+# gave uniform leverage; we keep group_size in the proxy library for SBM
+# benchmarks where group sizes vary.
 # Used as the realism anchor for the manuscript (see Redesign/02_threat_model_partitioning.md §2.6).
 
 setting: A
@@ -35,7 +41,8 @@ dp:
   delta: 1.0e-5
 
 leverage:
-  proxy: group_size           # |G_i| per Corollary 1
+  proxy: dataset_size         # See top-of-file comment.
+                              # 'group_size' would degenerate at [2,2,2] balanced regions.
 
 attack:
   enabled: true

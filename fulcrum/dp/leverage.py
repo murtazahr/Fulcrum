@@ -109,9 +109,80 @@ def leverage_eta_position(
 
 
 # ---------------------------------------------------------------------------
+# Settings A and B — dataset-size weighted leverage (FedAvg-influence heuristic)
+# ---------------------------------------------------------------------------
+
+def leverage_dataset_size(dataset_sizes) -> np.ndarray:
+    """Per-client leverage proportional to training-set size, mean-normalised.
+
+    **Motivation.** Standard FedAvg aggregates client updates with weights
+    $w_i = |\\mathcal{D}_i| / \\sum_j |\\mathcal{D}_j|$. A client with more
+    training samples contributes proportionally more to the global model, and
+    its data therefore has correspondingly more influence on what the adversary
+    observes through $\\Theta$. This is a heuristic complement to the
+    SBM-derived :func:`leverage_group_size` (Corollary 1) and degree-based
+    :func:`leverage_degree` (Corollary 2 heuristic) — applicable when topology
+    is symmetric (uniform degree) but client dataset sizes vary substantially,
+    which is the typical case in FLamby's natively-partitioned cross-silo
+    benchmarks.
+
+    For Setting A (Fed-ISIC2019, 6 sites with sizes ~[9930, 3163, 2691, 1807,
+    655, 351]) this gives leverage ratios of ~29× across clients; for Setting B
+    (Fed-Heart-Disease, 4 sites with [199, 172, 30, 85]) it gives ~6.6×. Both
+    produce non-degenerate Theorem 2 allocations even when topology is uniform.
+
+    Args:
+        dataset_sizes: per-client training set sizes (length-$n$ array-like).
+
+    Returns:
+        Length-$n$ array of leverage values normalised to mean 1. Floors at
+        ``1e-9`` to avoid degenerate optimization if any client has 0 samples.
+    """
+    sizes = np.asarray(dataset_sizes, dtype=np.float64)
+    if sizes.ndim != 1:
+        raise ValueError(f"dataset_sizes must be 1D, got shape {sizes.shape}")
+    if (sizes < 0).any():
+        raise ValueError("dataset_sizes must be non-negative")
+    mean = sizes.mean()
+    if mean <= 0:
+        return np.full(sizes.size, 1e-9)
+    return np.maximum(sizes / mean, 1e-9)
+
+
+# ---------------------------------------------------------------------------
 # Baseline — uniform leverage (collapses Theorem 2 to uniform allocation)
 # ---------------------------------------------------------------------------
 
 def leverage_uniform(n_clients: int, value: float = 1.0) -> np.ndarray:
     """Flat leverage vector. Use as the baseline against the topology-aware allocation."""
     return np.full(n_clients, value, dtype=np.float64)
+
+
+# ---------------------------------------------------------------------------
+# Validation helper — fails loudly if leverage is uniform under topology_aware
+# ---------------------------------------------------------------------------
+
+def assert_non_uniform_leverage(leverage: np.ndarray, allocation_mode: str, proxy: str) -> None:
+    """Raise if leverage is constant when allocation mode is ``topology_aware``.
+
+    The combination of constant leverage + topology_aware allocation produces
+    Theorem 2's reduction case (uniform allocation), making the experiment
+    silently degenerate. This check catches that at config-validation time
+    before training starts, instead of revealing it in the metrics.json after
+    hours of compute.
+    """
+    if allocation_mode != "topology_aware":
+        return
+    leverage = np.asarray(leverage, dtype=np.float64)
+    if leverage.size <= 1:
+        return
+    if np.allclose(leverage, leverage[0], rtol=1e-9, atol=1e-12):
+        raise ValueError(
+            f"Leverage proxy '{proxy}' produced uniform values "
+            f"(all = {leverage[0]:.6f}) under allocation='topology_aware'. "
+            "Theorem 2 will collapse to uniform allocation, making the "
+            "experiment degenerate. Either change the leverage proxy "
+            "(e.g., 'dataset_size' for cross-silo settings, 'group_size' for "
+            "hierarchical with uneven groups), change the topology to break "
+            "degree symmetry, or set allocation='uniform' explicitly."
+        )

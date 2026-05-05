@@ -2,7 +2,10 @@
 #
 # 4 sites in a peer-to-peer ring (k-NN proximity at n=4 reduces to ring).
 # Binary classification (positive heart disease as sensitive class).
-# Topology-aware allocation with leverage = graph degree (Corollary 2 heuristic).
+# Topology-aware allocation with leverage = dataset-size (FedAvg-influence heuristic).
+# Native FLamby site sizes [199, 172, 30, 85] → leverage [1.64, 1.42, 0.25, 0.70],
+# producing genuine asymmetry from real data heterogeneity even on a symmetric ring.
+# 'degree' was the original choice but degenerates to uniform (all degrees = 2).
 # Forward-looking deployment scenario; see Redesign/02_threat_model_partitioning.md §2.6.
 
 setting: B
@@ -36,7 +39,8 @@ dp:
   delta: 1.0e-5
 
 leverage:
-  proxy: degree               # Corollary 2 heuristic — empirically validated
+  proxy: dataset_size         # See top-of-file comment.
+                              # 'degree' would degenerate (4-node ring → all degrees = 2).
 
 attack:
   enabled: true

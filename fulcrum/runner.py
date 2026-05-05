@@ -135,11 +135,24 @@ def _build_topology(tcfg, num_nodes: int):
 # Leverage → allocation
 # ---------------------------------------------------------------------------
 
-def _build_allocation(cfg: ExperimentConfig, topology, omega: np.ndarray):
-    """Compute the per-client noise allocation under the chosen leverage proxy."""
+def _build_allocation(cfg: ExperimentConfig, topology, omega: np.ndarray, clients=None):
+    """Compute the per-client noise allocation under the chosen leverage proxy.
+
+    Args:
+        cfg: experiment config.
+        topology: Murmura-compatible topology with ``neighbors`` attribute.
+        omega: organisational labels.
+        clients: optional list of :class:`~fulcrum.data.ClientDataset`. Required
+            for the ``dataset_size`` proxy; ignored otherwise.
+    """
     from fulcrum.dp.allocation import optimal_allocation, uniform_allocation
     from fulcrum.dp.leverage import (
-        leverage_degree, leverage_eta_position, leverage_group_size, leverage_uniform,
+        assert_non_uniform_leverage,
+        leverage_dataset_size,
+        leverage_degree,
+        leverage_eta_position,
+        leverage_group_size,
+        leverage_uniform,
     )
 
     n = topology.num_nodes
@@ -148,6 +161,11 @@ def _build_allocation(cfg: ExperimentConfig, topology, omega: np.ndarray):
         leverage = leverage_group_size(omega)
     elif proxy == "degree":
         leverage = leverage_degree(topology.neighbors)
+    elif proxy == "dataset_size":
+        if clients is None:
+            raise ValueError("leverage proxy 'dataset_size' requires clients argument")
+        sizes = np.array([c.n_train for c in clients], dtype=np.float64)
+        leverage = leverage_dataset_size(sizes)
     elif proxy == "eta_position":
         eta = cfg.data.eta if cfg.data.eta is not None else 0.0
         # Pass topology degrees as position weights so leverage varies with the
@@ -169,6 +187,10 @@ def _build_allocation(cfg: ExperimentConfig, topology, omega: np.ndarray):
         leverage = leverage_uniform(n)
     else:
         raise ValueError(f"Unknown leverage proxy: {proxy!r}")
+
+    # Fail loudly if leverage is uniform under topology_aware — Theorem 2 would
+    # silently collapse to uniform allocation, making the experiment degenerate.
+    assert_non_uniform_leverage(leverage, cfg.dp.allocation, proxy)
 
     # a = T_max * C^2 / (2 |B|^2)
     a = (cfg.dp.observation_window * cfg.dp.max_grad_norm ** 2) / (2 * cfg.training.batch_size ** 2)
@@ -324,7 +346,7 @@ def run_experiment(
         weights = weights / max(weights.sum(), 1.0)
 
         # 2. Compute leverage and allocation
-        leverage, alloc, a_coef = _build_allocation(cfg, topology, omega)
+        leverage, alloc, a_coef = _build_allocation(cfg, topology, omega, clients=clients)
 
         # 3. Build model and per-client optimizers + DP wrappers
         from fulcrum.models import make_model
