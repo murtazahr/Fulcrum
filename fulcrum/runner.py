@@ -339,6 +339,11 @@ def run_experiment(
         from fulcrum.dp.opacus_wrap import underlying_module
         feature_buffer: list[list[np.ndarray]] = [[] for _ in range(n)]
 
+        # Print progress every PROGRESS_EVERY rounds (also at round 0 and the last round)
+        # so users running long sweeps can see the loop is alive.
+        progress_every = max(1, T_max // 10)
+        round_start_time = time.time()
+
         for t in range(T_max):
             round_state_dicts = []
             for i in range(n):
@@ -373,6 +378,15 @@ def run_experiment(
             else:
                 new_state = _fedavg_aggregate(round_state_dicts, weights)
             global_model.load_state_dict({k: v.to(device) for k, v in new_state.items()})
+
+            if t == 0 or (t + 1) % progress_every == 0 or t == T_max - 1:
+                elapsed = time.time() - round_start_time
+                rate = (t + 1) / max(elapsed, 1e-6)
+                eta = (T_max - t - 1) / max(rate, 1e-6)
+                print(
+                    f"    round {t + 1}/{T_max}  ({rate:.1f} rounds/s, ETA {eta:.0f}s)",
+                    flush=True,
+                )
 
         # 5. Evaluate global model
         all_losses = []
