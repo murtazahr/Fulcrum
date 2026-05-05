@@ -1,6 +1,11 @@
 # Setting C — canonical CIFAR-10 synthetic with η coupling
 #
-# 50 clients on a ring topology, Dirichlet(α=0.5) heterogeneity, η=0.5 coupling.
+# 50 clients on a line topology (asymmetric degrees), Dirichlet(α=0.5)
+# heterogeneity, η=0.5 coupling. Line is chosen over ring because ring's
+# uniform-degree symmetry collapses leverage to constant across clients,
+# making Theorem 2 reduce to uniform allocation regardless of η. With line:
+# endpoints have degree 1, interior nodes degree 2, so position-weighted
+# leverage varies and topology-aware allocation differs from uniform.
 # Statistical vehicle for the headline claims (the only setting where AUROC has
 # meaningful sample size). See Redesign/02_threat_model_partitioning.md §2.6.
 
@@ -20,7 +25,7 @@ data:
   sensitive_class: 0          # rare-class proxy
 
 topology:
-  type: ring
+  type: line
   num_nodes: 50
 
 training:

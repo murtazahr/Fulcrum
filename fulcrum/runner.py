@@ -138,7 +138,21 @@ def _build_allocation(cfg: ExperimentConfig, topology, omega: np.ndarray):
         leverage = leverage_degree(topology.neighbors)
     elif proxy == "eta_position":
         eta = cfg.data.eta if cfg.data.eta is not None else 0.0
-        leverage = leverage_eta_position(n, eta=eta, n_classes=10)
+        # Pass topology degrees as position weights so leverage varies with the
+        # actual topology structure. Without this, leverage is uniform across
+        # clients and Theorem 2 collapses to uniform allocation regardless of η.
+        # On a line topology: endpoints degree 1, interior degree 2 → leverage
+        # varies → topology-aware allocation differs from uniform.
+        # On a ring (uniform degree): leverage still uniform; expected behaviour.
+        degrees = np.array([len(nbrs) for nbrs in topology.neighbors], dtype=np.float64)
+        # Normalize so the mean weight is 1 (keeps absolute leverage scale stable)
+        if degrees.mean() > 0:
+            degrees = degrees / degrees.mean()
+        else:
+            degrees = np.ones(n)
+        leverage = leverage_eta_position(
+            n, eta=eta, n_classes=10, position_weights=degrees
+        )
     elif proxy == "uniform":
         leverage = leverage_uniform(n)
     else:
