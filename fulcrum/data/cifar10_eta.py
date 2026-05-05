@@ -29,6 +29,18 @@ from pathlib import Path
 import numpy as np
 import torch
 import torchvision
+import torchvision.transforms as T
+
+
+# Standard CIFAR-10 normalization stats — same values used in essentially every
+# CIFAR-10 paper since He et al. 2016. ToTensor converts PIL Image (HWC uint8)
+# to tensor (CHW float in [0, 1]); Normalize scales to ~zero-mean / unit-std.
+# We keep transforms deterministic (no augmentation) for clean per-sample DP
+# sensitivity bookkeeping and to keep TADI features stable across rounds.
+_CIFAR10_TRANSFORM = T.Compose([
+    T.ToTensor(),
+    T.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2470, 0.2435, 0.2616)),
+])
 
 
 @dataclass(frozen=True)
@@ -83,8 +95,12 @@ def make_partition(cfg: PartitionConfig, dataset_root: str | Path) -> list[Clien
     # download_data.py places CIFAR-10 under <data_root>/cifar10/, so we append
     # that suffix here for torchvision's root argument.
     cifar_root = Path(dataset_root) / "cifar10"
-    train = torchvision.datasets.CIFAR10(root=str(cifar_root), train=True, download=False)
-    test = torchvision.datasets.CIFAR10(root=str(cifar_root), train=False, download=False)
+    train = torchvision.datasets.CIFAR10(
+        root=str(cifar_root), train=True, download=False, transform=_CIFAR10_TRANSFORM,
+    )
+    test = torchvision.datasets.CIFAR10(
+        root=str(cifar_root), train=False, download=False, transform=_CIFAR10_TRANSFORM,
+    )
     train_targets = np.asarray(train.targets, dtype=np.int64)
     test_targets = np.asarray(test.targets, dtype=np.int64)
 
@@ -206,8 +222,12 @@ def make_client_datasets(cfg: PartitionConfig, dataset_root: str | Path):
     # Reload the underlying torchvision datasets once to wrap with Subset.
     # Same <data_root>/cifar10/ subdir convention as make_partition.
     cifar_root = Path(dataset_root) / "cifar10"
-    train_full = torchvision.datasets.CIFAR10(root=str(cifar_root), train=True, download=False)
-    test_full = torchvision.datasets.CIFAR10(root=str(cifar_root), train=False, download=False)
+    train_full = torchvision.datasets.CIFAR10(
+        root=str(cifar_root), train=True, download=False, transform=_CIFAR10_TRANSFORM,
+    )
+    test_full = torchvision.datasets.CIFAR10(
+        root=str(cifar_root), train=False, download=False, transform=_CIFAR10_TRANSFORM,
+    )
 
     clients: list[ClientDataset] = []
     for i, part in enumerate(partitions):
