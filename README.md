@@ -88,6 +88,11 @@ python scripts/analyze.py pareto --setting C
 python scripts/analyze.py eta-sweep
 ```
 
+**For a step-by-step VM deployment guide** — including CUDA verification,
+the manual Fed-ISIC2019 download workflow, sweep ordering, monitoring,
+recovery from interruptions, and what to send back for downstream analysis —
+see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
 ## Design references
 
 Every design decision is documented in `docs/`. Notable entries:
