@@ -1,0 +1,27 @@
+# Setting C shadow training data — feeds the TADI regressor's offline training.
+#
+# Generates labeled (features, p_i) pairs for the adversary to train on. Shadow
+# runs use the same dataset (CIFAR-10) and architecture as target runs, but
+# with NO DP applied (clean leakage signal) and a different range of seeds
+# from the target sweeps (avoids leak-through).
+#
+# The η sweep here covers the same range as the target η-sweep so the regressor
+# generalizes across coupling regimes. Multiple seeds give variation in the
+# (features, p_i) joint distribution.
+#
+# Total: 5 etas × 1 alpha × 10 seeds × 1 allocation = 50 shadow runs (~5 hours).
+#
+# Run AFTER target sweeps so the storage layout is established. Order doesn't
+# affect correctness — shadow and target runs are independent — but it does
+# make `fulcrum status` easier to reason about.
+
+base: configs/setting_c_canonical.yaml
+output_dir: runs
+db_path: experiments.db
+
+sweep:
+  experiment.mode: [shadow]
+  experiment.seed: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]   # disjoint from target seeds
+  data.eta: [0.0, 0.25, 0.5, 0.75, 1.0]
+  dp.enabled: [false]                                          # clean signal for adversary training
+  dp.allocation: [none]

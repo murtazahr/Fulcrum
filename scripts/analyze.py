@@ -78,6 +78,40 @@ def cmd_export_table(args) -> int:
     return 0
 
 
+def cmd_attack_eval(args) -> int:
+    """Train TADI from shadow runs and evaluate against target runs (per channel)."""
+    from fulcrum.analysis.attack_eval import evaluate_all_targets
+
+    out_path = Path(args.out) if args.out else Path(args.out_dir) / f"attack_setting_{args.setting.lower()}.parquet"
+    df = evaluate_all_targets(
+        db_path=args.db_path,
+        runs_root=args.runs_root,
+        setting=args.setting,
+        output_path=out_path,
+        channels=tuple(args.channels),
+        regressor=args.regressor,
+        shadow_run_limit=args.shadow_limit,
+    )
+    if df.empty:
+        print(
+            f"No attack-evaluation results for setting {args.setting}. "
+            f"Run shadow + target sweeps first.",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"Wrote {len(df)} rows × {len(df.columns)} cols → {out_path}")
+    summary = df.groupby("channel").agg({
+        "calibration_loss": ["mean", "std"],
+        "attack_lift":      ["mean", "std"],
+        "top_k_recovery":   ["mean", "std"],
+        "auroc":            ["mean", "std"],
+    }).round(4)
+    print()
+    print("Per-channel summary across target runs:")
+    print(summary.to_string())
+    return 0
+
+
 def cmd_summary(args) -> int:
     """Print a quick text summary of all completed runs."""
     from fulcrum.analysis.loader import load_runs_df
@@ -114,6 +148,15 @@ def main() -> int:
     p_export.add_argument("--setting", required=True, choices=["A", "B", "C"])
     p_export.add_argument("--out", required=True)
     p_export.set_defaults(func=cmd_export_table)
+
+    p_attack = sub.add_parser("attack-eval", help="Train TADI from shadow runs + evaluate target runs")
+    p_attack.add_argument("--setting", required=True, choices=["A", "B", "C"])
+    p_attack.add_argument("--regressor", default="lightgbm", choices=["lightgbm", "mlp", "linear"])
+    p_attack.add_argument("--channels", nargs="+", default=["A1", "A2_topo", "A2_org", "A2_full"],
+                          choices=["A1", "A2_topo", "A2_org", "A2_full"])
+    p_attack.add_argument("--shadow-limit", type=int, default=None)
+    p_attack.add_argument("--out", default=None)
+    p_attack.set_defaults(func=cmd_attack_eval)
 
     p_summary = sub.add_parser("summary", help="Quick text summary of completed runs")
     p_summary.add_argument("--setting", default=None, choices=["A", "B", "C"])

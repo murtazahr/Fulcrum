@@ -311,6 +311,79 @@ python scripts/run_factorial.py sweeps/pareto_setting_a.yaml --dry-run
 
 ---
 
+## 4b. Shadow training data + TADI attack evaluation
+
+The defense (Theorems 1+2, Pareto sweeps) and the attack (TADI) are evaluated
+in two passes:
+
+1. **Privacy bound** $K^\star$ — computed from the allocation, recorded
+   directly during target runs (already done in §4). This is the *theoretical*
+   privacy guarantee and is independent of any actual attacker behaviour.
+
+2. **Empirical attack lift** — what TADI actually recovers. Requires:
+   - Completed **shadow runs** (clean signal, no DP, varied partitionings).
+   - Completed **target runs** (the experimental sweep from §4).
+   - A trained TADI per channel ablation, applied to the target runs.
+
+The empirical pass validates that the privacy bound is meaningful — if the
+adversary's measured attack lift correlates with $K^\star$, the bound has
+predictive power.
+
+### Run the shadow sweep (Setting C only for now)
+
+```bash
+python scripts/run_factorial.py sweeps/shadow_setting_c.yaml
+# 50 runs (~5 hours on L40S), no DP, η ∈ {0, 0.25, 0.5, 0.75, 1.0} × 10 seeds
+```
+
+### Train TADI + evaluate against target runs
+
+```bash
+python scripts/run_attack_eval.py --setting C
+# OR equivalently:
+python scripts/analyze.py attack-eval --setting C
+```
+
+This:
+1. Loads completed shadow runs from `experiments.db` (filtered to
+   `setting=C, mode=shadow, status=done`).
+2. Trains one TADI regressor (LightGBM by default) per channel ablation
+   ($\mathcal{A}_1$, $\mathcal{A}_2^{\text{topo}}$, $\mathcal{A}_2^{\text{org}}$,
+   $\mathcal{A}_2^{\text{full}}$).
+3. Loads each completed Setting C target run and applies all four trained
+   regressors, computing calibration loss, attack lift, top-k recovery, AUROC.
+4. Writes results to `analysis/attack_setting_c.parquet` (one row per
+   (target_run_id, channel) pair).
+5. Prints a per-channel summary across all target runs.
+
+Expected output snippet:
+
+```
+Per-channel summary across target runs:
+              calibration_loss          attack_lift      ...
+                          mean    std          mean   std
+channel
+A1                      0.0234 0.0089       0.0312 0.0091
+A2_topo                 0.0301 0.0114       0.0245 0.0118
+A2_org                  0.0287 0.0102       0.0259 0.0107
+A2_full                 0.0178 0.0064       0.0367 0.0072
+```
+
+The headline number to look for: **A2_full attack lift > A1 attack lift > 0**.
+This is the central empirical finding — the topology + organizational structure
+adds inferential power beyond parameter observation alone, and the IID-null
+sanity should give near-zero lift at η=0 (verifiable via the η-sweep figure
++ this attack-eval pass on those η=0 runs specifically).
+
+### Settings A and B shadow training
+
+Currently the shadow sweep YAML covers Setting C only — Settings A and B need
+**synthetic re-partitioning of FLamby data** to vary $p_i$ across shadow runs
+(the native site partitioning is fixed, so all shadow runs would have the same
+$p_i$ and the regressor would learn nothing). This is a follow-up
+implementation step; for now, the privacy bound is reported for Settings A/B
+without the empirical attack-lift validation.
+
 ## 5. Analysis: generate the headline figures
 
 Once the sweeps are done:
