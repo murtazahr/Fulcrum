@@ -138,12 +138,15 @@ def main() -> int:
         status = st.get_run_status(db_path, run_id)
         if status == "done":
             skipped += 1
+            print(f"  [skip-done]    {run_id}", flush=True)
             continue
         if status in ("running", "queued") and not args.retry_failed:
             skipped += 1
+            print(f"  [skip-{status}] {run_id}  (use --retry-failed to override)", flush=True)
             continue
         if status == "failed" and not args.retry_failed:
             skipped += 1
+            print(f"  [skip-failed]  {run_id}  (use --retry-failed to override)", flush=True)
             continue
         if args.dry_run:
             print(f"  [dry] {run_id} setting={cfg.setting} {raw_cfg.get('experiment', {}).get('name', '')}")
