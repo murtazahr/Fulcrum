@@ -330,7 +330,12 @@ def run_experiment(
                     local_model, opt, per_client_loaders[i],
                     noise_multiplier=max(sigma_i, 1e-6),
                     max_grad_norm=cfg.dp.max_grad_norm,
-                    poisson_sampling=False,
+                    # Poisson sampling is REQUIRED for DP-SGD's standard
+                    # privacy amplification — without it ε explodes (~100x larger
+                    # over 100 rounds at deployable σ values). Opacus replaces
+                    # the dataloader's sampler with a UniformWithReplacementSampler
+                    # which respects per-record privacy.
+                    poisson_sampling=True,
                 )
 
         # 4. Training loop with feature collection
