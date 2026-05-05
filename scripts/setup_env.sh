@@ -61,6 +61,15 @@ uv pip install -e "$FLAMBY_DIR[heart_disease]" || true
 # proactively to avoid surprising users during data download.
 uv pip install wget
 
+# FLamby's source uses several NumPy attributes that were removed in NumPy 2.0
+# (np.NaN, np.Inf). We patch the cloned source in-place — modern NumPy is the
+# default and we'd rather not pin numpy<2.0 across the whole stack.
+echo "==> Patching FLamby source for NumPy 2.0 compatibility (np.NaN → np.nan, np.Inf → np.inf)"
+find "$FLAMBY_DIR" -name "*.py" -exec sed -i \
+    -e 's/np\.NaN/np.nan/g' \
+    -e 's/np\.Inf/np.inf/g' \
+    {} +
+
 echo
 echo "==> Done. Activate the venv with:  source .venv/bin/activate"
 echo "==> Then download datasets:        python scripts/download_data.py"
