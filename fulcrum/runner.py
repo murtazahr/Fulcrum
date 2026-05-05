@@ -384,6 +384,15 @@ def run_experiment(
                 new_state = _fedavg_aggregate(round_state_dicts, weights)
             global_model.load_state_dict({k: v.to(device) for k, v in new_state.items()})
 
+            # Free per-round transient state explicitly. Some Opacus internals
+            # hold references that prevent timely GC of per-sample gradient
+            # buffers — at 50 clients × 100 rounds this can leak GBs.
+            del round_state_dicts
+            import gc
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
             if t == 0 or (t + 1) % progress_every == 0 or t == T_max - 1:
                 elapsed = time.time() - round_start_time
                 rate = (t + 1) / max(elapsed, 1e-6)

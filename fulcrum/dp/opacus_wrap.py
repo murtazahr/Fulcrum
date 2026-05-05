@@ -93,7 +93,14 @@ def make_private_client(
     if not ModuleValidator.is_valid(model):
         model = ModuleValidator.fix(model)
 
-    privacy_engine = PrivacyEngine()
+    # Use the RDP accountant explicitly. Opacus 1.4+ defaults to "prv", which
+    # builds a histogram of the privacy loss distribution that grows linearly with
+    # the number of training steps. For our setup (50 clients × 100 rounds × many
+    # batches per epoch with very small σ producing a wide ε-grid) the PRV
+    # accountant consumes hundreds of GB across all live PrivacyEngine instances
+    # and triggers OOM kills. RDP stores ~30 floats per step (one per Rényi order)
+    # — bounded memory, more numerically stable at extreme σ.
+    privacy_engine = PrivacyEngine(accountant="rdp")
     private_model, private_optimizer, private_loader = privacy_engine.make_private(
         module=model,
         optimizer=optimizer,
