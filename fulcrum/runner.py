@@ -93,17 +93,28 @@ def _build_topology(tcfg, num_nodes: int):
     """Dispatch to the correct topology generator based on type."""
     type_ = tcfg.type
     n = tcfg.num_nodes if tcfg.num_nodes is not None else num_nodes
+    params = tcfg.params or {}
 
     if type_ == "hierarchical":
         from fulcrum.topology.hierarchical import make_hierarchical
-        num_regions = tcfg.num_regions or 3
-        topo, _omega = make_hierarchical(num_clients=n, num_regions=num_regions)
+        # Prefer explicit region_sizes (asymmetric → non-uniform leverage) over
+        # num_regions (even split → uniform leverage → degenerate).
+        region_sizes = params.get("region_sizes")
+        if region_sizes is not None:
+            topo, _omega = make_hierarchical(num_clients=n, region_sizes=list(region_sizes))
+        else:
+            num_regions = tcfg.num_regions or 3
+            topo, _omega = make_hierarchical(num_clients=n, num_regions=num_regions)
         return topo
     if type_ == "line":
         from fulcrum.topology.line import make_line
         return make_line(n)
+    if type_ == "star":
+        from fulcrum.topology.star import make_star
+        return make_star(n, hub=int(params.get("hub", 0)))
 
-    # Murmura's built-in topologies (ring, fully/complete, erdos, k-regular, star)
+    # Murmura's built-in topologies (ring, fully/complete, erdos, k-regular).
+    # Pass only topology-relevant params to avoid kwarg errors.
     try:
         from murmura.topology.generators import create_topology
     except ImportError as exc:
@@ -111,12 +122,13 @@ def _build_topology(tcfg, num_nodes: int):
             f"Topology type {type_!r} requires Murmura. Install via scripts/setup_env.sh."
         ) from exc
     name = "fully" if type_ in ("complete", "fully") else type_
-    if name == "star":
-        # Star isn't in Murmura's set; emulate with fully-connected for the simulator
-        # and document the difference. (Star matters for hierarchy interpretation, not for
-        # peer-graph DP analysis under our threat model.)
-        name = "fully"
-    return create_topology(name, num_nodes=n, **tcfg.params)
+    kwargs: dict = {}
+    if name == "erdos":
+        kwargs["p"] = float(params.get("p", 0.3))
+        kwargs["seed"] = int(params.get("seed", 12345))
+    elif name == "k-regular":
+        kwargs["k"] = int(params.get("k", 4))
+    return create_topology(name, num_nodes=n, **kwargs)
 
 
 # ---------------------------------------------------------------------------

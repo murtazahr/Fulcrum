@@ -1,13 +1,17 @@
 # Setting C — canonical CIFAR-10 synthetic with η coupling
 #
-# 50 clients on a line topology (asymmetric degrees), Dirichlet(α=0.5)
-# heterogeneity, η=0.5 coupling. Line is chosen over ring because ring's
-# uniform-degree symmetry collapses leverage to constant across clients,
-# making Theorem 2 reduce to uniform allocation regardless of η. With line:
-# endpoints have degree 1, interior nodes degree 2, so position-weighted
-# leverage varies and topology-aware allocation differs from uniform.
-# Statistical vehicle for the headline claims (the only setting where AUROC has
-# meaningful sample size). See Redesign/02_threat_model_partitioning.md §2.6.
+# 50 clients on a hierarchical topology with imbalanced regions
+# [20, 15, 10, 3, 2], Dirichlet(α=0.5) heterogeneity, η=0.5 coupling.
+#
+# Topology choice rationale (see docs/decisions_log.md): we need
+# asymmetric leverage across clients for Theorem 2 to differentiate
+# topology-aware from uniform allocation. Imbalanced hierarchical gives
+# strong, defensible asymmetry — degree varies from 19 (large region) to
+# 1 (smallest region), producing an expected ~0.3-nat Pareto gap at
+# η=0.5 and ~0.7-nat gap at η=1.
+#
+# Setting C is the statistical vehicle for headline claims; the
+# realism story comes from Setting A (Fed-ISIC2019 native sites).
 
 setting: C
 
@@ -25,8 +29,10 @@ data:
   sensitive_class: 0          # rare-class proxy
 
 topology:
-  type: line
+  type: hierarchical
   num_nodes: 50
+  params:
+    region_sizes: [20, 15, 10, 3, 2]   # imbalanced → non-uniform leverage
 
 training:
   rounds: 100
@@ -43,7 +49,7 @@ dp:
   delta: 1.0e-5
 
 leverage:
-  proxy: eta_position         # function of η; collapses to ~uniform when η is small
+  proxy: eta_position         # function of η × topology degrees
 
 attack:
   enabled: true

@@ -24,19 +24,29 @@ from fulcrum.topology import Topology
 
 def make_hierarchical(
     num_clients: int,
-    num_regions: int,
+    num_regions: int | None = None,
+    region_sizes: list[int] | None = None,
     seed: int = 0,
 ) -> tuple[Topology, np.ndarray]:
     """Generate a hierarchical FL deployment.
 
-    Distributes ``num_clients`` clients across ``num_regions`` regions
-    contiguously and as evenly as possible. Within each region, clients form
-    a complete subgraph (all peers); across regions there are no peer edges
-    (the cross-region link goes through aggregators, not peer-to-peer).
+    Within each region, clients form a complete subgraph (all peers); across
+    regions there are no peer edges (the cross-region link goes through
+    aggregators, not peer-to-peer).
+
+    Two ways to specify the partition:
+
+    - ``num_regions`` (only): clients distributed evenly. Resulting region_sizes
+      are within ±1 of each other. **Produces uniform leverage** under
+      degree- or group-size-based proxies, hence Theorem 2 collapses to uniform
+      allocation. Useful as a degenerate-case control, not for headline figures.
+    - ``region_sizes`` (explicit list): asymmetric region sizes. Required for
+      non-trivial leverage variation. Sum must equal ``num_clients``.
 
     Args:
         num_clients: number of client nodes $n$.
-        num_regions: number of regional aggregators $K_{\\text{org}}$.
+        num_regions: number of regional aggregators (used if ``region_sizes`` is None).
+        region_sizes: explicit per-region sizes (takes precedence if given).
         seed: random seed (currently unused — assignment is deterministic).
 
     Returns:
@@ -46,29 +56,42 @@ def make_hierarchical(
         - ``omega``: length-$n$ array assigning each client to its region.
 
     Raises:
-        ValueError: if ``num_clients < num_regions`` or either is non-positive.
+        ValueError: invalid sizes or both/neither sizing arguments specified.
     """
     del seed  # currently deterministic; reserved for future randomized assignments
-    if num_clients < 1 or num_regions < 1:
-        raise ValueError(
-            f"num_clients and num_regions must be >= 1, got "
-            f"num_clients={num_clients}, num_regions={num_regions}"
-        )
-    if num_clients < num_regions:
-        raise ValueError(
-            f"num_clients ({num_clients}) must be >= num_regions ({num_regions}); "
-            "every region needs at least one client."
-        )
+    if num_clients < 1:
+        raise ValueError(f"num_clients must be >= 1, got {num_clients}")
 
-    # Distribute clients across regions as evenly as possible.
-    base, extra = divmod(num_clients, num_regions)
-    region_sizes = [base + (1 if r < extra else 0) for r in range(num_regions)]
+    if region_sizes is not None:
+        if num_regions is not None and num_regions != len(region_sizes):
+            raise ValueError(
+                f"num_regions={num_regions} contradicts len(region_sizes)={len(region_sizes)}"
+            )
+        if any(s < 1 for s in region_sizes):
+            raise ValueError(f"region_sizes entries must be >= 1, got {region_sizes}")
+        if sum(region_sizes) != num_clients:
+            raise ValueError(
+                f"sum(region_sizes)={sum(region_sizes)} != num_clients={num_clients}"
+            )
+        sizes = list(region_sizes)
+    elif num_regions is not None:
+        if num_regions < 1:
+            raise ValueError(f"num_regions must be >= 1, got {num_regions}")
+        if num_clients < num_regions:
+            raise ValueError(
+                f"num_clients ({num_clients}) must be >= num_regions ({num_regions})"
+            )
+        # Distribute clients across regions as evenly as possible.
+        base, extra = divmod(num_clients, num_regions)
+        sizes = [base + (1 if r < extra else 0) for r in range(num_regions)]
+    else:
+        raise ValueError("Must provide either num_regions or region_sizes")
 
     # omega[i] = region index for client i (assigned contiguously)
     omega = np.empty(num_clients, dtype=np.int64)
     cursor = 0
     region_member_lists: list[list[int]] = []
-    for r, size in enumerate(region_sizes):
+    for r, size in enumerate(sizes):
         members = list(range(cursor, cursor + size))
         omega[cursor:cursor + size] = r
         region_member_lists.append(members)

@@ -1,18 +1,30 @@
-# Setting C η-sweep — central topology-coupling experiment.
+# Setting C η × topology sweep — central topology-coupling experiment.
 #
-# Sweep η ∈ {0, 0.25, 0.5, 0.75, 1.0} × {topology_aware, uniform} × 3 seeds = 30 runs.
-# η=0 is the IID null condition: leverage = 0 ⇒ allocation collapses to uniform ⇒
-# attack lift should be near zero (sanity check from Stage 2 design).
+# Sweeps over BOTH η and topology to demonstrate that the topology-aware
+# advantage scales with topology asymmetry (the headline narrative).
 #
-# η > 0 progressively increases lateral leverage. The gap between topology-aware
-# and uniform Pareto curves should grow monotonically with η — this is the
-# headline empirical claim that Theorem 2's allocation is worth doing.
+# Order is deliberate (high → low gap) so the smoke test surfaces the
+# topology-aware advantage in the FIRST run group:
+#
+#   1. star          — hub deg 49, leaves deg 1; max asymmetry; ~1.2 nat gap at η=1
+#   2. hierarchical  — imbalanced [20,15,10,3,2]; canonical default; ~0.7 nat gap at η=1
+#   3. line          — endpoints deg 1, interior deg 2; weak asymmetry; ~0.02 nat gap at η=1
+#   4. ring          — uniform deg 2; degenerate (leverage uniform); 0 gap (control)
+#
+# η=0 is the IID null: leverage scales with η, so at η=0 leverage is 0 (or floor)
+# and topology-aware = uniform regardless of topology. η=1 gives max signal.
+#
+# η is iterated decreasing so the first runs combine star × η=1 — maximum gap
+# in expectation.
+#
+# Total: 4 topologies × 5 etas × 2 allocations × 3 seeds = 120 runs (~12 hr at L40S).
 
 base: configs/setting_c_canonical.yaml
 output_dir: runs
 db_path: experiments.db
 
 sweep:
-  data.eta: [0.0, 0.25, 0.5, 0.75, 1.0]
+  topology.type: [star, hierarchical, line, ring]
+  data.eta: [1.0, 0.75, 0.5, 0.25, 0.0]
   dp.allocation: [topology_aware, uniform]
   experiment.seed: [0, 1, 2]
