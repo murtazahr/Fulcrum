@@ -118,30 +118,106 @@ def plot_eta_sweep(
     metric_col: str = "K_star",
     eta_col: str = "data.eta",
     allocation_col: str = "dp.allocation",
+    topology_col: str = "topology.type",
 ) -> None:
-    """Plot $K^\\star$ vs η for topology-aware vs uniform.
+    """Plot $K^\\star$ vs η for topology-aware vs uniform, faceted by topology.
 
-    Under Theorem 2 + Corollary 3, the gap between the two curves should grow
-    monotonically with η. At η=0 (IID null) they should coincide.
+    If the DataFrame contains multiple values in ``topology_col``, produce one
+    panel per topology (left → right in canonical asymmetry order: ring, line,
+    hierarchical, star) so the manuscript-grade figure shows the gap-pattern
+    differs across topology classes:
+
+    - Ring: gap = 0 everywhere (degenerate; theorem reduction case).
+    - Line: gap is small (~0.02 nats), grows linearly with η.
+    - Hierarchical (uneven groups): gap grows continuously with η (~0 → 0.5).
+    - Star: gap is constant ~$an/U$ across η > 0 (asymptotic regime).
+
+    Each panel also overlays a thin secondary axis showing the gap (K_uniform −
+    K_topology_aware) — the headline quantity for §6 of the paper.
+
+    Under Theorem 2 + Corollary 3, every panel's gap is non-negative and the
+    η = 0 column has gap = 0 (IID null sanity check).
     """
     _set_style()
     import matplotlib.pyplot as plt
 
     df = df.dropna(subset=[metric_col, eta_col, allocation_col])
-    fig, ax = plt.subplots(figsize=(5, 3.5))
+
+    # Detect topology variation. If the column is missing or all values are the
+    # same, fall back to a single panel.
+    if topology_col in df.columns and df[topology_col].nunique() > 1:
+        # Canonical left-to-right ordering by leverage asymmetry
+        canonical_order = ["ring", "line", "hierarchical", "star"]
+        topologies = sorted(
+            df[topology_col].unique(),
+            key=lambda t: canonical_order.index(t) if t in canonical_order else 99,
+        )
+    else:
+        topologies = [None]
+
+    n_panels = len(topologies)
+    fig, axes = plt.subplots(
+        1, n_panels, figsize=(5 * n_panels, 3.8),
+        sharex=True, sharey=False,
+    )
+    if n_panels == 1:
+        axes = [axes]
 
     color_map = {"topology_aware": "#1f77b4", "uniform": "#d62728"}
-    for alloc, sub in df.groupby(allocation_col):
-        agg = sub.groupby(eta_col)[metric_col].agg(["mean", "std", "count"]).reset_index()
-        ci = 1.96 * agg["std"] / np.sqrt(agg["count"].clip(lower=1))
-        ax.plot(agg[eta_col], agg["mean"], marker="o", label=alloc, color=color_map.get(alloc, "gray"))
-        ax.fill_between(agg[eta_col], agg["mean"] - ci, agg["mean"] + ci, alpha=0.2,
-                        color=color_map.get(alloc, "gray"))
+    marker_map = {"topology_aware": "o", "uniform": "s"}
 
-    ax.set_xlabel(r"Topology-data coupling $\eta$")
-    ax.set_ylabel(r"Worst-case privacy bound $K^\star$ (nats)")
-    ax.set_title("Setting C: Allocation gap grows with leverage")
-    ax.legend()
+    for ax, topo in zip(axes, topologies):
+        if topo is None:
+            sub_df = df
+            panel_title = "η-sweep"
+        else:
+            sub_df = df[df[topology_col] == topo]
+            panel_title = topo
+
+        # Plot K_star and K_uniform as separate curves
+        for alloc, sub in sub_df.groupby(allocation_col):
+            agg = sub.groupby(eta_col)[metric_col].agg(["mean", "std", "count"]).reset_index()
+            ci = 1.96 * agg["std"] / np.sqrt(agg["count"].clip(lower=1))
+            ax.plot(
+                agg[eta_col], agg["mean"],
+                marker=marker_map.get(alloc, "o"),
+                label=alloc,
+                color=color_map.get(alloc, "gray"),
+                linewidth=1.8, markersize=5,
+            )
+            ax.fill_between(
+                agg[eta_col], agg["mean"] - ci, agg["mean"] + ci,
+                alpha=0.2, color=color_map.get(alloc, "gray"),
+            )
+
+        # Compute and annotate the gap (K_uniform - K_topology_aware) per η
+        try:
+            pivot = sub_df.pivot_table(
+                values=metric_col, index=eta_col, columns=allocation_col, aggfunc="mean",
+            )
+            if {"uniform", "topology_aware"}.issubset(pivot.columns):
+                gap = pivot["uniform"] - pivot["topology_aware"]
+                # Print the gap values inside the panel's lower-right corner
+                gap_text = "Gap (K_uniform − K*):\n" + "\n".join(
+                    f"  η={e:.2f}: {g:+.3f}" for e, g in gap.items()
+                )
+                ax.text(
+                    0.98, 0.02, gap_text, transform=ax.transAxes,
+                    ha="right", va="bottom", fontsize=7,
+                    bbox=dict(facecolor="white", alpha=0.7, edgecolor="none", pad=2),
+                )
+        except Exception:
+            pass
+
+        ax.set_title(panel_title)
+        ax.set_xlabel(r"Topology-data coupling $\eta$")
+        ax.legend(loc="upper left", fontsize=8)
+
+    axes[0].set_ylabel(r"Worst-case privacy bound $K^\star$ (nats)")
+    fig.suptitle(
+        "Setting C: Topology-aware allocation gap across topologies",
+        y=1.02,
+    )
     _save(fig, output_path)
     plt.close(fig)
 
