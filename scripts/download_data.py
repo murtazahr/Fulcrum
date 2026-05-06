@@ -1,4 +1,4 @@
-"""Fetch all datasets used by the NSAV experiments.
+"""Fetch all datasets used by the Fulcrum experiments.
 
 Datasets:
 - CIFAR-10 (Setting C) — torchvision built-in, ~200 MB.

@@ -22,7 +22,7 @@ import click
 
 @click.group()
 def main():
-    """NSAV experiment CLI."""
+    """Fulcrum experiment CLI."""
 
 
 @main.command()

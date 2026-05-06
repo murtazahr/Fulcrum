@@ -1,10 +1,10 @@
-# NSAV Rebuild — Overview
+# Fulcrum — Design Overview
 
-This directory contains the redesigned methodology, theory, experiments, and
-draft material for the NSAV manuscript. The original manuscript lives at
-`../Paper/Tex Paper/paper.tex` and is considered rejection-worthy due to four
-methodological flaws documented in `decisions_log.md`. This rebuild starts
-from scratch.
+This directory contains the methodology, theory, experiments, and draft
+material for the Fulcrum manuscript. Fulcrum supersedes an earlier
+manuscript (working title *Network Structures as an Attack Surface*) that
+was set aside due to four methodological flaws documented in
+`decisions_log.md`; this work was reframed and restarted from scratch.
 
 ## Working principles
 

@@ -1,10 +1,11 @@
-# NSAV — Implementation
+# Fulcrum — Implementation
 
-Code for the rebuild of *Network Structures as an Attack Surface*. Extends Murmura
-(https://github.com/Cloudslab/murmura) with DP-SGD, topology-aware noise
-allocation, FLamby + CIFAR-η data adapters, and the TADI attack.
+Code for the Fulcrum project (topology-aware DP allocation for federated
+learning). Extends Murmura (https://github.com/Cloudslab/murmura) with
+DP-SGD, topology-aware noise allocation, FLamby + CIFAR-η data adapters,
+and the TADI attack.
 
-Design specification lives in [../00_overview.md](../00_overview.md).
+Design specification lives in [docs/overview.md](docs/overview.md).
 
 ## Layout
 
