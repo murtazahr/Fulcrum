@@ -1,0 +1,117 @@
+\section{Related Work}
+\label{sec:related}
+
+We position our work along three axes: privacy attacks against FL,
+privacy mechanisms for FL, and the (largely separate) literature on
+topology in FL.
+
+\subsection{Privacy Attacks Against Federated Learning}
+\label{sec:related-attacks}
+
+Two attack families dominate the literature, both content-oriented.
+\emph{Gradient inversion} reconstructs training samples by optimising
+dummy inputs to match observed gradients. Zhu et~al.\ introduced Deep
+Leakage from Gradients (DLG)~\cite{zhu2019dlg}, which recovers
+pixel-accurate images from per-batch gradients in the absence of noise;
+Geiping et~al.\ subsequently demonstrated that magnitude-invariant
+formulations can recover images even from federated-averaging updates
+covering multiple local steps~\cite{geiping2020inverting}. The fundamental
+constraint of this family is sensitivity to per-batch noise: in the
+DP-SGD regime that we study, gradient inversion degrades sharply because
+clipping plus Gaussian perturbation removes the high-frequency signal
+needed for pixel-level reconstruction. We treat gradient inversion as a
+\emph{complementary} threat — most relevant when DP is weak — and include
+it as an empirical baseline in our evaluation.
+
+\emph{Inference attacks} target distributional or membership properties
+rather than per-sample reconstruction. Shokri et~al.\ established the
+shadow-model paradigm for membership inference~\cite{shokri2017membership},
+in which the adversary trains an attack model on shadow datasets where
+membership is known and applies it to the target. Melis et~al.\ extended
+this to the collaborative-learning setting and showed that joint update
+sequences leak unintended properties about subsets of training
+data~\cite{melis2019exploiting}. Our \TADI attack inherits the
+shadow-training framework but targets a per-client, distributional
+quantity (sensitive-class concentration $p_i$) and explicitly decomposes
+its information channels into parameter, structural-position, and
+organisational-label components. To our knowledge no prior attack
+isolates these channels.
+
+\subsection{Privacy Mechanisms for Federated Learning}
+\label{sec:related-defense}
+
+The dominant defense is differential privacy applied at the client.
+DP-SGD~\cite{abadi2016dpsgd} clips per-record gradients and adds
+calibrated Gaussian noise; McMahan et~al.\ instantiated DP-SGD inside
+federated averaging as DP-FedAvg~\cite{mcmahan2018dpfedavg} and
+demonstrated its viability for production-scale next-word prediction.
+Wei et~al.\ provided the first comprehensive convergence analysis of
+DP-FL via the noising-before-aggregation framework~\cite{wei2020nbafl},
+which we adapt for our utility analysis (Proposition~\ref{prop:utility}).
+Privacy accounting in this space has matured around R\'enyi
+DP~\cite{mironov2017rdp}, with subsampling
+amplification~\cite{wang2019subsampled} extending the formalism to the
+Poisson-batched setting that DP-SGD requires. The mutual-information
+characterisation of DP~\cite{cuff2016mi} and its tighter conversions
+between RDP and other variants~\cite{asoodeh2021variants} provide the
+machinery we use to convert the per-mechanism RDP bound into the
+per-client MI bound of Theorem~\ref{thm:per-client}.
+
+A second line of defense is cryptographic. Secure
+aggregation~\cite{bonawitz2017secagg} hides individual client updates
+behind a sum, leaving only the aggregate visible. Combined with DP,
+secure aggregation reduces the adversary's effective observation to
+\emph{neighborhood-aggregated} updates rather than per-client ones; this
+weakens \TADI's parameter channel without addressing the structural and
+organisational channels. We evaluate this regime as an extension
+experiment (\S\ref{sec:experiments}).
+
+What none of these mechanisms address is \emph{which} clients should
+receive how much noise when the topology breaks symmetry. Existing
+implementations apply uniform noise multipliers across clients, implicitly
+assuming a symmetric (\eg star) topology. Our defense generalises this:
+when the topology is symmetric, our allocation reduces to uniform; when
+it is not, the allocation balances the per-client privacy bound across
+the asymmetric leverage profile.
+
+\subsection{Topology in Federated Learning}
+\label{sec:related-topology}
+
+Topology-aware FL has been studied primarily as a performance and
+scalability question. The earliest cross-device benchmark suite, LEAF~\cite{leaf2018},
+demonstrates that natural client-partitioned datasets exhibit substantial
+heterogeneity but does not consider topology beyond the implicit
+star aggregator. Hierarchical FL~\cite{liu2020hierarchical,abad2020icassp}
+introduces edge aggregators between clients and the cloud to reduce
+communication cost. Decentralised gossip-based
+schemes~\cite{roy2019braintorrent,hegedus2021decentralized} eliminate
+the central aggregator entirely; Beilharz et~al.\ propose a DAG-based
+extension~\cite{beilharz2021dag}. Briggs et~al.\ cluster clients by
+local-update similarity to address non-IID data, producing a hierarchical
+training structure that incidentally encodes data
+similarity~\cite{briggs2020hierarchical}. The recent ``Field Guide''
+survey~\cite{wang2021fieldguide} documents topology choice as one of the
+canonical decisions in FL system design but treats it as orthogonal to
+privacy.
+
+The privacy literature, in turn, has implicitly assumed away topology.
+Threat models almost universally assume a star configuration with a
+single semi-honest aggregator. The attacker's view, when explicitly
+modelled, consists of per-client gradients without structural metadata.
+This implicit assumption is reasonable for cross-device deployments
+(Gboard, smartphone keyboards) where every client is interchangeable;
+it breaks down in cross-silo healthcare~\cite{flamby2022,sheller2020medicine,dayan2021covid},
+multi-organisation industry consortia~\cite{melloddy2024}, and any
+deployment that uses hierarchical or decentralised aggregation for
+operational reasons. Our work fills this gap by treating the topology
+as a first-class component of both the threat model and the defense.
+
+\paragraph{Summary of positioning.}
+We are the first, to our knowledge, to (i) define a per-client
+distributional inference attack with explicit channel ablations
+isolating parameter, structural, and organisational information; (ii)
+prove a tight MI bound that decomposes into a controllable mechanism
+term plus an uncontrollable prior-coupling floor; and (iii) derive a
+closed-form noise-allocation policy that strictly improves on uniform
+DP-SGD whenever the topology breaks leverage symmetry, with three
+principled proxies for instantiating leverage in deployed regimes.

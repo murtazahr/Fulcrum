@@ -1,0 +1,94 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{When the defense matters most.}
+Theorem~\ref{thm:per-client} decomposes per-client leakage into a
+controllable mechanism term and an uncontrollable prior-coupling floor.
+The defense can only shrink the controllable term; the floor is
+deployment-determined and beyond DP-SGD's reach. The defense's
+\emph{relative} value is therefore highest when the controllable term
+dominates — \ie when DP noise is calibrated to be informative
+($\sigma$ small enough that $a/\sigma_i^2$ is comparable to
+$\ell_i^\circ$). Once $\ell_i^\circ$ swamps $a/\sigma_i^2$, additional
+noise allocation produces diminishing returns; the appropriate response
+is then either to reduce the prior coupling (change the partitioning,
+remove organisational metadata from the threat model) or to introduce
+secure aggregation~\cite{bonawitz2017secagg} as a complementary
+defense.
+
+\paragraph{Why our defense reduces to uniform under symmetry.}
+Corollary~\ref{cor:strict} establishes that the topology-aware allocation
+collapses to standard uniform DP-SGD whenever leverage scores are
+identical across clients. We treat this as a feature: the theorem
+recovers the standard practice exactly in the regime that the standard
+practice was designed for, and then strictly improves on it whenever
+the deployment introduces structural asymmetry. This yields a clean
+deployment recommendation: \emph{use \Fulcrum unconditionally} — when
+the topology happens to be symmetric, you pay no price for the choice.
+
+\paragraph{Three proxies, three deployments.}
+The three leverage proxies of \S\ref{sec:defense-proxies} are not
+competing instantiations; they are appropriate for different regimes
+that share a common structural language. Hierarchical FL with uneven
+groups uses Corollary~\ref{cor:sbm}; decentralised FL with non-symmetric
+topology uses Corollary~\ref{cor:degree}; cross-silo FL with
+heterogeneous client dataset sizes uses
+Corollary~\ref{cor:influence}. A practical deployment can blend
+proxies by passing weighted leverage vectors to
+Theorem~\ref{thm:allocation}. We do not address the question of
+\emph{which} proxy is universally best because there is no universal
+answer: the right proxy is the one that captures the dominant
+asymmetry in the deployment's structural prior.
+
+\paragraph{Honest limitations.}
+Three limitations bound the scope of our claims.
+
+\textit{Conservative bounds.}
+Theorem~\ref{thm:per-client} drops a non-negative subtractive term in
+the chain-rule decomposition (Appendix~\ref{app:thm1}) and uses the
+Cuff-Yu KL-to-MI conversion~\cite{cuff2016mi} which is loose at extreme
+$\sigma$. The bound is a valid upper bound but not tight; tighter
+conversion via Asoodeh et~al.~\cite{asoodeh2021variants} or amplified
+RDP via Wang et~al.~\cite{wang2019subsampled} would shrink the bound
+substantially under Poisson subsampling. The conservative bound is
+appropriate for a privacy guarantee (we want an upper bound on adversary
+leakage, not the actual achievable leakage). Tighter bounds are a
+follow-up direction.
+
+\textit{Heuristic proxies.}
+Corollaries~\ref{cor:degree} and~\ref{cor:influence} are heuristic; only
+Corollary~\ref{cor:sbm} carries a rigorous information-theoretic
+derivation. The heuristic proxies are validated empirically on real and
+synthetic deployments, but a tight analytical bound for either remains
+an open problem.
+
+\textit{Disjoint datasets.}
+Assumption (IA2) precludes deployments where the same individual
+contributes data to multiple clients. Cross-device FL with overlapping
+contributors (\eg a single user logged into multiple devices) violates
+this assumption; the bound becomes loose in proportion to the overlap.
+Cross-silo healthcare and industry consortia, the deployments we
+target, naturally satisfy (IA2) because each site enrols disjoint
+populations.
+
+\paragraph{Cross-pollination with active threats.}
+Our threat model is passive. Active adversaries that manipulate the
+training protocol — \eg malicious aggregators that selectively retain
+gradients, or Sybil clients that inject misleading updates — operate in
+a regime that DP-SGD fundamentally cannot bound. We expect the
+topology-aware allocation to be \emph{compatible} with active-defense
+mechanisms (Byzantine-resilient aggregators, anomaly detection) in the
+same way that DP-SGD is, but proving non-trivial guarantees in the
+active setting requires distinct machinery.
+
+\paragraph{Toward tighter theory.}
+The natural next theoretical step is to prove the Wang/Balle/Kasiviswanathan
+amplified RDP~\cite{wang2019subsampled} version of
+Theorem~\ref{thm:per-client}. Under Poisson subsampling at rate
+\(q = |B|/|\Dset_i|\), the per-round RDP scales as $q^2 \alpha/(2\sigma_i^2)$
+rather than $\alpha/(2\sigma_i^2)$. The corresponding bound would be
+\(\Tmax q_i^2 C^2 / (2\sigma_i^2 |B|^2) + \ell_i^\circ\), giving
+\emph{client-specific} amplification: clients with smaller datasets
+(higher $q_i$) gain more from amplification. This integrates naturally
+with Corollary~\ref{cor:influence}'s dataset-size leverage proxy and
+deserves a dedicated treatment.

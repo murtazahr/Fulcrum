@@ -1,0 +1,199 @@
+\section{Proof of Theorem~\ref{thm:per-client}}
+\label{app:thm1}
+
+We restate the theorem and give the full proof, organised as four
+lemmas plus an assembly step. The proof uses standard machinery — chain
+rule of mutual information, Mironov's RDP for the Gaussian
+mechanism~\cite{mironov2017rdp}, and the Cuff-Yu max-KL to MI-DP
+conversion~\cite{cuff2016mi}.
+
+\setcounter{theorem}{0}
+\renewcommand{\thetheorem}{\thesection.\arabic{theorem}}
+
+\begin{theorem}[restated]
+Under (IA1)--(IA2), for any deterministic adversary strategy $f$,
+any prior $\mathbb{P} \in \FAM_{\TOPO,\omega}$, and any client $i$:
+\[
+I_{\mathbb{P}}\big(p_i;\,\hat p_i \;\big|\; \TOPO,\omega,\{\sigma_j\}\big)
+\;\leq\;
+\frac{\Tmax C^2}{2\sigma_i^2 |B|^2}
+\;+\;
+\ell_i^\circ.
+\]
+\end{theorem}
+
+\begin{lemma}[Chain-rule decomposition]
+\label{lem:chain}
+For any random variables $X, Y, Z$:
+\[
+I(X;Y) \;\leq\; I(X;Z) + I(X;Y \mid Z).
+\]
+\end{lemma}
+\begin{proof}
+The conditioning identity gives
+\(I(X;Y) = I(X;Z) + I(X;Y \mid Z) - I(X;Z \mid Y)\); the third term is
+non-negative.
+\end{proof}
+
+\begin{lemma}[Per-round Gaussian-mechanism KL bound]
+\label{lem:perround}
+Under (IA1)--(IA2), for each round $t$ and any $D_{-i}$,
+\[
+\KL\Big(
+\mathbb{P}_{\theta_i^{(t)} \mid D_i, \theta^{(t-1)}, D_{-i}}
+\;\Big\|\;
+\mathbb{P}_{\theta_i^{(t)} \mid D_i', \theta^{(t-1)}, D_{-i}}
+\Big)
+\;\leq\; \frac{C^2}{2\sigma_i^2 |B|^2},
+\]
+for any adjacent databases $D_i, D_i'$. Consequently, by
+Cuff-Yu~\cite{cuff2016mi},
+\[
+I\big(D_i;\, \theta_i^{(t)} \;\big|\; \theta^{(t-1)}, D_{-i}\big)
+\;\leq\; \frac{C^2}{2\sigma_i^2 |B|^2}.
+\]
+\end{lemma}
+\begin{proof}
+Conditional on $\theta^{(t-1)}$ and $D_{-i}$, the round-$t$ local update
+\eqref{eq:dpsgd} is the Gaussian mechanism with sensitivity $C/|B|$
+applied to clipped per-record gradients of $D_i$. By Mironov's
+analysis~\cite{mironov2017rdp} and the standard DP-SGD machinery~\cite{abadi2016dpsgd},
+the KL divergence between adjacent mechanism outputs is bounded by
+$\Delta^2/(2s^2)$ with $\Delta = C/|B|$ and $s = \sigma_i C/|B|$, giving
+$C^2/(2\sigma_i^2 |B|^2)$. Cuff and Yu's max-KL bound on
+adjacent databases implies MI-DP with the same parameter~\cite{cuff2016mi}.
+\end{proof}
+
+\begin{lemma}[Sequential composition]
+\label{lem:composition}
+Under (IA1)--(IA2),
+\[
+I\big(D_i;\, \Theta_i \;\big|\; D_{-i}\big)
+\;\leq\;
+\sum_{t=1}^{\Tmax} I\big(D_i;\, \theta_i^{(t)} \;\big|\; \theta^{(t-1)}, D_{-i}\big)
+\;\leq\;
+\frac{\Tmax C^2}{2\sigma_i^2 |B|^2}.
+\]
+\end{lemma}
+\begin{proof}
+The MI chain rule gives
+\(I(D_i;\Theta_i \mid D_{-i}) = \sum_t I(D_i; \theta_i^{(t)} \mid \theta_i^{(<t)}, D_{-i})\).
+Conditioning on $\theta^{(t-1)}$ subsumes conditioning on
+$\theta_i^{(<t)}$ together with $D_{-i}$: the public global state
+$\theta^{(t-1)}$ is determined by the past observed $\theta_i^{(<t)}$ and
+$\Theta_{-i}^{(<t)}$, and the latter depends only on $D_{-i}$ and noise
+which is independent of $D_i$ by (IA1). The
+inequality
+\(I(D_i; \theta_i^{(t)} \mid \theta_i^{(<t)}, D_{-i})
+   \leq I(D_i; \theta_i^{(t)} \mid \theta^{(t-1)}, D_{-i})\)
+follows because the larger conditioning set $\theta^{(t-1)}$ provides
+strictly more information that is independent of $D_i$, so removes more
+shared randomness from the MI between $D_i$ and the round-$t$ update.
+Apply Lemma~\ref{lem:perround} per round and sum.
+\end{proof}
+
+\begin{lemma}[Lateral-leakage bound]
+\label{lem:lateral}
+Under (IA2),
+\(I(p_i;\, D_{-i}) \leq \ell_i^\circ\).
+\end{lemma}
+\begin{proof}
+Direct from the definition of $\ell_i^\circ$ as the supremum over
+priors in $\FAM_{\TOPO,\omega}$ (Definition~\ref{def:leverage}).
+\end{proof}
+
+\paragraph{Assembling the theorem.}
+Combining the lemmas:
+\begin{align*}
+I(p_i;\hat p_i \mid \cdot)
+&\leq I(p_i;\Theta \mid \cdot)
+  && \text{(data processing on }f\text{)} \\
+&\leq I(p_i;D_{-i}) + I(p_i;\Theta \mid D_{-i})
+  && \text{(Lemma~\ref{lem:chain})} \\
+&\leq \ell_i^\circ + I(p_i;\Theta_i \mid D_{-i})
+  && \text{(Lemma~\ref{lem:lateral} + (IA1) for }\Theta_{-i}\text{)} \\
+&\leq \ell_i^\circ + I(D_i;\Theta_i \mid D_{-i})
+  && \text{(data processing on } D_i \to p_i \text{)} \\
+&\leq \ell_i^\circ + \frac{\Tmax C^2}{2\sigma_i^2 |B|^2}
+  && \text{(Lemma~\ref{lem:composition}).}
+\end{align*}
+The conditioning on $\TOPO, \omega, \{\sigma_j\}$ is preserved
+throughout because these quantities are constants of the deployment
+(not random variables in our model). \qed
+
+\section{Proof of Theorem~\ref{thm:allocation}}
+\label{app:thm2}
+
+The optimisation problem is
+\(\min \max_i [a/\sigma_i^2 + \ell_i^\circ]\) subject to
+$\sum_i \sigma_i^2 \leq U, \sigma_i^2 > 0$. The objective is
+non-smooth so we reformulate via slack variable $K$:
+\begin{equation}
+\min_{K, \{\sigma_i^2 > 0\}} K
+\quad\text{s.t.}\quad
+a/\sigma_i^2 + \ell_i^\circ \leq K \;\forall i,
+\quad \sum_i \sigma_i^2 \leq U.
+\label{eq:opt-reform}
+\end{equation}
+The objective is linear in $K$ and the constraints are convex (since
+$1/\sigma^2$ is convex on $\sigma^2>0$ and the budget constraint is
+linear). Slater's condition holds at the strictly feasible interior
+point $\sigma_i^2 = U/(2n)$, and the per-client constraint is satisfied
+at $K = 2na/U + \max_i \ell_i^\circ$. Strong duality therefore holds
+and the KKT conditions are necessary and sufficient.
+
+\begin{lemma}[KKT optimality]
+\label{lem:kkt}
+The solution to \eqref{eq:opt-reform} satisfies
+\(\sigma_i^{*\,2} = a / (K^\star - \ell_i^\circ)\) for all $i$, with
+\(K^\star\) the unique value satisfying
+\(\sum_i a/(K^\star - \ell_i^\circ) = U\) and \(K^\star > \max_i \ell_i^\circ\).
+\end{lemma}
+\begin{proof}
+Lagrangian:
+\(\mathcal{L} = K + \sum_i \mu_i(a/\sigma_i^2 + \ell_i^\circ - K)
+                + \lambda(\sum_i \sigma_i^2 - U)\).
+Stationarity in $K$: $1 - \sum_i \mu_i = 0$ so $\sum_i \mu_i = 1$.
+Stationarity in $\sigma_i^2$:
+$-\mu_i a /\sigma_i^4 + \lambda = 0$ giving
+$\sigma_i^{*\,2} = \sqrt{\mu_i a / \lambda}$. Since $\sigma_i^2 = 0$ would
+require $\mu_i = 0$ which forces $a/\sigma_i^2 + \ell_i^\circ = +\infty
+\not\leq K$, every per-client constraint must be active at the optimum:
+$a/\sigma_i^{*\,2} + \ell_i^\circ = K^\star$ for all $i$, giving the
+closed form. Uniqueness of $K^\star$: define
+\(g(K) = \sum_i a/(K - \ell_i^\circ)\) on $K > \max_i \ell_i^\circ$.
+This is continuous and strictly decreasing, with
+\(g(K) \to \infty\) as $K \to \max_i \ell_i^\circ^+$ and
+\(g(K) \to 0\) as $K \to \infty$. By the intermediate value theorem
+there is a unique $K^\star$ with $g(K^\star) = U$ for any $U > 0$.
+\end{proof}
+
+\begin{corollary}[Strict improvement, restated]
+\label{cor:strict-restated}
+Let $K_{\mathrm{uniform}} = an/U + \max_i \ell_i^\circ$, the worst-case
+bound at uniform allocation $\sigma_i^2 = U/n$. Then
+\(K^\star \leq K_{\mathrm{uniform}}\) with equality iff all
+$\ell_i^\circ$ are equal.
+\end{corollary}
+\begin{proof}
+Uniform allocation is feasible for \eqref{eq:opt-reform} with
+objective $K_{\mathrm{uniform}}$, so $K^\star \leq K_{\mathrm{uniform}}$.
+Equality requires uniform allocation to satisfy KKT, which by
+Lemma~\ref{lem:kkt} requires
+$a/(U/n) + \ell_i^\circ \equiv K^\star$ for all $i$, \ie $\ell_i^\circ$
+constant.
+\end{proof}
+
+\paragraph{Edge case: small $U$.}
+The KKT solution requires $K^\star > \max_i \ell_i^\circ$, equivalently
+$U > n a/(K - \ell_{\max})$ for the relevant $K$. For very small $U$
+the optimum saturates with some $\sigma_i^2 \to 0$ at low-leverage
+clients and most of the budget concentrated at high-leverage ones; in
+practice this regime is below the deployment-relevant range and we do
+not address it further.
+
+\paragraph{Computational note.}
+Solving \eqref{eq:budget-eq} numerically via 1-D bisection on $K$ is
+$O(n \log(1/\epsilon))$ for tolerance $\epsilon$, trivial for $n \leq
+500$. The implementation is in
+\texttt{fulcrum/dp/allocation.py:optimal\_allocation}.

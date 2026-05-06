@@ -1,0 +1,152 @@
+%% Fulcrum — Topology-Aware Differential Privacy Allocation for Federated Learning
+%% Target venue: ACM Transactions on Privacy and Security (TOPS)
+%%
+%% Source layout: see ./README.md
+%% Build:         see ./Makefile  (latexmk -pdf main.tex)
+
+\documentclass[manuscript,screen]{acmart}
+
+\AtBeginDocument{%
+  \providecommand\BibTeX{{\rmfamily B\kern-.05em\textsc{i\kern-.025em b}\kern-.08emT\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}%
+}
+
+% --- Math, theorems, algorithms ---
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{thmtools}
+
+% --- Tables and figures ---
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{makecell}
+
+% --- Other ---
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{cite}
+
+% --- Theorem environments ---
+\declaretheorem[name=Theorem,numberwithin=section]{theorem}
+\declaretheorem[name=Lemma,sibling=theorem]{lemma}
+\declaretheorem[name=Corollary,sibling=theorem]{corollary}
+\declaretheorem[name=Proposition,sibling=theorem]{proposition}
+\declaretheorem[name=Definition,sibling=theorem,style=definition]{definition}
+
+% --- Macros ---
+\newcommand{\eg}{\textit{e.g.,}\xspace}
+\newcommand{\ie}{\textit{i.e.,}\xspace}
+\newcommand{\cf}{cf.\xspace}
+\newcommand{\TADI}{\textsc{TADI}\xspace}
+\newcommand{\Fulcrum}{\textsc{Fulcrum}\xspace}
+\newcommand{\dataA}{Setting~A\xspace}
+\newcommand{\dataB}{Setting~B\xspace}
+\newcommand{\dataC}{Setting~C\xspace}
+\newcommand{\KL}{D_{\mathrm{KL}}}
+\newcommand{\RDP}{\mathrm{RDP}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Adv}{\mathcal{A}}
+\newcommand{\Cs}{\mathcal{C}_{s}}
+\newcommand{\Dset}{\mathcal{D}}
+\newcommand{\TOPO}{\mathcal{G}}
+\newcommand{\OBS}{\mathcal{O}}
+\newcommand{\KNW}{\mathcal{K}}
+\newcommand{\FAM}{\mathcal{F}}
+\newcommand{\Tmax}{T_{\max}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\PLACE}[1]{\textcolor{red!75!black}{\textbf{[#1]}}}
+
+% --- ACM metadata ---
+\acmJournal{TOPS}
+\setcopyright{acmlicensed}
+\copyrightyear{2026}
+\acmYear{2026}
+\acmDOI{XXXXXXX.XXXXXXX}
+\acmISBN{XXX-X-XXXX-XXXX-X}
+
+\begin{document}
+
+\title{Fulcrum: Topology-Aware Differential Privacy Allocation\\for Federated Learning}
+
+\author{Murtaza Rangwala}
+\email{rangwalam@unimelb.edu.au}
+\orcid{0009-0003-4578-8671}
+\affiliation{%
+  \institution{The University of Melbourne}
+  \city{Melbourne}
+  \country{Australia}
+}
+
+\author{Richard O. Sinnott}
+\email{rsinnott@unimelb.edu.au}
+\orcid{0000-0001-5998-222X}
+\affiliation{%
+  \institution{The University of Melbourne}
+  \city{Melbourne}
+  \country{Australia}
+}
+
+\author{Rajkumar Buyya}
+\email{rbuyya@unimelb.edu.au}
+\orcid{0000-0001-9754-6496}
+\affiliation{%
+  \institution{The University of Melbourne}
+  \city{Melbourne}
+  \country{Australia}
+}
+
+\input{sections/00_abstract}
+
+\begin{CCSXML}
+<ccs2012>
+   <concept>
+       <concept_id>10002978.10003006.10003013</concept_id>
+       <concept_desc>Security and privacy~Distributed systems security</concept_desc>
+       <concept_significance>500</concept_significance>
+   </concept>
+   <concept>
+       <concept_id>10002978.10003022</concept_id>
+       <concept_desc>Security and privacy~Privacy-preserving protocols</concept_desc>
+       <concept_significance>500</concept_significance>
+   </concept>
+   <concept>
+       <concept_id>10010147.10010257.10010258.10010259</concept_id>
+       <concept_desc>Computing methodologies~Distributed artificial intelligence</concept_desc>
+       <concept_significance>300</concept_significance>
+   </concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Security and privacy~Distributed systems security}
+\ccsdesc[500]{Security and privacy~Privacy-preserving protocols}
+\ccsdesc[300]{Computing methodologies~Distributed artificial intelligence}
+
+\keywords{federated learning, differential privacy, topology-aware allocation,
+distributional inference, mutual information bound}
+
+\maketitle
+
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_threat_model}
+\input{sections/04_attack}
+\input{sections/05_defense}
+\input{sections/06_experiments}
+\input{sections/07_discussion}
+\input{sections/08_conclusion}
+
+\begin{acks}
+This work is supported by the Australian Research Council (ARC) through
+Discovery Project grant DP240102088.
+\end{acks}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\appendix
+\input{sections/appendix_proofs}
+
+\end{document}

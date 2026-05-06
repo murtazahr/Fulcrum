@@ -1,0 +1,243 @@
+\section{Experimental Evaluation}
+\label{sec:experiments}
+
+We evaluate \Fulcrum on three federated benchmarks chosen to span the
+deployment regimes of \S\ref{sec:defense-regimes}. Setting~A is the
+realism anchor — Fed-ISIC2019 dermoscopy classification with native
+hospital-site partitioning. Setting~B is a small-$n$ binary task on
+Fed-Heart-Disease providing a forward-looking decentralised use case.
+Setting~C is a synthetic CIFAR-10 setup with parametric topology--data
+coupling, used as the statistical vehicle: it provides the only
+configuration in which AUROC is a meaningful metric (\(n \geq 20\)) and
+allows clean control over the η coupling parameter that drives lateral
+leakage. The combination is the canonical pattern of cross-silo FL
+benchmarks~\cite{flamby2022}: real datasets for realism, synthetic for
+statistical power.
+
+\subsection{Settings and Datasets}
+\label{sec:experiments-settings}
+
+\paragraph{Setting A — Fed-ISIC2019.}
+The Fed-ISIC2019 component of FLamby~\cite{flamby2022} comprises
+\(23{,}247\) dermoscopy images from six hospital sites with eight skin
+lesion classes (melanoma is the designated sensitive class \(\Cs\)).
+The native partitioning has highly heterogeneous site sizes
+(\([9930, 3163, 2691, 1807, 655, 351]\) training samples), motivating
+the dataset-size leverage proxy of Corollary~\ref{cor:influence}. We
+arrange the six sites in a two-level hierarchy with three regional
+aggregators (two sites each) following the architectural pattern
+of~\cite{liu2020hierarchical}, and train a small convolutional network
+with GroupNorm replacing BatchNorm for DP-SGD compatibility.
+
+\paragraph{Setting B — Fed-Heart-Disease.}
+The Fed-Heart-Disease component of FLamby~\cite{flamby2022} provides
+\(740\) records across four clinical centres (\([199, 172, 30, 85]\)
+training samples) with 13 clinical features and a binary heart-disease
+indicator. With only four clients, every standard $k$-NN proximity
+topology reduces to a uniform-degree configuration (ring or complete);
+the topology itself cannot break leverage symmetry. The dataset-size
+leverage proxy of Corollary~\ref{cor:influence} provides the
+only principled non-degenerate choice and gives a leverage ratio of
+$6.6\times$ across the four sites.
+
+\paragraph{Setting C — synthetic CIFAR-10 with parametric coupling.}
+We partition CIFAR-10 across $n=50$ synthetic clients using the
+$\eta$-coupled construction
+\(\Delta_i = (1-\eta)\,\tilde{\Delta}_i + \eta\,\Delta^*_{\phi(i)}\),
+where $\tilde{\Delta}_i \sim \mathrm{Dirichlet}(\alpha)$ provides
+the standard non-IID heterogeneity component~\cite{hsu2019dirichlet},
+$\Delta^*_{\phi(i)}$ is concentrated on class
+\(\phi(i)\bmod K\), and $\eta \in [0,1]$ interpolates between IID
+($\eta=0$) and fully position-determined ($\eta=1$). The construction
+is deliberately synthetic to support the
+$\eta$-sweep of \S\ref{sec:experiments-eta}; statistical-power claims
+in this section refer to Setting~C. Topology is varied across
+\{ring, line, hierarchical, star\} as an experimental axis to expose the
+full leverage-asymmetry spectrum.
+
+\subsection{Methodology}
+\label{sec:experiments-methodology}
+
+\paragraph{Implementation.}
+DP-SGD~\cite{abadi2016dpsgd} is implemented via Opacus with
+Poisson sampling, the RDP accountant~\cite{mironov2017rdp}, and
+gradient clipping at $C=1.0$. Per-client noise scales $\sigma_i$ are
+allocated according to either Theorem~\ref{thm:allocation} (the
+\Fulcrum allocation) or uniformly ($\sigma_i=\sqrt{U/n}$). Each
+configuration is run with at least three independent seeds; we report
+mean and 95\% confidence intervals throughout.
+
+\paragraph{Sweeps.}
+For each setting we sweep the utility budget
+\(U \in \{0.05, 0.1, 0.2, 0.4, 0.8, 1.6\}\), observation window
+\(\Tmax \in \{25, 50, 100\}\), and allocation strategy in
+\{\Fulcrum, uniform\}, giving a $6 \times 3 \times 2 = 36$-cell factorial
+per setting. For Setting~C we additionally sweep
+\(\eta \in \{0, 0.25, 0.5, 0.75, 1.0\}\) at fixed $U$ and $\Tmax$ and
+across four topologies, yielding the four-panel $\eta$-sweep figure
+described below.
+
+\paragraph{Empirical-attack evaluation.}
+For each completed target run we apply the four-channel \TADI attack
+described in \S\ref{sec:attack}. \TADI is shadow-trained on a separate
+sweep of $50$ shadow runs per setting (no DP, varying $\eta$ and seed
+combinations), producing one regressor per channel ablation. The
+attack-evaluation pass joins per-(target run, channel) calibration loss
+and attack lift with the run's privacy bound $K^\star$, allowing us to
+test whether the predicted privacy bound correlates with measured
+adversary performance.
+
+\subsection{Empirical Validation of Theorem~\ref{thm:allocation}}
+\label{sec:experiments-eta}
+
+The $\eta$-sweep on Setting~C provides the cleanest test of
+Theorem~\ref{thm:allocation} because every configuration has
+analytically computable expected leverage. We sweep
+$\eta \in \{0, 0.25, 0.5, 0.75, 1.0\}$ across topologies
+\{ring, line, hierarchical with sizes $[20,15,10,3,2]$, star\},
+reporting both privacy bound $K^\star$ and the topology-aware vs.\
+uniform allocation gap.
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.92\linewidth}{
+\centering\vspace{0.6em}
+\PLACE{\textbf{Figure~\ref{fig:eta-sweep}: $\eta$-sweep across four
+topologies (Setting~C).}\\
+Four panels (ring, line, hierarchical, star). X-axis: $\eta$ in
+$[0,1]$. Y-axis: worst-case privacy bound $K^\star$ in nats. Two curves
+per panel: \Fulcrum (blue) and uniform allocation (red), with $95\%$
+confidence bands across seeds. Inset: per-$\eta$ gap
+$K_{\mathrm{uniform}} - K^\star$.}\vspace{0.6em}
+}}
+\caption{$\eta$-sweep on Setting~C. The IID-null condition ($\eta=0$)
+gives identical curves; the gap grows monotonically with $\eta$ on
+hierarchical, asymptotes near $a n/U$ on star, and is small but
+positive on line. Ring is the documented degeneracy of
+Corollary~\ref{cor:strict}.}
+\label{fig:eta-sweep}
+\end{figure}
+
+The figure tests three predictions of the theory:
+(i)~at $\eta = 0$ (IID null) the two curves should coincide on every
+topology; (ii)~the gap should grow with $\eta$ wherever the topology
+admits non-uniform leverage; (iii)~ring topology should give zero gap
+at every $\eta$ (Corollary~\ref{cor:strict}).
+\PLACE{Confirm the three predictions empirically and report the
+measured gap values for the four topologies.}
+
+\subsection{Privacy--Utility Pareto Frontier}
+\label{sec:experiments-pareto}
+
+\begin{figure*}[t]
+\centering
+\fbox{\parbox{0.95\linewidth}{
+\centering\vspace{0.6em}
+\PLACE{\textbf{Figure~\ref{fig:pareto}: Privacy--utility Pareto
+frontier per setting.}\\
+Three panels (Setting~A, Setting~B, Setting~C). X-axis: privacy bound
+$K^\star$ in nats. Y-axis: test loss (or $1 - $ accuracy). Curves
+faceted by $\Tmax$. Two curves per panel: \Fulcrum (blue circles) and
+uniform DP-SGD (red squares). Reference markers: no-defense baseline,
+TADI attack-lift overlay for selected $(U, \Tmax)$ points. Pareto
+fronts highlighted; area between curves reported as scalar advantage.}
+\vspace{0.6em}}}
+\caption{Privacy--utility Pareto frontiers. The \Fulcrum curve dominates
+uniform allocation across the budget range whenever leverage is
+non-uniform.}
+\label{fig:pareto}
+\end{figure*}
+
+\PLACE{Report the area-between-curves advantage for each setting,
+the regime in which the gap is largest, and how the empirical \TADI
+attack lift correlates with $K^\star$.}
+
+\subsection{TADI Channel Ablation}
+\label{sec:experiments-channels}
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.92\linewidth}{
+\centering\vspace{0.6em}
+\PLACE{\textbf{Figure~\ref{fig:channels}: \TADI attack lift per
+channel ablation across the three settings.}\\
+Bar chart with four bars per setting (one per channel:
+$\Adv_1, \Adv_2^{\text{topo}}, \Adv_2^{\text{org}}, \Adv_2^{\text{full}}$).
+Y-axis: attack lift relative to constant-mean baseline. Error bars:
+$95\%$ CI across target runs.}\vspace{0.6em}}}
+\caption{Per-channel decomposition of \TADI's information advantage.
+The full-channel adversary should strictly dominate each single-channel
+adversary; the IID-null condition gives lift $\approx 0$ for all
+channels by construction.}
+\label{fig:channels}
+\end{figure}
+
+\PLACE{Report whether attack lift is significantly positive at
+$\eta > 0$, whether $\Adv_2^{\text{full}}$ strictly dominates each
+single-channel ablation, and which channel contributes most per
+setting (we expect organisational labels to dominate when groups are
+small and few; structural features to dominate when topology degrees
+are highly asymmetric).}
+
+\subsection{Robustness Ablations}
+\label{sec:experiments-ablations}
+
+\begin{table}[h]
+\centering
+\caption{Robustness ablations on Setting~C ($\eta = 0.5$, hierarchical
+topology). Mean attack lift (95\% CI) over 5~seeds.}
+\label{tab:robustness}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Variation                       & Channel $\Adv_2^{\text{full}}$ lift & Channel $\Adv_1$ lift \\
+\midrule
+\textbf{Regressor}             & & \\
+\quad LightGBM (default)       & \PLACE{x.xxx (CI)} & \PLACE{x.xxx (CI)} \\
+\quad MLP (sklearn)            & \PLACE{x.xxx (CI)} & \PLACE{x.xxx (CI)} \\
+\quad Linear (Ridge)           & \PLACE{x.xxx (CI)} & \PLACE{x.xxx (CI)} \\
+\midrule
+\textbf{Feature set}           & & \\
+\quad Raw norms only           & \PLACE{x.xxx (CI)} & \PLACE{x.xxx (CI)} \\
+\quad Aggregate only           & \PLACE{x.xxx (CI)} & \PLACE{x.xxx (CI)} \\
+\quad Full (raw + aggregate)   & \PLACE{x.xxx (CI)} & \PLACE{x.xxx (CI)} \\
+\midrule
+\textbf{Shadow data quantity}  & & \\
+\quad 100 shadow runs          & \PLACE{x.xxx (CI)} & \PLACE{x.xxx (CI)} \\
+\quad 500                      & \PLACE{x.xxx (CI)} & \PLACE{x.xxx (CI)} \\
+\quad 1000                     & \PLACE{x.xxx (CI)} & \PLACE{x.xxx (CI)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\PLACE{Replace the cells with measured values; report which design
+choices are most sensitive.}
+
+\subsection{Secure-Aggregation Extension}
+\label{sec:experiments-sa}
+
+The headline threat model assumes per-client parameter observability.
+Under secure aggregation~\cite{bonawitz2017secagg}, the adversary's view
+collapses to neighborhood-aggregated updates. We re-evaluate \TADI in
+this regime by replacing $\Theta_i$ with the local sum
+$\Theta_i^{\mathrm{agg}} = \sum_{j \in N(i)} \theta_j^{(t)}$ in the
+feature extraction step; the structural and organisational channels are
+unaffected.
+
+\PLACE{Report attack lift per channel under secure aggregation; expected
+behaviour: the parameter channel weakens substantially while the
+structural and organisational channels retain most of their lift,
+isolating the contribution of topology beyond pre-aggregation
+observation.}
+
+\subsection{Cross-Setting Transfer}
+\label{sec:experiments-transfer}
+
+We test whether Setting~C's controlled $\eta$ regime captures the
+qualitative behaviour observed on the realistic Settings~A and~B by
+calibrating Setting~C's $(\eta, \alpha, \mathrm{topology})$ to match
+the leverage profile of each realistic setting.
+
+\PLACE{Report whether the empirically observed Pareto frontier on
+calibrated Setting~C qualitatively matches the realistic-setting
+frontiers, validating the use of Setting~C as the statistical vehicle
+for headline claims.}

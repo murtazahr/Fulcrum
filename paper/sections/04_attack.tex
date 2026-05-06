@@ -1,0 +1,136 @@
+\section{The \TADI Attack}
+\label{sec:attack}
+
+\TADI (Topology-Aware Distributional Inference) is a single attack
+architecture with four channel ablations. The architecture is a learned
+regressor mapping observable inputs to per-client sensitive-class
+concentration estimates; the ablations differ only in which channels
+of $\KNW$ and $\OBS$ are exposed to the regressor. This design lets us
+quantify, per client and per metric, the marginal information value of
+each channel — which is necessary both for our paper's empirical
+contribution and for the theorem statements in \S\ref{sec:defense}
+that have to refer to specific channels.
+
+\subsection{Attack Architecture}
+\label{sec:attack-arch}
+
+Let $f_\phi : (\Theta_i, x_i) \to \hat p_i \in [0,1]$ denote the
+adversary's regressor with parameters $\phi$. Inputs are:
+
+\begin{itemize}[topsep=2pt,itemsep=2pt,leftmargin=*]
+\item $\Theta_i = (\theta_i^{(1)},\ldots,\theta_i^{(\Tmax)})$ — client
+  $i$'s observed parameter sequence. From this we extract a
+  fixed-dimensional feature vector combining per-round and
+  temporal-aggregate signals: per-round parameter norms
+  $\{\|\theta_i^{(t)}\|_2\}$, layer-wise norms, mean and standard
+  deviation, linear trend, last-round value, and pairwise cosine
+  similarities to neighboring clients' updates.
+\item $x_i \in \mathbb{R}^k$ — structural and organisational features
+  derived from $(\TOPO,\omega)$: client $i$'s degree, distance to
+  topology root, betweenness centrality, and one-hot encoding of
+  $\omega_i$.
+\end{itemize}
+
+The regressor is trained offline via the shadow-model
+framework~\cite{shokri2017membership}: the adversary simulates many
+federations on a public proxy dataset where the ground-truth $p_i$ is
+known, harvests $(\Theta_i, x_i, p_i)$ tuples across many simulated
+clients, and fits $f_\phi$ to minimise mean squared calibration loss on
+the harvested set. At test time, $f_\phi$ is applied to the target
+federation; the test-time adversary is therefore a deterministic
+function of $(\KNW,\OBS)$ as required by the threat model in
+\S\ref{sec:adv-model}.
+
+We instantiate $f_\phi$ with three regressor backends to test
+robustness: gradient-boosted trees (\textsc{LightGBM}, the default), a
+small multilayer perceptron, and ridge regression. All produce
+clipped predictions in $[0,1]$.
+
+\subsection{Channel Ablations}
+\label{sec:attack-channels}
+
+The four ablations correspond to the reference adversaries of
+\S\ref{sec:reference-adv}. They differ only in which features the
+regressor sees:
+
+\begin{description}[itemsep=2pt,leftmargin=*]
+\item[$\Adv_1$] Parameter-only. Input: parameter features extracted from
+  $\Theta_i$. Topology and organisational labels are zeroed out.
+\item[$\Adv_2^{\text{topo}}$] Structural-only. Input: structural features
+  from $(\TOPO,i)$ — degree, depth, centrality. Parameter features
+  zeroed.
+\item[$\Adv_2^{\text{org}}$] Organisational-only. Input: one-hot
+  $\omega_i$. Parameter features zeroed.
+\item[$\Adv_2^{\text{full}}$] All three concatenated.
+\end{description}
+
+A separate regressor is trained per channel on the same shadow corpus.
+This keeps the comparison apples-to-apples across channels: each
+$\hat p_i$ is the best the regressor can do given exactly that channel's
+input.
+
+\subsection{Metric Panel}
+\label{sec:attack-metrics}
+
+Per (target run, channel) pair we compute:
+
+\begin{description}[itemsep=2pt,leftmargin=*]
+\item[Calibration loss] $L_{\text{cal}}(\hat p, p) = \frac{1}{n}\sum_i (\hat p_i - p_i)^2$.
+  Primary metric. Has statistical power even at $n=4$ (Setting~B).
+\item[Constant-mean baseline]
+  $L_{\text{cal}}(\bar p, p) = \Var(p)$ where
+  $\bar p_i \equiv \frac{1}{n}\sum_j p_j$. The trivial predictor.
+\item[Attack lift]
+  $L_{\text{cal}}(\bar p, p) - L_{\text{cal}}(\hat p, p)$.
+  Positive iff the adversary extracts client-level information beyond
+  the federation aggregate; identically zero under the IID null.
+\item[Top-$k$ recovery] Fraction of true top-$k$ clients (by
+  $p_i$) in the predicted top-$k$. Bounded, interpretable.
+\item[AUROC] for the binary task
+  $y_i = \mathbb{1}[p_i > \tau]$. Reported only when $n \geq 20$
+  (Setting~C).
+\end{description}
+
+Statistical significance is assessed via paired bootstrap on calibration
+loss across seeds, with multiple-comparison correction across the four
+channels.
+
+\subsection{Algorithmic Summary}
+\label{sec:attack-algo}
+
+\begin{algorithm}[t]
+\caption{\TADI{}, full-channel variant ($\Adv_2^{\text{full}}$)}
+\label{alg:tadi}
+\begin{algorithmic}[1]
+\Require Shadow corpus $\mathcal{S} = \{(\Theta_i, x_i, p_i)\}$,
+         target observations $(\Theta^{\text{tgt}}, \TOPO, \omega, \{\sigma_j\})$,
+         regressor backend $\mathcal{B}$
+\Ensure  Per-client estimates $\{\hat p_i\}$ and metric panel
+\State Extract parameter features $\phi_{\Theta}^{(i)}$ from
+       each $\Theta_i \in \mathcal{S}$
+\State Build structural features $\phi_x^{(i)} = [\deg(i), \mathrm{depth}(i), \mathrm{cent}(i), \mathrm{onehot}(\omega_i)]$
+\State Train $f \gets \mathcal{B}.\mathrm{fit}(
+       \{[\phi_{\Theta}^{(i)}; \phi_x^{(i)}]\}, \{p_i\})$
+\For{client $i$ in target federation}
+  \State $\hat p_i \gets \mathrm{clip}_{[0,1]}\big( f([\phi_{\Theta}^{(\text{tgt},i)}; \phi_x^{(\text{tgt},i)}]) \big)$
+\EndFor
+\State \Return $\{\hat p_i\}$ along with $L_{\text{cal}}, L_{\text{cal}}(\bar p,p),
+       \text{lift}, \mathrm{top}\text{-}k, \mathrm{AUROC}$
+\end{algorithmic}
+\end{algorithm}
+
+The other three ablations replace the concatenation in line~3 with the
+appropriate channel subset.
+
+\subsection{What \TADI is and is not}
+\label{sec:attack-positioning}
+
+\TADI is not novel as a learning architecture: it is shadow-trained
+supervised regression on parameter and structural features. The
+contribution is the empirical \emph{characterisation} that this attack
+yields under DP-SGD across the four channel ablations, on three FL
+benchmarks, with explicit attribution of marginal information value to
+parameter, structural, and organisational components. To our knowledge
+no prior work isolates these channels per client. The attack also serves
+as the empirical comparator against which we validate the predictive
+power of the privacy bound proved in \S\ref{sec:defense}.

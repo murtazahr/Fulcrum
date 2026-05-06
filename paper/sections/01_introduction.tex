@@ -1,0 +1,107 @@
+\section{Introduction}
+\label{sec:intro}
+
+Federated learning (FL) was conceived as a way to learn from data that
+cannot be moved: hospitals coordinate without sharing
+records~\cite{sheller2020medicine,dayan2021covid}, pharmaceutical
+companies coordinate without disclosing proprietary chemistry~\cite{melloddy2024},
+and industrial-scale deployments coordinate across millions of
+devices~\cite{bonawitz2019sysml}. The protective premise is simple:
+clients share model updates, not raw data, so privacy follows from the
+information bottleneck of communication. The literature on privacy
+\emph{within} that bottleneck is rich. Gradient inversion can reconstruct
+training samples from un-noised gradient observations~\cite{zhu2019dlg,geiping2020inverting};
+membership inference reveals participation given black-box query
+access~\cite{shokri2017membership}; collaborative-learning leakage
+extracts data properties from the joint update
+sequence~\cite{melis2019exploiting}. Differentially private stochastic
+gradient descent (DP-SGD)~\cite{abadi2016dpsgd} and its federated variant
+DP-FedAvg~\cite{mcmahan2018dpfedavg} bound this content-level leakage and
+have become the canonical defense, with R\'enyi-DP composition giving
+the tightest practical accounting~\cite{mironov2017rdp}.
+
+What that programme does \emph{not} address is the topology around the
+content. Real deployments organise clients into structured graphs ---
+hierarchical client--edge--cloud cascades~\cite{liu2020hierarchical,abad2020icassp},
+gossip-based peer-to-peer protocols~\cite{roy2019braintorrent,hegedus2021decentralized},
+DAG-aggregation variants~\cite{beilharz2021dag} --- because no single
+flat protocol meets every constraint. The topology choice is treated
+as a performance lever (bandwidth, latency, scalability)~\cite{wang2021fieldguide};
+its privacy implications have remained largely unexamined. An adversary
+who can observe per-round updates and knows the topology has access to
+two information channels that DP-SGD does not bound: the structural
+position of each client in the communication graph, and the
+organisational membership encoded by deployment design.
+
+This paper studies that gap. We identify a class of \emph{topology-conditional}
+distributional inference attacks against
+DP-protected FL, prove a per-client mutual-information bound that
+applies in the presence of these adversaries, and derive a noise
+allocation that is provably optimal under that bound. Our two
+contributions are therefore one attack and one defense, paired by
+construction.
+
+\paragraph{Attack: \TADI.}
+\TADI (Topology-Aware Distributional Inference) is a
+shadow-trained~\cite{shokri2017membership} regressor that maps
+\emph{(parameter sequence, structural feature vector, organisational
+label)} to an estimate of each client's sensitive-class concentration
+$p_i$. We instantiate four channel ablations
+($\Adv_1, \Adv_2^{\text{topo}}, \Adv_2^{\text{org}}, \Adv_2^{\text{full}}$)
+that isolate the contribution of each information channel, and we
+calibrate against a constant-mean baseline so that the IID-null
+condition (no topology--data correlation) gives zero attack lift by
+construction.
+
+\paragraph{Defense: \Fulcrum.}
+We name the defense after the balance point of a lever: under a fixed
+utility budget, the privacy bound for high-leverage clients (those whose
+structural position exposes more lateral leakage) is held in
+equilibrium with that of low-leverage clients by allocating noise
+asymmetrically. Concretely, we prove that the per-client conditional
+mutual information satisfies
+\begin{equation*}
+I(p_i;\hat{p}_i \mid \TOPO,\omega,\{\sigma_j\})
+\;\leq\;
+\underbrace{\frac{\Tmax C^2}{2\sigma_i^2 |B|^2}}_{\text{controllable}}
+\;+\;
+\underbrace{\ell_i^\circ}_{\text{prior coupling}}
+\end{equation*}
+and that the closed-form min-max optimal allocation
+$\sigma_i^{*2} = a/(K^\star - \ell_i^\circ)$ \emph{strictly dominates}
+the uniform DP-SGD allocation whenever the structural-leverage scores
+$\ell_i^\circ$ are non-uniform across clients (Theorems~\ref{thm:per-client}
+and~\ref{thm:allocation}). The leverage abstraction admits three
+practical proxies covering the canonical deployment regimes.
+
+\paragraph{Contributions.}
+\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=2pt]
+\item A formal threat model for topology-conditional distributional
+  inference under DP-SGD, with a per-client metric (calibration loss /
+  attack lift over a constant-mean baseline) that has statistical power
+  at small client counts and AUROC equivalence at larger ones
+  (\S\ref{sec:threat}).
+\item The \TADI attack with four channel ablations and a constant-mean
+  comparator, providing the first per-channel decomposition of
+  topology-conditional leakage in DP-FL (\S\ref{sec:attack}).
+\item Theorems~\ref{thm:per-client} and~\ref{thm:allocation} establishing
+  an additive MI bound and a closed-form balanced min-max allocation,
+  with three principled leverage proxies and an explicit
+  \emph{regime-of-applicability} characterisation
+  (\S\ref{sec:defense}).
+\item Empirical evaluation on Fed-ISIC2019, Fed-Heart-Disease, and
+  synthetic CIFAR-10 with parametric coupling, validating that the
+  predicted privacy-bound gap matches measured attack lift across
+  topologies (\S\ref{sec:experiments}).
+\end{enumerate}
+
+\paragraph{Out of scope.}
+We assume an honest-but-curious passive adversary; active manipulation
+of the protocol, malicious aggregators, and Sybil attacks are out of
+scope and complementary to the threats we address.
+Secure-aggregation~\cite{bonawitz2017secagg} reduces our adversary's
+observations to neighborhood sums and changes the threat model;
+we evaluate this as an extension experiment rather than the headline
+threat. Our results assume static topologies and disjoint client
+datasets; dynamic reconfiguration and overlapping client populations
+are flagged as limitations in \S\ref{sec:discussion}.
