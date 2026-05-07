@@ -250,22 +250,23 @@ regimes are summarised in Table~\ref{tab:regimes}.
 \begin{table}[h]
 \centering
 \caption{When the topology-aware allocation strictly improves over
-uniform DP-SGD. Empirical validation in \S\ref{sec:experiments}.}
+uniform DP-SGD. Measured gap values are
+$K_{\mathrm{uniform}} - K^\star$ at $\eta=1$ on Setting~C
+($n=50$, $\Tmax=100$, $|B|=64$, $C=1.0$, $U=0.5$); the predicted
+star asymptote is $an/U = 1.2207$.}
 \label{tab:regimes}
-\begin{tabular}{@{}lll@{}}
+\begin{tabular}{@{}lllc@{}}
 \toprule
-Topology / structure & Leverage uniform? & Strict gap over uniform? \\
+Topology / structure & Leverage uniform? & Strict gap over uniform? & Measured gap (nats) \\
 \midrule
-Ring (uniform degree) & Yes & No (degenerate; \cf~Cor.~\ref{cor:strict}) \\
-Complete (uniform degree) & Yes & No (degenerate) \\
-Line (asymmetric endpoints) & No & Small (typically $<0.05$ nats) \\
-Hierarchical with balanced groups & Yes & No (degenerate) \\
-Hierarchical with uneven groups & No & Moderate (depends on size variance) \\
-Star (1 hub + $n-1$ leaves) & No & Large; saturates at $\sim an/U$ \\
-Cross-silo with heterogeneous $|\Dset_i|$ & No & Strong (\cf~Cor.~\ref{cor:influence}) \\
+Ring (uniform degree) & Yes & No (degenerate; \cf~Cor.~\ref{cor:strict}) & $0.0000$ \\
+Complete (uniform degree) & Yes & No (degenerate) & --- \\
+Line (asymmetric endpoints) & No & Small & $0.0242$ \\
+Hierarchical with balanced groups & Yes & No (degenerate) & --- \\
+Hierarchical with uneven groups\footnotemark[1] & No & Moderate & $0.4555$ \\
+Star (1 hub + $n-1$ leaves) & No & Large; saturates at $\sim an/U$ & $1.1958$ \\
+Cross-silo with heterogeneous $|\Dset_i|$ & No & Strong (\cf~Cor.~\ref{cor:influence}) & \PLACE{pending} \\
 \bottomrule
 \end{tabular}
+\footnotetext[1]{Region sizes $[20,15,10,3,2]$; see \S\ref{sec:experiments-eta}.}
 \end{table}
-
-\PLACE{Replace the qualitative entries in Table~\ref{tab:regimes} with
-measured gap values once Stage~6 sweeps complete.}
