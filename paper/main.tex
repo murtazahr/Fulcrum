@@ -19,15 +19,17 @@
 % --- Tables and figures ---
 \usepackage{booktabs}
 \usepackage{multirow}
-\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
 \usepackage{graphicx}
 \usepackage{array}
 \usepackage{makecell}
 
 % --- Other ---
+% NOTE: acmart manages its own bibliography (\bibliographystyle{ACM-Reference-Format}),
+% so do NOT load the `cite` package — it conflicts with acmart and produces dozens of
+% class errors. Likewise, acmart's documentation forbids `subfig`; use `subcaption` if
+% sub-figures are needed later.
 \usepackage{xcolor}
 \usepackage{enumitem}
-\usepackage{cite}
 
 % --- Theorem environments ---
 \declaretheorem[name=Theorem,numberwithin=section]{theorem}
