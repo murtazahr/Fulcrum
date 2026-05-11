@@ -129,28 +129,56 @@ measured gap values for the four topologies.}
 \subsection{Privacy--Utility Pareto Frontier}
 \label{sec:experiments-pareto}
 
+We sweep the utility budget $U \in \{0.025, 0.05, 0.1, 0.2, 0.4, 0.8\}$
+and observation window $\Tmax \in \{20, 50, 100\}$ across both allocation
+strategies, with three seeds per cell, and report per-setting results
+below as they complete. The framing departs from a conventional
+$(K^\star,\text{loss})$ Pareto plot for the following reason: at fixed
+$\Tmax$ in the deployment-grade regime, test loss is dominated by
+$\Tmax$ and seed variance, not by allocation; the strict dominance
+relation Corollary~\ref{cor:strict} predicts therefore manifests as a
+\emph{horizontal} shift in $K^\star$ at matched $U$ rather than a
+vertical shift in loss. We split the evidence accordingly: a privacy
+line plot ($U \to K^\star$, one panel per $\Tmax$) for the dominance
+claim, and a separate utility-consistency table for the
+``defense costs no utility'' claim.
+
+\paragraph{Setting~B (Fed-Heart-Disease, dataset-size proxy).}
+With 108 runs over the factorial grid, Figure~\ref{fig:pareto-b} shows
+the topology-aware allocation strictly below uniform at every
+$(U, \Tmax)$ cell. The absolute gap ranges from $0.13$ to $0.63$ nats
+and the relative gap from $1.9\%$ to $14.9\%$, with the largest
+relative reduction at small $U$ (strong privacy) on the shortest
+observation window. The cross-silo dataset-size leverage proxy of
+Corollary~\ref{cor:influence} drives the asymmetry (native FLamby site
+sizes $[199, 172, 30, 85]$, $6.6\times$ ratio).
+Table~\ref{tab:util-consistency-b} reports the matched-pair utility
+comparison: across all 18 paired $(U, \text{seed})$ configurations at
+each $\Tmax$, the mean accuracy gap is below $0.3$ percentage points
+and collapses to zero at $\Tmax = 100$, with the paired $t$-test
+unable to reject equality at any tested $\Tmax$. The privacy gain is
+therefore obtained without measurable utility cost.
+
 \begin{figure*}[t]
 \centering
-\fbox{\parbox{0.95\linewidth}{
-\centering\vspace{0.6em}
-\PLACE{\textbf{Figure~\ref{fig:pareto}: Privacy--utility Pareto
-frontier per setting.}\\
-Three panels (Setting~A, Setting~B, Setting~C). X-axis: privacy bound
-$K^\star$ in nats. Y-axis: test loss (or $1 - $ accuracy). Curves
-faceted by $\Tmax$. Two curves per panel: \Fulcrum (blue circles) and
-uniform DP-SGD (red squares). Reference markers: no-defense baseline,
-TADI attack-lift overlay for selected $(U, \Tmax)$ points. Pareto
-fronts highlighted; area between curves reported as scalar advantage.}
-\vspace{0.6em}}}
-\caption{Privacy--utility Pareto frontiers. The \Fulcrum curve dominates
-uniform allocation across the budget range whenever leverage is
-non-uniform.}
-\label{fig:pareto}
+\includegraphics[width=0.95\linewidth]{figures/pareto_setting_b.pdf}
+\caption{Setting~B privacy--utility curves. Each panel fixes $\Tmax$
+and sweeps the utility budget $U$. Topology-aware (\Fulcrum, blue
+circles) lies strictly below uniform allocation (red squares) across
+every $(U, \Tmax)$ cell; the shaded region is the absolute $K^\star$
+gap. $K^\star$ is analytic in the allocation and carries no seed
+noise.}
+\label{fig:pareto-b}
 \end{figure*}
 
-\PLACE{Report the area-between-curves advantage for each setting,
-the regime in which the gap is largest, and how the empirical \TADI
-attack lift correlates with $K^\star$.}
+\input{tables/setting_b_util.tex}
+
+\paragraph{Settings~A and~C (pending).}
+\PLACE{Figure and table to be added once the Pareto sweeps on
+Setting~A (Fed-ISIC2019, dataset-size proxy) and Setting~C (CIFAR-10
+with $\eta$ coupling, $\eta$-position proxy) complete. The reporting
+format will mirror Setting~B: per-$\Tmax$ privacy line plot plus a
+paired utility-consistency table.}
 
 \subsection{TADI Channel Ablation}
 \label{sec:experiments-channels}
