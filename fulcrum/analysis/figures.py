@@ -113,11 +113,7 @@ def plot_pareto_setting(
 
     color_map = {"topology_aware": "#1f77b4", "uniform": "#d62728"}
     marker_map = {"topology_aware": "o", "uniform": "s"}
-    # Allocation order controls draw order in the bottom panel so neither
-    # curve fully hides the other (uniform drawn first, TA on top with a
-    # small horizontal jitter for marker visibility).
     alloc_order = ["uniform", "topology_aware"]
-    x_jitter = {"uniform": 1.0 / 1.02, "topology_aware": 1.02}
 
     from matplotlib.ticker import ScalarFormatter, FixedLocator
 
@@ -126,34 +122,28 @@ def plot_pareto_setting(
         ax_priv = axes[0, col]
         ax_util = axes[1, col]
 
-        # Aggregate once per allocation; reuse for both rows + gap shading.
+        # --- Top row: U -> K* with allocation curves + shaded gap ----------
         means: dict[str, pd.DataFrame] = {}
         for alloc in alloc_order:
             sub2 = sub[sub["dp.allocation"] == alloc]
             if sub2.empty:
                 continue
             means[alloc] = (sub2.groupby(budget_col)
-                                .agg(K_mean=("K_star", "mean"),
-                                     acc_mean=("test_accuracy", "mean"),
-                                     acc_std=("test_accuracy", "std"),
-                                     n=("K_star", "count"))
+                                .agg(K_mean=("K_star", "mean"))
                                 .reset_index()
                                 .sort_values(budget_col))
 
-        # Top row: U -> K*  (deterministic, no error bars needed)
         for alloc in alloc_order:
             if alloc not in means:
                 continue
-            color = color_map[alloc]
-            marker = marker_map[alloc]
             agg = means[alloc]
             ax_priv.plot(
                 agg[budget_col], agg["K_mean"],
-                marker=marker, color=color, linewidth=2.0, markersize=6,
+                marker=marker_map[alloc], color=color_map[alloc],
+                linewidth=2.0, markersize=6,
                 label=alloc, zorder=3,
             )
 
-        # Shade the gap between the two K* curves
         if {"topology_aware", "uniform"}.issubset(means):
             ta = means["topology_aware"].set_index(budget_col)
             un = means["uniform"].set_index(budget_col)
@@ -163,60 +153,93 @@ def plot_pareto_setting(
                 color="#1f77b4", alpha=0.12, label="gap", zorder=1,
             )
 
-        # Bottom row: U -> accuracy
-        # Use a shaded ±1σ envelope (lighter, less visually dominant than
-        # 95% CI error bars from n=3 seeds) plus jittered marker points so
-        # both allocations are visible when the means coincide.
-        for alloc in alloc_order:
-            if alloc not in means:
-                continue
-            color = color_map[alloc]
-            marker = marker_map[alloc]
-            agg = means[alloc]
-            x_vals = agg[budget_col] * x_jitter[alloc]
-            sigma = agg["acc_std"].fillna(0.0)
-            ax_util.fill_between(
-                agg[budget_col],
-                agg["acc_mean"] - sigma,
-                agg["acc_mean"] + sigma,
-                color=color, alpha=0.10, zorder=1,
-            )
-            ax_util.plot(
-                x_vals, agg["acc_mean"],
-                marker=marker, color=color, linewidth=1.8, markersize=6,
-                label=alloc,
-                zorder=3 if alloc == "topology_aware" else 2,
-                alpha=0.95,
-            )
+        # --- Bottom row: paired accuracy delta (TA - uniform) per seed ----
+        # The strongest evidence for "allocation costs no utility" is the
+        # paired difference centred at zero with seed-spread bounded.
+        # Pair TA and uniform runs at matched (U, seed) and plot every
+        # individual delta, plus the per-U mean delta with a 95% CI.
+        seed_col = "experiment.seed"
+        if seed_col not in sub.columns:
+            ax_util.text(0.5, 0.5, "(seed column missing)",
+                         ha="center", va="center", transform=ax_util.transAxes)
+        else:
+            paired = (sub.pivot_table(
+                          values="test_accuracy",
+                          index=[budget_col, seed_col],
+                          columns="dp.allocation",
+                          aggfunc="mean")
+                        .dropna(how="any")
+                        .reset_index())
+            if {"topology_aware", "uniform"}.issubset(paired.columns):
+                paired["delta"] = paired["topology_aware"] - paired["uniform"]
+                # Per-U summary
+                summary = (paired.groupby(budget_col)["delta"]
+                                 .agg(mean="mean", std="std", n="count")
+                                 .reset_index()
+                                 .sort_values(budget_col))
+                # Zero reference
+                ax_util.axhline(0.0, color="gray", linewidth=0.8,
+                                linestyle="--", zorder=1)
+                # Individual seed deltas: scatter with light jitter
+                rng = np.random.default_rng(0)
+                jitter = rng.uniform(-0.04, 0.04, size=len(paired))
+                ax_util.scatter(
+                    paired[budget_col] * (1.0 + jitter),
+                    paired["delta"],
+                    color="#444", alpha=0.45, s=14, zorder=2,
+                    label="per-seed",
+                )
+                # Per-U mean with 95% CI envelope
+                ci = (1.96 * summary["std"].fillna(0.0)
+                      / np.sqrt(summary["n"].clip(lower=1)))
+                ax_util.fill_between(
+                    summary[budget_col],
+                    summary["mean"] - ci, summary["mean"] + ci,
+                    color="#1f77b4", alpha=0.15, zorder=1, label="mean ± 95% CI",
+                )
+                ax_util.plot(
+                    summary[budget_col], summary["mean"],
+                    marker="D", color="#1f77b4",
+                    linewidth=1.8, markersize=6, zorder=3, label="mean",
+                )
 
-        # Privacy-axis cosmetics: log scale, plain numerals on ticks
+        # --- Privacy-axis cosmetics --------------------------------------
         ax_priv.set_title(f"$T_{{\\max}}$ = {int(t_max)}")
         ax_priv.set_xscale("log")
         ax_priv.set_yscale("log")
         ax_priv.set_ylabel(r"Privacy bound $K^\star$ (nats)" if col == 0 else "")
-        k_range = pd.concat([m["K_mean"] for m in means.values()])
-        k_lo, k_hi = k_range.min(), k_range.max()
-        # Pick "nice" log ticks within range — 1, 2, 5, 10, 20, 50, ...
-        nice = [1, 2, 3, 5, 7, 10, 15, 20, 30, 50, 70]
-        ticks = [t for t in nice if k_lo / 1.2 <= t <= k_hi * 1.2]
-        if len(ticks) >= 2:
-            ax_priv.yaxis.set_major_locator(FixedLocator(ticks))
-            ax_priv.yaxis.set_major_formatter(ScalarFormatter())
-            ax_priv.yaxis.set_minor_locator(FixedLocator([]))
+        if means:
+            k_range = pd.concat([m["K_mean"] for m in means.values()])
+            k_lo, k_hi = k_range.min(), k_range.max()
+            nice = [1, 2, 3, 5, 7, 10, 15, 20, 30, 50, 70]
+            ticks = [t for t in nice if k_lo / 1.2 <= t <= k_hi * 1.2]
+            if len(ticks) >= 2:
+                ax_priv.yaxis.set_major_locator(FixedLocator(ticks))
+                ax_priv.yaxis.set_major_formatter(ScalarFormatter())
+                ax_priv.yaxis.set_minor_locator(FixedLocator([]))
         ax_priv.legend(loc="upper right", fontsize=8, framealpha=0.85)
 
-        # Utility-axis cosmetics
+        # --- Shared U-axis cosmetics: explicit ticks at sampled values ---
+        u_values = sorted(sub[budget_col].unique())
+        if u_values:
+            ax_util.xaxis.set_major_locator(FixedLocator(u_values))
+            ax_util.xaxis.set_major_formatter(ScalarFormatter())
+            ax_util.xaxis.set_minor_locator(FixedLocator([]))
+            for ax in (ax_priv, ax_util):
+                ax.tick_params(axis="x", rotation=0)
+            # Ensure top-row ticks/labels are visible too (sharex strips them
+            # by default). Re-enable label visibility on the top axis.
+            for label in ax_priv.get_xticklabels(which="both"):
+                label.set_visible(True)
+            ax_priv.tick_params(axis="x", labelbottom=True, labelsize=8)
+            ax_util.tick_params(axis="x", labelsize=8)
+
+        # --- Utility-axis cosmetics --------------------------------------
         ax_util.set_xscale("log")
         ax_util.set_xlabel(r"Utility budget $U = \sum_i \sigma_i^2$")
-        ax_util.set_ylabel("Test accuracy" if col == 0 else "")
-        # Tighten y-range to the actual data envelope so the inter-allocation
-        # mean difference is visible against the per-seed spread.
-        acc_concat = pd.concat([m["acc_mean"] for m in means.values()])
-        sig_concat = pd.concat([m["acc_std"].fillna(0.0) for m in means.values()])
-        lo = float((acc_concat - sig_concat).min()) - 0.005
-        hi = float((acc_concat + sig_concat).max()) + 0.005
-        ax_util.set_ylim(lo, hi)
-        ax_util.legend(loc="lower right", fontsize=8, framealpha=0.85)
+        ax_util.set_ylabel("Accuracy delta (TA − uniform)" if col == 0 else "")
+        # Symmetric y-range so the zero line is visually centred.
+        ax_util.legend(loc="upper right", fontsize=7, framealpha=0.85, ncol=1)
 
     fig.suptitle(f"Setting {setting}: Privacy-Utility Trade-off", y=1.00)
     fig.tight_layout()
