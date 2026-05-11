@@ -220,26 +220,45 @@ def plot_pareto_setting(
         ax_priv.legend(loc="upper right", fontsize=8, framealpha=0.85)
 
         # --- Shared U-axis cosmetics: explicit ticks at sampled values ---
+        # Use FuncFormatter to defeat the log-scale formatter that otherwise
+        # picks a sparse decade-based labeling (`10^-1` only).
+        from matplotlib.ticker import FuncFormatter, NullLocator
         u_values = sorted(sub[budget_col].unique())
         if u_values:
-            ax_util.xaxis.set_major_locator(FixedLocator(u_values))
-            ax_util.xaxis.set_major_formatter(ScalarFormatter())
-            ax_util.xaxis.set_minor_locator(FixedLocator([]))
+            fmt = FuncFormatter(lambda x, _pos: f"{x:g}")
             for ax in (ax_priv, ax_util):
-                ax.tick_params(axis="x", rotation=0)
-            # Ensure top-row ticks/labels are visible too (sharex strips them
-            # by default). Re-enable label visibility on the top axis.
-            for label in ax_priv.get_xticklabels(which="both"):
-                label.set_visible(True)
+                ax.set_xscale("log")
+                ax.xaxis.set_major_locator(FixedLocator(u_values))
+                ax.xaxis.set_major_formatter(fmt)
+                ax.xaxis.set_minor_locator(NullLocator())
+            # sharex='col' hides the top axis's tick labels by default; re-show.
             ax_priv.tick_params(axis="x", labelbottom=True, labelsize=8)
-            ax_util.tick_params(axis="x", labelsize=8)
+            ax_util.tick_params(axis="x", labelsize=8, rotation=0)
 
         # --- Utility-axis cosmetics --------------------------------------
-        ax_util.set_xscale("log")
         ax_util.set_xlabel(r"Utility budget $U = \sum_i \sigma_i^2$")
         ax_util.set_ylabel("Accuracy delta (TA − uniform)" if col == 0 else "")
-        # Symmetric y-range so the zero line is visually centred.
-        ax_util.legend(loc="upper right", fontsize=7, framealpha=0.85, ncol=1)
+
+    # --- Cross-panel cosmetics ------------------------------------------
+    # Single shared y-range on the utility row so the magnitude of the
+    # null result is comparable across T_max values.
+    util_y_max = 0.0
+    for col in range(n_panels):
+        ax = axes[1, col]
+        ymin, ymax = ax.get_ylim()
+        util_y_max = max(util_y_max, abs(ymin), abs(ymax))
+    util_y_max = max(util_y_max, 0.01)  # never collapse to nothing
+    for col in range(n_panels):
+        axes[1, col].set_ylim(-util_y_max, util_y_max)
+
+    # Single legend per row, placed in the leftmost panel only.
+    for col in range(n_panels):
+        for row in range(2):
+            leg = axes[row, col].get_legend()
+            if leg is not None and col != 0:
+                leg.remove()
+    axes[0, 0].legend(loc="upper right", fontsize=8, framealpha=0.85)
+    axes[1, 0].legend(loc="upper right", fontsize=7, framealpha=0.85)
 
     fig.suptitle(f"Setting {setting}: Privacy-Utility Trade-off", y=1.00)
     fig.tight_layout()
