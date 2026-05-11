@@ -45,6 +45,55 @@ def cmd_pareto(args) -> int:
     return 0
 
 
+def cmd_utility_table(args) -> int:
+    """Build and export the per-setting utility consistency table."""
+    from fulcrum.analysis.figures import (
+        utility_consistency_latex,
+        utility_consistency_table,
+    )
+    from fulcrum.analysis.loader import load_runs_df
+
+    df = load_runs_df(args.db_path, args.runs_root, setting=args.setting, status="done")
+    if df.empty:
+        print(f"No completed runs for setting {args.setting}", file=sys.stderr)
+        return 1
+
+    table = utility_consistency_table(df)
+    if table.empty:
+        print(
+            f"No paired (U, seed) configs for setting {args.setting} — "
+            "need both topology_aware and uniform runs at matched seeds.",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Always print to stdout (markdown-style)
+    print(f"\nSetting {args.setting} utility consistency:")
+    print(table.to_string(float_format=lambda v: f"{v:.3f}"))
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    if args.format in ("latex", "all"):
+        tex = utility_consistency_latex(table, setting=args.setting)
+        out_tex = out_dir / f"setting_{args.setting.lower()}_util.tex"
+        out_tex.write_text(tex)
+        print(f"\nLaTeX table → {out_tex}")
+    if args.format in ("markdown", "all"):
+        try:
+            md = table.to_markdown(floatfmt=".3f")
+        except ImportError:
+            md = table.to_string(float_format=lambda v: f"{v:.3f}")
+        out_md = out_dir / f"setting_{args.setting.lower()}_util.md"
+        out_md.write_text(md + "\n")
+        print(f"Markdown table → {out_md}")
+    if args.format in ("csv", "all"):
+        out_csv = out_dir / f"setting_{args.setting.lower()}_util.csv"
+        table.to_csv(out_csv)
+        print(f"CSV table → {out_csv}")
+    return 0
+
+
 def cmd_eta_sweep(args) -> int:
     from fulcrum.analysis.figures import plot_eta_sweep
     from fulcrum.analysis.loader import load_runs_df
@@ -161,6 +210,18 @@ def main() -> int:
     p_summary = sub.add_parser("summary", help="Quick text summary of completed runs")
     p_summary.add_argument("--setting", default=None, choices=["A", "B", "C"])
     p_summary.set_defaults(func=cmd_summary)
+
+    p_util = sub.add_parser(
+        "utility-table",
+        help="Per-setting utility consistency table (TA vs uniform paired)",
+    )
+    p_util.add_argument("--setting", required=True, choices=["A", "B", "C"])
+    p_util.add_argument(
+        "--format", default="all",
+        choices=["latex", "markdown", "csv", "all"],
+        help="Output format(s) to write under --out-dir.",
+    )
+    p_util.set_defaults(func=cmd_utility_table)
 
     args = parser.parse_args()
     return args.func(args)

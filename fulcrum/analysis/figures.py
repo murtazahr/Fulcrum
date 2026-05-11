@@ -68,67 +68,49 @@ def plot_pareto_setting(
     output_path: str | Path,
     budget_col: str = "dp.utility_budget_U",
 ) -> None:
-    """Privacy-utility figure for one setting.
+    """Privacy line plots (one panel per $T_{\\max}$) for a single setting.
 
-    Layout (top to bottom):
+    Plots $U \\to K^\\star$ for each allocation strategy, with the gap
+    between topology-aware and uniform shaded. $K^\\star$ is analytic
+    (1-D bisection on the budget equation) so it carries no seed noise;
+    the topology-aware curve sits strictly below uniform whenever leverage
+    is non-uniform, and the vertical gap is the worst-case MI reduction
+    in nats.
 
-    - **Privacy row** (3 panels, one per $T_{\\max}$): $U \\to K^\\star$.
-      The signal axis. $K^\\star$ is analytic (1-D bisection on the budget
-      equation) so it carries no seed noise; the topology-aware curve sits
-      below uniform whenever leverage is non-uniform, and the vertical gap
-      is the worst-case MI reduction in nats.
-
-    - **Utility consistency table** (single full-width row): per
-      $T_{\\max}$, mean accuracy under each allocation, max/mean
-      $|\\Delta\\text{acc}|$ over the 18 paired configs (6 U × 3 seeds),
-      direction tally (TA wins / ties / uniform wins), and a paired
-      t-test p-value across all 18 pairs. Replaces an earlier per-$U$
-      delta scatter that was visually weak because most deltas are zero.
-
-    Why not plot $(K^\\star, \\text{loss})$ directly: at fixed $T_{\\max}$,
-    test loss is near-flat in $K^\\star$ (loss is dominated by $T_{\\max}$
-    and seed noise, not by allocation) so the strict Pareto frontier
-    extracts 1-2 non-dominated points and the visual signal collapses to
-    a horizontal jog dominated by seed variance. Splitting the privacy
-    signal (plot) from the utility null-result (table) lets each carry
-    its own evidentiary form: a line plot for the dominance claim, and
-    a statistical summary for the invariance claim.
+    Utility consistency (the "defense costs no utility" half of the
+    headline claim) is reported separately via
+    :func:`utility_consistency_table`, which returns a pandas DataFrame
+    suitable for ``df.to_latex(...)``; the manuscript places that table
+    alongside this figure but as a distinct float.
     """
     _set_style()
     import matplotlib.pyplot as plt
-    from matplotlib.gridspec import GridSpec
     from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator, ScalarFormatter
 
-    needed = ["K_star", "K_uniform", "test_accuracy", "dp.allocation",
+    needed = ["K_star", "K_uniform", "dp.allocation",
               "dp.observation_window", budget_col]
     df = df.dropna(subset=needed)
     if df.empty:
-        raise ValueError(f"No data for privacy-utility plot in setting {setting}")
+        raise ValueError(f"No data for privacy plot in setting {setting}")
 
     t_max_values = sorted(df["dp.observation_window"].unique())
     n_panels = len(t_max_values)
 
-    fig = plt.figure(figsize=(4.6 * n_panels, 4.8))
-    gs = GridSpec(
-        nrows=2, ncols=n_panels,
-        height_ratios=[3.0, 1.2],
-        hspace=0.55, wspace=0.30,
-        figure=fig,
+    fig, axes = plt.subplots(
+        1, n_panels,
+        figsize=(4.4 * n_panels, 3.4),
+        sharex=False, sharey=False,
     )
-    priv_axes = [fig.add_subplot(gs[0, c]) for c in range(n_panels)]
-    table_ax = fig.add_subplot(gs[1, :])
-    table_ax.axis("off")
+    if n_panels == 1:
+        axes = [axes]
 
     color_map = {"topology_aware": "#1f77b4", "uniform": "#d62728"}
     marker_map = {"topology_aware": "o", "uniform": "s"}
     alloc_order = ["uniform", "topology_aware"]
-    seed_col = "experiment.seed"
 
-    # --- Privacy panels --------------------------------------------------
-    table_rows: list[list[str]] = []
     for col, t_max in enumerate(t_max_values):
         sub = df[df["dp.observation_window"] == t_max]
-        ax_priv = priv_axes[col]
+        ax = axes[col]
 
         means: dict[str, pd.DataFrame] = {}
         for alloc in alloc_order:
@@ -144,7 +126,7 @@ def plot_pareto_setting(
             if alloc not in means:
                 continue
             agg = means[alloc]
-            ax_priv.plot(
+            ax.plot(
                 agg[budget_col], agg["K_mean"],
                 marker=marker_map[alloc], color=color_map[alloc],
                 linewidth=2.0, markersize=6,
@@ -155,112 +137,188 @@ def plot_pareto_setting(
             ta = means["topology_aware"].set_index(budget_col)
             un = means["uniform"].set_index(budget_col)
             common = ta.index.intersection(un.index).sort_values()
-            ax_priv.fill_between(
+            ax.fill_between(
                 common, ta.loc[common, "K_mean"], un.loc[common, "K_mean"],
                 color="#1f77b4", alpha=0.12, label="gap", zorder=1,
             )
 
-        # Privacy-axis cosmetics
-        ax_priv.set_title(f"$T_{{\\max}}$ = {int(t_max)}")
-        ax_priv.set_xscale("log")
-        ax_priv.set_yscale("log")
-        ax_priv.set_xlabel(r"Utility budget $U = \sum_i \sigma_i^2$")
+        ax.set_title(f"$T_{{\\max}}$ = {int(t_max)}")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xlabel(r"Utility budget $U = \sum_i \sigma_i^2$")
         if col == 0:
-            ax_priv.set_ylabel(r"Privacy bound $K^\star$ (nats)")
+            ax.set_ylabel(r"Privacy bound $K^\star$ (nats)")
+
+        # y-axis: nice numerals on the log scale
         if means:
             k_range = pd.concat([m["K_mean"] for m in means.values()])
             k_lo, k_hi = k_range.min(), k_range.max()
             nice = [1, 2, 3, 5, 7, 10, 15, 20, 30, 50, 70]
             yticks = [t for t in nice if k_lo / 1.2 <= t <= k_hi * 1.2]
             if len(yticks) >= 2:
-                ax_priv.yaxis.set_major_locator(FixedLocator(yticks))
-                ax_priv.yaxis.set_major_formatter(ScalarFormatter())
-                ax_priv.yaxis.set_minor_locator(NullLocator())
+                ax.yaxis.set_major_locator(FixedLocator(yticks))
+                ax.yaxis.set_major_formatter(ScalarFormatter())
+                ax.yaxis.set_minor_locator(NullLocator())
+
+        # x-axis: ticks at every sampled U value
         u_values = sorted(sub[budget_col].unique())
         if u_values:
-            ax_priv.xaxis.set_major_locator(FixedLocator(u_values))
-            ax_priv.xaxis.set_major_formatter(FuncFormatter(lambda x, _pos: f"{x:g}"))
-            ax_priv.xaxis.set_minor_locator(NullLocator())
-            ax_priv.tick_params(axis="x", labelsize=8)
+            ax.xaxis.set_major_locator(FixedLocator(u_values))
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _pos: f"{x:g}"))
+            ax.xaxis.set_minor_locator(NullLocator())
+            ax.tick_params(axis="x", labelsize=8)
 
-        # --- Compute one row of the utility-consistency table ------------
-        row_cells = [f"$T_{{\\max}}={int(t_max)}$"]
-        if seed_col in sub.columns:
-            paired = (sub.pivot_table(
-                          values="test_accuracy",
-                          index=[budget_col, seed_col],
-                          columns="dp.allocation",
-                          aggfunc="mean")
-                        .dropna(how="any"))
-            if {"topology_aware", "uniform"}.issubset(paired.columns):
-                ta_acc = paired["topology_aware"]
-                un_acc = paired["uniform"]
-                delta = ta_acc - un_acc
-                n_pairs = int(len(delta))
+    # One legend in the leftmost panel
+    axes[0].legend(loc="upper right", fontsize=8, framealpha=0.85)
 
-                # Paired t-test (statsmodels-free; use scipy if available)
-                try:
-                    from scipy.stats import ttest_rel
-                    pval = float(ttest_rel(ta_acc, un_acc).pvalue)
-                    pval_str = f"{pval:.3f}" if pval >= 1e-3 else f"{pval:.1e}"
-                except Exception:
-                    pval_str = "—"
-
-                wins = int((delta > 0).sum())
-                losses = int((delta < 0).sum())
-                ties = int((delta == 0).sum())
-
-                row_cells.extend([
-                    f"{100 * ta_acc.mean():.2f}\\%",
-                    f"{100 * un_acc.mean():.2f}\\%",
-                    f"{100 * delta.abs().max():.2f}",
-                    f"{100 * delta.abs().mean():.3f}",
-                    f"{wins}/{ties}/{losses}",
-                    pval_str,
-                    f"{n_pairs}",
-                ])
-            else:
-                row_cells.extend(["—"] * 7)
-        else:
-            row_cells.extend(["—"] * 7)
-        table_rows.append(row_cells)
-
-    # Shared legend on the leftmost privacy panel only
-    priv_axes[0].legend(loc="upper right", fontsize=8, framealpha=0.85)
-
-    # --- Render the utility-consistency table ----------------------------
-    col_labels = [
-        r"$T_{\max}$",
-        r"TA acc (mean \%)",
-        r"Uniform acc (mean \%)",
-        r"$\max|\Delta|$ (pp)",
-        r"$\mathrm{mean}|\Delta|$ (pp)",
-        r"TA wins / ties / loses",
-        r"paired $t$ $p$",
-        "$n$ pairs",
-    ]
-    table = table_ax.table(
-        cellText=table_rows,
-        colLabels=col_labels,
-        loc="center",
-        cellLoc="center",
-        colLoc="center",
-    )
-    table.auto_set_font_size(False)
-    table.set_fontsize(8)
-    table.scale(1.0, 1.4)
-    # Bold the header row
-    for c in range(len(col_labels)):
-        table[(0, c)].set_text_props(weight="bold")
-        table[(0, c)].set_facecolor("#eef")
-    table_ax.set_title(
-        "Utility consistency (paired across $U$ and seed; values in percentage points)",
-        fontsize=9, pad=6,
-    )
-
-    fig.suptitle(f"Setting {setting}: Privacy-Utility Trade-off", y=0.995)
+    fig.suptitle(f"Setting {setting}: Privacy bound vs.\\ utility budget", y=1.00)
+    fig.tight_layout()
     _save(fig, output_path)
     plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# Utility-consistency summary table — companion to plot_pareto_setting
+# ---------------------------------------------------------------------------
+
+def utility_consistency_table(
+    df: pd.DataFrame,
+    budget_col: str = "dp.utility_budget_U",
+    seed_col: str = "experiment.seed",
+    accuracy_pp: bool = True,
+) -> pd.DataFrame:
+    """Build the utility-invariance table that accompanies :func:`plot_pareto_setting`.
+
+    For each $T_{\\max}$, pairs runs at matched $(U, \\text{seed})$ across the
+    two allocation strategies and reports:
+
+    - mean test accuracy under each allocation
+    - max and mean $|\\Delta\\text{acc}|$ across all paired configs
+    - direction tally (TA wins / ties / uniform wins)
+    - paired $t$-test $p$-value over all pairs
+    - number of pairs
+
+    Returns a tidy DataFrame indexed by $T_{\\max}$, ready for
+    ``df.to_latex(...)`` or ``df.to_markdown(...)``. Accuracy values are in
+    percentage points (multiply by 100) when ``accuracy_pp=True``.
+
+    Args:
+        df: completed runs DataFrame (from :func:`load_runs_df`).
+        budget_col: column holding utility budget $U$.
+        seed_col: column holding the random seed (for pairing).
+        accuracy_pp: if True, report accuracy fields ×100 (percentage points).
+
+    Returns:
+        DataFrame with one row per $T_{\\max}$ and columns:
+        ``ta_acc_mean``, ``unif_acc_mean``, ``abs_delta_max``,
+        ``abs_delta_mean``, ``ta_wins``, ``ties``, ``unif_wins``,
+        ``paired_t_pvalue``, ``n_pairs``.
+    """
+    needed = ["test_accuracy", "dp.allocation", "dp.observation_window",
+              budget_col, seed_col]
+    df = df.dropna(subset=needed)
+
+    try:
+        from scipy.stats import ttest_rel  # noqa: F401  (used per-row below)
+        have_scipy = True
+    except Exception:
+        have_scipy = False
+
+    rows: list[dict] = []
+    scale = 100.0 if accuracy_pp else 1.0
+    for t_max in sorted(df["dp.observation_window"].unique()):
+        sub = df[df["dp.observation_window"] == t_max]
+        paired = (sub.pivot_table(
+                      values="test_accuracy",
+                      index=[budget_col, seed_col],
+                      columns="dp.allocation",
+                      aggfunc="mean")
+                    .dropna(how="any"))
+        if not {"topology_aware", "uniform"}.issubset(paired.columns):
+            continue
+        ta = paired["topology_aware"]
+        un = paired["uniform"]
+        delta = ta - un
+
+        if have_scipy and len(delta) > 1:
+            from scipy.stats import ttest_rel
+            pval: float | None = float(ttest_rel(ta, un).pvalue)
+        else:
+            pval = None
+
+        rows.append({
+            "T_max": int(t_max),
+            "ta_acc_mean": scale * float(ta.mean()),
+            "unif_acc_mean": scale * float(un.mean()),
+            "abs_delta_max": scale * float(delta.abs().max()),
+            "abs_delta_mean": scale * float(delta.abs().mean()),
+            "ta_wins": int((delta > 0).sum()),
+            "ties": int((delta == 0).sum()),
+            "unif_wins": int((delta < 0).sum()),
+            "paired_t_pvalue": pval,
+            "n_pairs": int(len(delta)),
+        })
+    return pd.DataFrame(rows).set_index("T_max")
+
+
+def utility_consistency_latex(
+    table_df: pd.DataFrame,
+    setting: str,
+    caption: str | None = None,
+    label: str | None = None,
+) -> str:
+    """Format :func:`utility_consistency_table` output as a manuscript-ready LaTeX
+    ``booktabs`` table.
+
+    Returns the LaTeX string; caller is responsible for writing it to disk
+    or piping it into the manuscript.
+
+    Designed to compile under the project's existing ``\\usepackage{booktabs}``
+    (already in ``paper/main.tex``).
+    """
+    label = label or f"tab:util-consistency-{setting.lower()}"
+    caption = caption or (
+        f"Setting {setting}: utility consistency under topology-aware vs.\\ "
+        f"uniform DP-SGD allocation. Each row aggregates paired runs at "
+        f"matched $(U, \\text{{seed}})$. Accuracy fields in percentage points; "
+        f"$p$ from a paired $t$-test across all pairs."
+    )
+
+    def fmt_p(p):
+        if p is None or pd.isna(p):
+            return "---"
+        return f"{p:.3f}" if p >= 1e-3 else f"{p:.1e}"
+
+    body = []
+    for t_max, row in table_df.iterrows():
+        body.append(" & ".join([
+            f"{t_max}",
+            f"{row['ta_acc_mean']:.2f}",
+            f"{row['unif_acc_mean']:.2f}",
+            f"{row['abs_delta_max']:.2f}",
+            f"{row['abs_delta_mean']:.3f}",
+            f"{int(row['ta_wins'])}/{int(row['ties'])}/{int(row['unif_wins'])}",
+            fmt_p(row["paired_t_pvalue"]),
+            f"{int(row['n_pairs'])}",
+        ]) + r" \\")
+
+    return "\n".join([
+        r"\begin{table}[t]",
+        r"\centering",
+        rf"\caption{{{caption}}}",
+        rf"\label{{{label}}}",
+        r"\begin{tabular}{@{}rcccccccc@{}}",
+        r"\toprule",
+        r"$T_{\max}$ & TA acc (\%) & Uniform acc (\%) & "
+        r"$\max|\Delta|$ (pp) & $\overline{|\Delta|}$ (pp) & "
+        r"TA / tie / Unif & paired $t$ $p$ & $n$ \\",
+        r"\midrule",
+        *body,
+        r"\bottomrule",
+        r"\end{tabular}",
+        r"\end{table}",
+        "",
+    ])
 
 
 # ---------------------------------------------------------------------------
