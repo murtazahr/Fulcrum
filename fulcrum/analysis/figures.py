@@ -66,79 +66,110 @@ def plot_pareto_setting(
     df: pd.DataFrame,
     setting: str,
     output_path: str | Path,
-    x_col: str = "K_star",
-    y_col: str = "final_loss",
     budget_col: str = "dp.utility_budget_U",
 ) -> None:
-    """Generate the privacy-utility figure for one setting.
+    """Privacy-utility figure for one setting.
 
-    Faceted by ``dp.observation_window`` (one subplot per $T_{\\max}$). Within
-    each subplot, two curves (topology-aware and uniform), each parameterised
-    by the utility budget $U$. Curves are connected through the per-$U$ means;
-    raw seed points are overlaid as faint scatter.
+    Two-row layout, faceted by $T_{\\max}$:
 
-    Two scaling fixes vs. an earlier draft:
+    - Top row: $U \\to K^\\star$. The signal axis. $K^\\star$ is analytic
+      (1-D bisection on the budget equation) so it carries no seed noise;
+      the topology-aware curve sits below uniform whenever leverage is
+      non-uniform, and the vertical gap is the worst-case MI reduction in
+      nats. The Corollary 3 dominance claim is visible head-on.
 
-    1. ``sharey=False`` per panel — test loss is dominated by $T_{\\max}$
-       (DP noise accumulates per round), so loss bands differ substantially
-       across panels. Sharing the y-axis collapses each panel's in-band
-       variation to a flat line.
-    2. Connect per-$U$ means rather than the strict Pareto frontier: at fixed
-       $T_{\\max}$, loss is near-flat in $K^\\star$, so the dominance
-       algorithm extracts only 1-2 non-dominated points and the bold line is
-       invisible. The actual signal is the horizontal shift between the TA
-       and uniform curves at matched $U$, which mean-aggregation surfaces
-       directly.
+    - Bottom row: $U \\to$ test accuracy. The utility axis. Mean ± 95% CI
+      across seeds. At fixed $U$ the two allocation curves should overlap
+      (the noise budget $\\sum_i \\sigma_i^2 = U$ is invariant, only its
+      per-client distribution changes), so the bottom row demonstrates the
+      ``defense costs nothing in utility'' half of the headline claim.
+
+    Why not plot $(K^\\star, \\text{loss})$ directly: at fixed $T_{\\max}$,
+    test loss is near-flat in $K^\\star$ (loss is dominated by $T_{\\max}$
+    and seed noise, not by allocation) so the strict Pareto frontier
+    extracts 1-2 non-dominated points and the visual signal collapses to
+    a horizontal jog dominated by seed variance. Separating the privacy
+    and utility axes against the shared independent variable $U$ surfaces
+    both signals cleanly.
     """
     _set_style()
     import matplotlib.pyplot as plt
 
-    needed = [x_col, y_col, "dp.allocation", "dp.observation_window", budget_col]
+    needed = ["K_star", "K_uniform", "test_accuracy", "dp.allocation",
+              "dp.observation_window", budget_col]
     df = df.dropna(subset=needed)
     if df.empty:
-        raise ValueError(f"No data for Pareto plot in setting {setting}")
+        raise ValueError(f"No data for privacy-utility plot in setting {setting}")
 
     t_max_values = sorted(df["dp.observation_window"].unique())
+    n_panels = len(t_max_values)
     fig, axes = plt.subplots(
-        1, len(t_max_values),
-        figsize=(4.2 * len(t_max_values), 3.6),
-        sharey=False,  # let each panel auto-scale its loss range
+        2, n_panels,
+        figsize=(4.2 * n_panels, 5.4),
+        sharex="col",
     )
-    if len(t_max_values) == 1:
-        axes = [axes]
+    if n_panels == 1:
+        axes = axes.reshape(2, 1)
 
     color_map = {"topology_aware": "#1f77b4", "uniform": "#d62728"}
     marker_map = {"topology_aware": "o", "uniform": "s"}
 
-    for ax, t_max in zip(axes, t_max_values):
+    for col, t_max in enumerate(t_max_values):
         sub = df[df["dp.observation_window"] == t_max]
+        ax_priv = axes[0, col]
+        ax_util = axes[1, col]
+
+        # Track per-(U, alloc) data for the gap shading
+        means = {}
         for alloc, sub2 in sub.groupby("dp.allocation"):
             color = color_map.get(alloc, "gray")
             marker = marker_map.get(alloc, "o")
-            # Raw seed points, faint
-            ax.scatter(sub2[x_col], sub2[y_col], color=color, alpha=0.30, s=18,
-                       edgecolors="none")
-            # Per-U means with seed std as a vertical error bar; sorted by K*
             agg = (sub2.groupby(budget_col)
-                       .agg(x_mean=(x_col, "mean"),
-                            y_mean=(y_col, "mean"),
-                            y_std=(y_col, "std"),
-                            n=(y_col, "count"))
+                       .agg(K_mean=("K_star", "mean"),
+                            acc_mean=("test_accuracy", "mean"),
+                            acc_std=("test_accuracy", "std"),
+                            n=("K_star", "count"))
                        .reset_index()
-                       .sort_values("x_mean"))
-            ci = 1.96 * agg["y_std"] / np.sqrt(agg["n"].clip(lower=1))
-            ax.errorbar(
-                agg["x_mean"], agg["y_mean"], yerr=ci,
-                marker=marker, color=color, linewidth=1.8, markersize=6,
+                       .sort_values(budget_col))
+            means[alloc] = agg
+
+            # Top: U -> K* (no seed noise; K* is deterministic)
+            ax_priv.plot(
+                agg[budget_col], agg["K_mean"],
+                marker=marker, color=color, linewidth=2.0, markersize=6,
+                label=alloc,
+            )
+
+            # Bottom: U -> accuracy, with 95% CI from seed std
+            ci = 1.96 * agg["acc_std"].fillna(0.0) / np.sqrt(agg["n"].clip(lower=1))
+            ax_util.errorbar(
+                agg[budget_col], agg["acc_mean"], yerr=ci,
+                marker=marker, color=color, linewidth=1.6, markersize=6,
                 capsize=3, capthick=1.0, elinewidth=1.0,
                 label=alloc,
             )
-        ax.set_title(f"$T_{{\\max}}$ = {int(t_max)}")
-        ax.set_xlabel(r"Privacy bound $K^\star$ (nats)")
-        ax.set_ylabel("Test loss")
-        ax.legend(loc="best", fontsize=8)
 
-    fig.suptitle(f"Setting {setting}: Privacy-Utility Frontier", y=1.02)
+        # Shade the K* gap between the two curves
+        if {"topology_aware", "uniform"}.issubset(means):
+            ta = means["topology_aware"].set_index(budget_col)
+            un = means["uniform"].set_index(budget_col)
+            common = ta.index.intersection(un.index).sort_values()
+            ax_priv.fill_between(
+                common, ta.loc[common, "K_mean"], un.loc[common, "K_mean"],
+                color="#1f77b4", alpha=0.10, label="gap",
+            )
+
+        ax_priv.set_title(f"$T_{{\\max}}$ = {int(t_max)}")
+        ax_priv.set_xscale("log")
+        ax_priv.set_yscale("log")
+        ax_priv.set_ylabel(r"Privacy bound $K^\star$ (nats)" if col == 0 else "")
+        ax_priv.legend(loc="best", fontsize=8)
+
+        ax_util.set_xscale("log")
+        ax_util.set_xlabel(r"Utility budget $U = \sum_i \sigma_i^2$")
+        ax_util.set_ylabel("Test accuracy" if col == 0 else "")
+
+    fig.suptitle(f"Setting {setting}: Privacy-Utility Trade-off", y=1.00)
     fig.tight_layout()
     _save(fig, output_path)
     plt.close(fig)
