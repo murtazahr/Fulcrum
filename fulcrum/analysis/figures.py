@@ -20,7 +20,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from fulcrum.analysis.pareto import extract_pareto_per_group
+# Note: the strict Pareto-frontier extractor (`extract_pareto_per_group`) is
+# still used by `topology_aware_advantage` in `pareto.py` for the
+# area-between-curves headline number, but the figure itself plots per-$U$
+# means rather than the dominance frontier (see `plot_pareto_setting`).
 
 
 # ---------------------------------------------------------------------------
@@ -65,22 +68,42 @@ def plot_pareto_setting(
     output_path: str | Path,
     x_col: str = "K_star",
     y_col: str = "final_loss",
+    budget_col: str = "dp.utility_budget_U",
 ) -> None:
-    """Generate the Pareto-frontier figure for one setting.
+    """Generate the privacy-utility figure for one setting.
 
     Faceted by ``dp.observation_window`` (one subplot per $T_{\\max}$). Within
-    each subplot, two curves: topology-aware and uniform allocation.
+    each subplot, two curves (topology-aware and uniform), each parameterised
+    by the utility budget $U$. Curves are connected through the per-$U$ means;
+    raw seed points are overlaid as faint scatter.
+
+    Two scaling fixes vs. an earlier draft:
+
+    1. ``sharey=False`` per panel — test loss is dominated by $T_{\\max}$
+       (DP noise accumulates per round), so loss bands differ substantially
+       across panels. Sharing the y-axis collapses each panel's in-band
+       variation to a flat line.
+    2. Connect per-$U$ means rather than the strict Pareto frontier: at fixed
+       $T_{\\max}$, loss is near-flat in $K^\\star$, so the dominance
+       algorithm extracts only 1-2 non-dominated points and the bold line is
+       invisible. The actual signal is the horizontal shift between the TA
+       and uniform curves at matched $U$, which mean-aggregation surfaces
+       directly.
     """
     _set_style()
     import matplotlib.pyplot as plt
 
-    df = df.dropna(subset=[x_col, y_col, "dp.allocation", "dp.observation_window"])
+    needed = [x_col, y_col, "dp.allocation", "dp.observation_window", budget_col]
+    df = df.dropna(subset=needed)
     if df.empty:
         raise ValueError(f"No data for Pareto plot in setting {setting}")
 
     t_max_values = sorted(df["dp.observation_window"].unique())
-    fig, axes = plt.subplots(1, len(t_max_values), figsize=(4 * len(t_max_values), 3.2),
-                             sharey=True)
+    fig, axes = plt.subplots(
+        1, len(t_max_values),
+        figsize=(4.2 * len(t_max_values), 3.6),
+        sharey=False,  # let each panel auto-scale its loss range
+    )
     if len(t_max_values) == 1:
         axes = [axes]
 
@@ -89,21 +112,34 @@ def plot_pareto_setting(
 
     for ax, t_max in zip(axes, t_max_values):
         sub = df[df["dp.observation_window"] == t_max]
-        fronts = extract_pareto_per_group(sub, group_col="dp.allocation", x_col=x_col, y_col=y_col)
-        # Plot raw points (faint) + Pareto curve (bold)
         for alloc, sub2 in sub.groupby("dp.allocation"):
             color = color_map.get(alloc, "gray")
-            ax.scatter(sub2[x_col], sub2[y_col], color=color, alpha=0.25, s=20)
-            if alloc in fronts and len(fronts[alloc]) >= 2:
-                front = fronts[alloc].sort_values(x_col)
-                ax.plot(front[x_col], front[y_col], color=color, marker=marker_map.get(alloc, "o"),
-                        label=alloc, linewidth=1.8, markersize=5)
+            marker = marker_map.get(alloc, "o")
+            # Raw seed points, faint
+            ax.scatter(sub2[x_col], sub2[y_col], color=color, alpha=0.30, s=18,
+                       edgecolors="none")
+            # Per-U means with seed std as a vertical error bar; sorted by K*
+            agg = (sub2.groupby(budget_col)
+                       .agg(x_mean=(x_col, "mean"),
+                            y_mean=(y_col, "mean"),
+                            y_std=(y_col, "std"),
+                            n=(y_col, "count"))
+                       .reset_index()
+                       .sort_values("x_mean"))
+            ci = 1.96 * agg["y_std"] / np.sqrt(agg["n"].clip(lower=1))
+            ax.errorbar(
+                agg["x_mean"], agg["y_mean"], yerr=ci,
+                marker=marker, color=color, linewidth=1.8, markersize=6,
+                capsize=3, capthick=1.0, elinewidth=1.0,
+                label=alloc,
+            )
         ax.set_title(f"$T_{{\\max}}$ = {int(t_max)}")
         ax.set_xlabel(r"Privacy bound $K^\star$ (nats)")
-        ax.legend(loc="upper right")
+        ax.set_ylabel("Test loss")
+        ax.legend(loc="best", fontsize=8)
 
-    axes[0].set_ylabel("Test loss")
-    fig.suptitle(f"Setting {setting}: Privacy-Utility Pareto Frontier", y=1.02)
+    fig.suptitle(f"Setting {setting}: Privacy-Utility Frontier", y=1.02)
+    fig.tight_layout()
     _save(fig, output_path)
     plt.close(fig)
 
