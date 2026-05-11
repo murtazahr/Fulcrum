@@ -171,7 +171,7 @@ def plot_pareto_setting(
     # One legend in the leftmost panel
     axes[0].legend(loc="upper right", fontsize=8, framealpha=0.85)
 
-    fig.suptitle(f"Setting {setting}: Privacy bound vs.\\ utility budget", y=1.00)
+    fig.suptitle(f"Setting {setting}: Privacy bound vs. utility budget", y=1.00)
     fig.tight_layout()
     _save(fig, output_path)
     plt.close(fig)
