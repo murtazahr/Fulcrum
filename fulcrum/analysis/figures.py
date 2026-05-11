@@ -70,30 +70,34 @@ def plot_pareto_setting(
 ) -> None:
     """Privacy-utility figure for one setting.
 
-    Two-row layout, faceted by $T_{\\max}$:
+    Layout (top to bottom):
 
-    - Top row: $U \\to K^\\star$. The signal axis. $K^\\star$ is analytic
-      (1-D bisection on the budget equation) so it carries no seed noise;
-      the topology-aware curve sits below uniform whenever leverage is
-      non-uniform, and the vertical gap is the worst-case MI reduction in
-      nats. The Corollary 3 dominance claim is visible head-on.
+    - **Privacy row** (3 panels, one per $T_{\\max}$): $U \\to K^\\star$.
+      The signal axis. $K^\\star$ is analytic (1-D bisection on the budget
+      equation) so it carries no seed noise; the topology-aware curve sits
+      below uniform whenever leverage is non-uniform, and the vertical gap
+      is the worst-case MI reduction in nats.
 
-    - Bottom row: $U \\to$ test accuracy. The utility axis. Mean ± 95% CI
-      across seeds. At fixed $U$ the two allocation curves should overlap
-      (the noise budget $\\sum_i \\sigma_i^2 = U$ is invariant, only its
-      per-client distribution changes), so the bottom row demonstrates the
-      ``defense costs nothing in utility'' half of the headline claim.
+    - **Utility consistency table** (single full-width row): per
+      $T_{\\max}$, mean accuracy under each allocation, max/mean
+      $|\\Delta\\text{acc}|$ over the 18 paired configs (6 U × 3 seeds),
+      direction tally (TA wins / ties / uniform wins), and a paired
+      t-test p-value across all 18 pairs. Replaces an earlier per-$U$
+      delta scatter that was visually weak because most deltas are zero.
 
     Why not plot $(K^\\star, \\text{loss})$ directly: at fixed $T_{\\max}$,
     test loss is near-flat in $K^\\star$ (loss is dominated by $T_{\\max}$
     and seed noise, not by allocation) so the strict Pareto frontier
     extracts 1-2 non-dominated points and the visual signal collapses to
-    a horizontal jog dominated by seed variance. Separating the privacy
-    and utility axes against the shared independent variable $U$ surfaces
-    both signals cleanly.
+    a horizontal jog dominated by seed variance. Splitting the privacy
+    signal (plot) from the utility null-result (table) lets each carry
+    its own evidentiary form: a line plot for the dominance claim, and
+    a statistical summary for the invariance claim.
     """
     _set_style()
     import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
+    from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator, ScalarFormatter
 
     needed = ["K_star", "K_uniform", "test_accuracy", "dp.allocation",
               "dp.observation_window", budget_col]
@@ -103,26 +107,29 @@ def plot_pareto_setting(
 
     t_max_values = sorted(df["dp.observation_window"].unique())
     n_panels = len(t_max_values)
-    fig, axes = plt.subplots(
-        2, n_panels,
-        figsize=(4.2 * n_panels, 5.4),
-        sharex="col",
+
+    fig = plt.figure(figsize=(4.6 * n_panels, 4.8))
+    gs = GridSpec(
+        nrows=2, ncols=n_panels,
+        height_ratios=[3.0, 1.2],
+        hspace=0.55, wspace=0.30,
+        figure=fig,
     )
-    if n_panels == 1:
-        axes = axes.reshape(2, 1)
+    priv_axes = [fig.add_subplot(gs[0, c]) for c in range(n_panels)]
+    table_ax = fig.add_subplot(gs[1, :])
+    table_ax.axis("off")
 
     color_map = {"topology_aware": "#1f77b4", "uniform": "#d62728"}
     marker_map = {"topology_aware": "o", "uniform": "s"}
     alloc_order = ["uniform", "topology_aware"]
+    seed_col = "experiment.seed"
 
-    from matplotlib.ticker import ScalarFormatter, FixedLocator
-
+    # --- Privacy panels --------------------------------------------------
+    table_rows: list[list[str]] = []
     for col, t_max in enumerate(t_max_values):
         sub = df[df["dp.observation_window"] == t_max]
-        ax_priv = axes[0, col]
-        ax_util = axes[1, col]
+        ax_priv = priv_axes[col]
 
-        # --- Top row: U -> K* with allocation curves + shaded gap ----------
         means: dict[str, pd.DataFrame] = {}
         for alloc in alloc_order:
             sub2 = sub[sub["dp.allocation"] == alloc]
@@ -153,115 +160,105 @@ def plot_pareto_setting(
                 color="#1f77b4", alpha=0.12, label="gap", zorder=1,
             )
 
-        # --- Bottom row: paired accuracy delta (TA - uniform) per seed ----
-        # The strongest evidence for "allocation costs no utility" is the
-        # paired difference centred at zero with seed-spread bounded.
-        # Pair TA and uniform runs at matched (U, seed) and plot every
-        # individual delta, plus the per-U mean delta with a 95% CI.
-        seed_col = "experiment.seed"
-        if seed_col not in sub.columns:
-            ax_util.text(0.5, 0.5, "(seed column missing)",
-                         ha="center", va="center", transform=ax_util.transAxes)
-        else:
+        # Privacy-axis cosmetics
+        ax_priv.set_title(f"$T_{{\\max}}$ = {int(t_max)}")
+        ax_priv.set_xscale("log")
+        ax_priv.set_yscale("log")
+        ax_priv.set_xlabel(r"Utility budget $U = \sum_i \sigma_i^2$")
+        if col == 0:
+            ax_priv.set_ylabel(r"Privacy bound $K^\star$ (nats)")
+        if means:
+            k_range = pd.concat([m["K_mean"] for m in means.values()])
+            k_lo, k_hi = k_range.min(), k_range.max()
+            nice = [1, 2, 3, 5, 7, 10, 15, 20, 30, 50, 70]
+            yticks = [t for t in nice if k_lo / 1.2 <= t <= k_hi * 1.2]
+            if len(yticks) >= 2:
+                ax_priv.yaxis.set_major_locator(FixedLocator(yticks))
+                ax_priv.yaxis.set_major_formatter(ScalarFormatter())
+                ax_priv.yaxis.set_minor_locator(NullLocator())
+        u_values = sorted(sub[budget_col].unique())
+        if u_values:
+            ax_priv.xaxis.set_major_locator(FixedLocator(u_values))
+            ax_priv.xaxis.set_major_formatter(FuncFormatter(lambda x, _pos: f"{x:g}"))
+            ax_priv.xaxis.set_minor_locator(NullLocator())
+            ax_priv.tick_params(axis="x", labelsize=8)
+
+        # --- Compute one row of the utility-consistency table ------------
+        row_cells = [f"$T_{{\\max}}={int(t_max)}$"]
+        if seed_col in sub.columns:
             paired = (sub.pivot_table(
                           values="test_accuracy",
                           index=[budget_col, seed_col],
                           columns="dp.allocation",
                           aggfunc="mean")
-                        .dropna(how="any")
-                        .reset_index())
+                        .dropna(how="any"))
             if {"topology_aware", "uniform"}.issubset(paired.columns):
-                paired["delta"] = paired["topology_aware"] - paired["uniform"]
-                # Per-U summary
-                summary = (paired.groupby(budget_col)["delta"]
-                                 .agg(mean="mean", std="std", n="count")
-                                 .reset_index()
-                                 .sort_values(budget_col))
-                # Zero reference
-                ax_util.axhline(0.0, color="gray", linewidth=0.8,
-                                linestyle="--", zorder=1)
-                # Individual seed deltas: scatter with light jitter
-                rng = np.random.default_rng(0)
-                jitter = rng.uniform(-0.04, 0.04, size=len(paired))
-                ax_util.scatter(
-                    paired[budget_col] * (1.0 + jitter),
-                    paired["delta"],
-                    color="#444", alpha=0.45, s=14, zorder=2,
-                    label="per-seed",
-                )
-                # Per-U mean with 95% CI envelope
-                ci = (1.96 * summary["std"].fillna(0.0)
-                      / np.sqrt(summary["n"].clip(lower=1)))
-                ax_util.fill_between(
-                    summary[budget_col],
-                    summary["mean"] - ci, summary["mean"] + ci,
-                    color="#1f77b4", alpha=0.15, zorder=1, label="mean ± 95% CI",
-                )
-                ax_util.plot(
-                    summary[budget_col], summary["mean"],
-                    marker="D", color="#1f77b4",
-                    linewidth=1.8, markersize=6, zorder=3, label="mean",
-                )
+                ta_acc = paired["topology_aware"]
+                un_acc = paired["uniform"]
+                delta = ta_acc - un_acc
+                n_pairs = int(len(delta))
 
-        # --- Privacy-axis cosmetics --------------------------------------
-        ax_priv.set_title(f"$T_{{\\max}}$ = {int(t_max)}")
-        ax_priv.set_xscale("log")
-        ax_priv.set_yscale("log")
-        ax_priv.set_ylabel(r"Privacy bound $K^\star$ (nats)" if col == 0 else "")
-        if means:
-            k_range = pd.concat([m["K_mean"] for m in means.values()])
-            k_lo, k_hi = k_range.min(), k_range.max()
-            nice = [1, 2, 3, 5, 7, 10, 15, 20, 30, 50, 70]
-            ticks = [t for t in nice if k_lo / 1.2 <= t <= k_hi * 1.2]
-            if len(ticks) >= 2:
-                ax_priv.yaxis.set_major_locator(FixedLocator(ticks))
-                ax_priv.yaxis.set_major_formatter(ScalarFormatter())
-                ax_priv.yaxis.set_minor_locator(FixedLocator([]))
-        ax_priv.legend(loc="upper right", fontsize=8, framealpha=0.85)
+                # Paired t-test (statsmodels-free; use scipy if available)
+                try:
+                    from scipy.stats import ttest_rel
+                    pval = float(ttest_rel(ta_acc, un_acc).pvalue)
+                    pval_str = f"{pval:.3f}" if pval >= 1e-3 else f"{pval:.1e}"
+                except Exception:
+                    pval_str = "—"
 
-        # --- Shared U-axis cosmetics: explicit ticks at sampled values ---
-        # Use FuncFormatter to defeat the log-scale formatter that otherwise
-        # picks a sparse decade-based labeling (`10^-1` only).
-        from matplotlib.ticker import FuncFormatter, NullLocator
-        u_values = sorted(sub[budget_col].unique())
-        if u_values:
-            fmt = FuncFormatter(lambda x, _pos: f"{x:g}")
-            for ax in (ax_priv, ax_util):
-                ax.set_xscale("log")
-                ax.xaxis.set_major_locator(FixedLocator(u_values))
-                ax.xaxis.set_major_formatter(fmt)
-                ax.xaxis.set_minor_locator(NullLocator())
-            # sharex='col' hides the top axis's tick labels by default; re-show.
-            ax_priv.tick_params(axis="x", labelbottom=True, labelsize=8)
-            ax_util.tick_params(axis="x", labelsize=8, rotation=0)
+                wins = int((delta > 0).sum())
+                losses = int((delta < 0).sum())
+                ties = int((delta == 0).sum())
 
-        # --- Utility-axis cosmetics --------------------------------------
-        ax_util.set_xlabel(r"Utility budget $U = \sum_i \sigma_i^2$")
-        ax_util.set_ylabel("Accuracy delta (TA − uniform)" if col == 0 else "")
+                row_cells.extend([
+                    f"{100 * ta_acc.mean():.2f}\\%",
+                    f"{100 * un_acc.mean():.2f}\\%",
+                    f"{100 * delta.abs().max():.2f}",
+                    f"{100 * delta.abs().mean():.3f}",
+                    f"{wins}/{ties}/{losses}",
+                    pval_str,
+                    f"{n_pairs}",
+                ])
+            else:
+                row_cells.extend(["—"] * 7)
+        else:
+            row_cells.extend(["—"] * 7)
+        table_rows.append(row_cells)
 
-    # --- Cross-panel cosmetics ------------------------------------------
-    # Single shared y-range on the utility row so the magnitude of the
-    # null result is comparable across T_max values.
-    util_y_max = 0.0
-    for col in range(n_panels):
-        ax = axes[1, col]
-        ymin, ymax = ax.get_ylim()
-        util_y_max = max(util_y_max, abs(ymin), abs(ymax))
-    util_y_max = max(util_y_max, 0.01)  # never collapse to nothing
-    for col in range(n_panels):
-        axes[1, col].set_ylim(-util_y_max, util_y_max)
+    # Shared legend on the leftmost privacy panel only
+    priv_axes[0].legend(loc="upper right", fontsize=8, framealpha=0.85)
 
-    # Single legend per row, placed in the leftmost panel only.
-    for col in range(n_panels):
-        for row in range(2):
-            leg = axes[row, col].get_legend()
-            if leg is not None and col != 0:
-                leg.remove()
-    axes[0, 0].legend(loc="upper right", fontsize=8, framealpha=0.85)
-    axes[1, 0].legend(loc="upper right", fontsize=7, framealpha=0.85)
+    # --- Render the utility-consistency table ----------------------------
+    col_labels = [
+        r"$T_{\max}$",
+        r"TA acc (mean \%)",
+        r"Uniform acc (mean \%)",
+        r"$\max|\Delta|$ (pp)",
+        r"$\mathrm{mean}|\Delta|$ (pp)",
+        r"TA wins / ties / loses",
+        r"paired $t$ $p$",
+        "$n$ pairs",
+    ]
+    table = table_ax.table(
+        cellText=table_rows,
+        colLabels=col_labels,
+        loc="center",
+        cellLoc="center",
+        colLoc="center",
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    table.scale(1.0, 1.4)
+    # Bold the header row
+    for c in range(len(col_labels)):
+        table[(0, c)].set_text_props(weight="bold")
+        table[(0, c)].set_facecolor("#eef")
+    table_ax.set_title(
+        "Utility consistency (paired across $U$ and seed; values in percentage points)",
+        fontsize=9, pad=6,
+    )
 
-    fig.suptitle(f"Setting {setting}: Privacy-Utility Trade-off", y=1.00)
-    fig.tight_layout()
+    fig.suptitle(f"Setting {setting}: Privacy-Utility Trade-off", y=0.995)
     _save(fig, output_path)
     plt.close(fig)
 
