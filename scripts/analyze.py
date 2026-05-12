@@ -33,28 +33,44 @@ from pathlib import Path
 # at fixed U=0.5, T_max=100) and the Pareto sweep (varies U and T_max at
 # fixed topology=hierarchical, η=0.5). Without a filter, the Pareto figure
 # and utility table for Setting C end up averaging across η-sweep runs at
-# the (U=0.5, T_max=100) cell, producing a visible spike and inflated
-# pair counts.
+# the (U=0.5, T_max=100) cell, producing a visible spike, inflated pair
+# counts, and a spurious U=0.5 point that isn't in the Pareto U grid.
 #
-# This dict declares, per setting, which (column, value) combinations
-# define the Pareto-sweep canonical so we can filter to just those runs.
-# Settings A and B don't have an η-sweep in their canonical pipeline so
-# no filter is needed.
-PARETO_FILTER = {
+# This dict declares the *full factorial grid* of the Pareto sweep so we
+# can filter to exactly the cells the sweep generated. Scalar entries
+# require equality; list/tuple/set entries require membership (`.isin`).
+# Settings A and B don't have a competing sweep yet — leaving their
+# entries empty applies no filter.
+PARETO_FILTER: dict[str, dict[str, object]] = {
     "A": {},
     "B": {},
-    "C": {"topology.type": "hierarchical", "data.eta": 0.5},
+    "C": {
+        "topology.type": "hierarchical",
+        "data.eta": 0.5,
+        # The Pareto sweep grid (sweeps/pareto_setting_c.yaml). Anything
+        # outside these U / T_max values came from a different sweep.
+        "dp.utility_budget_U": [0.05, 0.1, 0.2, 0.4, 0.8, 1.6],
+        "dp.observation_window": [25, 50, 100],
+    },
 }
 
 
 def _apply_pareto_filter(df, setting):
-    """Restrict df to runs that match the Pareto sweep's canonical fields."""
+    """Restrict df to runs that match the Pareto sweep's canonical grid.
+
+    Each filter entry is either a scalar (equality match) or a
+    list/tuple/set (membership match via ``Series.isin``).
+    """
     flt = PARETO_FILTER.get(setting, {})
     if not flt:
         return df
     keep = df.copy()
     for col, val in flt.items():
-        if col in keep.columns:
+        if col not in keep.columns:
+            continue
+        if isinstance(val, (list, tuple, set)):
+            keep = keep[keep[col].isin(list(val))]
+        else:
             keep = keep[keep[col] == val]
     return keep
 
