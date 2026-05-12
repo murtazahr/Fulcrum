@@ -24,6 +24,41 @@ import sys
 from pathlib import Path
 
 
+# ---------------------------------------------------------------------------
+# Per-setting Pareto sweep "canonical" filter
+# ---------------------------------------------------------------------------
+#
+# Setting C has *two* sweeps in the same DB: the η × topology sweep (varies
+# topology in {ring, line, hierarchical, star} and η in {0, 0.25, ..., 1.0}
+# at fixed U=0.5, T_max=100) and the Pareto sweep (varies U and T_max at
+# fixed topology=hierarchical, η=0.5). Without a filter, the Pareto figure
+# and utility table for Setting C end up averaging across η-sweep runs at
+# the (U=0.5, T_max=100) cell, producing a visible spike and inflated
+# pair counts.
+#
+# This dict declares, per setting, which (column, value) combinations
+# define the Pareto-sweep canonical so we can filter to just those runs.
+# Settings A and B don't have an η-sweep in their canonical pipeline so
+# no filter is needed.
+PARETO_FILTER = {
+    "A": {},
+    "B": {},
+    "C": {"topology.type": "hierarchical", "data.eta": 0.5},
+}
+
+
+def _apply_pareto_filter(df, setting):
+    """Restrict df to runs that match the Pareto sweep's canonical fields."""
+    flt = PARETO_FILTER.get(setting, {})
+    if not flt:
+        return df
+    keep = df.copy()
+    for col, val in flt.items():
+        if col in keep.columns:
+            keep = keep[keep[col] == val]
+    return keep
+
+
 def cmd_pareto(args) -> int:
     from fulcrum.analysis.figures import plot_pareto_setting
     from fulcrum.analysis.loader import load_runs_df
@@ -32,6 +67,15 @@ def cmd_pareto(args) -> int:
     df = load_runs_df(args.db_path, args.runs_root, setting=args.setting, status="done")
     if df.empty:
         print(f"No completed runs for setting {args.setting}", file=sys.stderr)
+        return 1
+
+    df = _apply_pareto_filter(df, args.setting)
+    if df.empty:
+        print(
+            f"No Pareto-sweep runs for setting {args.setting} after filter "
+            f"{PARETO_FILTER[args.setting]!r}; run the sweep first.",
+            file=sys.stderr,
+        )
         return 1
 
     out_path = Path(args.out_dir) / f"pareto_setting_{args.setting.lower()}"
@@ -56,6 +100,15 @@ def cmd_utility_table(args) -> int:
     df = load_runs_df(args.db_path, args.runs_root, setting=args.setting, status="done")
     if df.empty:
         print(f"No completed runs for setting {args.setting}", file=sys.stderr)
+        return 1
+
+    df = _apply_pareto_filter(df, args.setting)
+    if df.empty:
+        print(
+            f"No Pareto-sweep runs for setting {args.setting} after filter "
+            f"{PARETO_FILTER[args.setting]!r}; run the sweep first.",
+            file=sys.stderr,
+        )
         return 1
 
     table = utility_consistency_table(df)
