@@ -173,12 +173,56 @@ noise.}
 
 \input{tables/setting_b_util.tex}
 
-\paragraph{Settings~A and~C (pending).}
-\PLACE{Figure and table to be added once the Pareto sweeps on
-Setting~A (Fed-ISIC2019, dataset-size proxy) and Setting~C (CIFAR-10
-with $\eta$ coupling, $\eta$-position proxy) complete. The reporting
-format will mirror Setting~B: per-$\Tmax$ privacy line plot plus a
-paired utility-consistency table.}
+\paragraph{Setting~C (CIFAR-10 with $\eta$ coupling, hierarchical
+$[20,15,10,3,2]$, $\eta$-position proxy).}
+The Setting~C Pareto sweep covers the same factorial as Setting~B
+($U \in \{0.05, 0.1, 0.2, 0.4, 0.8, 1.6\}$, $\Tmax \in \{25, 50, 100\}$,
+two allocations, three seeds; 108 runs) at fixed $\eta = 0.5$ on the
+imbalanced hierarchical topology used by the canonical configuration.
+Figure~\ref{fig:pareto-c} shows the same qualitative pattern as
+Setting~B: topology-aware allocation sits strictly below uniform at
+every $(U, \Tmax)$ cell, with the absolute gap growing as $U$ shrinks
+(strong-privacy regime) and the relative gap maximised at the smallest
+$\Tmax$. The $\eta$-position leverage proxy
+(Corollary~\ref{cor:influence}, generalised to $\eta$-dependent
+deployments) drives the asymmetry rather than dataset size; the
+qualitative behaviour transfers across proxies as predicted by
+Corollary~\ref{cor:strict}.
+
+Table~\ref{tab:util-consistency-c} reports the matched-pair utility
+comparison. Absolute test accuracy is in the $21$--$32\%$ range — well
+above random ($10\%$) but reflecting that Setting~C is the synthetic
+\emph{statistical vehicle} rather than a deployment realism anchor: 50
+clients on a small CNN under DP-SGD with $\eta = 0.5$ coupling is a
+deliberately stressful regime selected to control the topology--data
+correlation analytically. The defense--utility comparison is meaningful
+\emph{within} this regime: across all 18 paired $(U, \text{seed})$
+configurations at each $\Tmax$, the mean $|\Delta|$ accuracy is below
+$0.02$ percentage points, the maximum is $0.07$~pp, and the paired
+$t$-test cannot reject equality at any $\Tmax$
+($p \in [0.484, 0.740]$). The TA/tie/uniform direction tally is
+near-balanced at every $\Tmax$. Allocation strategy therefore has no
+measurable effect on test accuracy at fixed utility budget — confirming
+Proposition~\ref{prop:utility} empirically on the synthetic vehicle.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/pareto_setting_c.pdf}
+\caption{Setting~C privacy--utility curves. Same layout as
+Figure~\ref{fig:pareto-b}: each panel fixes $\Tmax$ and sweeps the
+utility budget $U$; topology-aware (\Fulcrum, blue circles) lies
+strictly below uniform allocation (red squares) at every cell. The
+shaded region is the absolute $K^\star$ gap. Setting~C uses the
+imbalanced hierarchical topology $[20,15,10,3,2]$ with $\eta=0.5$.}
+\label{fig:pareto-c}
+\end{figure*}
+
+\input{tables/setting_c_util.tex}
+
+\paragraph{Setting~A (pending).}
+\PLACE{Figure and table to be added once the Setting~A Pareto sweep
+(Fed-ISIC2019, hierarchical hospital sites with dataset-size proxy)
+completes. The reporting format mirrors Settings~B and~C.}
 
 \subsection{TADI Channel Ablation}
 \label{sec:experiments-channels}
