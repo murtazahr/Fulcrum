@@ -1,0 +1,14 @@
+\begin{table}[t]
+\centering
+\caption{Setting C: utility consistency under topology-aware vs.\ uniform DP-SGD allocation. Each row aggregates paired runs at matched $(U, \text{seed})$. Accuracy fields in percentage points; $p$ from a paired $t$-test across all pairs.}
+\label{tab:util-consistency-c}
+\begin{tabular}{@{}rcccccccc@{}}
+\toprule
+$T_{\max}$ & TA acc (\%) & Uniform acc (\%) & $\max|\Delta|$ (pp) & $\overline{|\Delta|}$ (pp) & TA / tie / Unif & paired $t$ $p$ & $n$ \\
+\midrule
+25 & 21.57 & 21.58 & 0.07 & 0.016 & 7/3/8 & 0.484 & 18 \\
+50 & 27.79 & 27.80 & 0.04 & 0.012 & 5/4/9 & 0.614 & 18 \\
+100 & 31.75 & 31.75 & 0.07 & 0.014 & 8/2/11 & 0.692 & 21 \\
+\bottomrule
+\end{tabular}
+\end{table}
