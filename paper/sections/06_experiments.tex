@@ -224,32 +224,170 @@ imbalanced hierarchical topology $[20,15,10,3,2]$ with $\eta=0.5$.}
 (Fed-ISIC2019, hierarchical hospital sites with dataset-size proxy)
 completes. The reporting format mirrors Settings~B and~C.}
 
-\subsection{TADI Channel Ablation}
+\subsection{TADI Channel Ablation (Setting~C)}
 \label{sec:experiments-channels}
+
+We trained one \TADI regressor per channel
+($\Adv_1, \Adv_2^{\text{topo}}, \Adv_2^{\text{org}}, \Adv_2^{\text{full}}$)
+on a shadow corpus of $50$ runs (10 seeds $\times$ 5 $\eta$ values
+$\{0, 0.25, 0.5, 0.75, 1.0\}$, no DP, hierarchical topology) and
+evaluated each fitted regressor against all $228$ Setting~C target
+runs from the Pareto sweep and $\eta$-sweep combined. Per-target
+metrics are aggregated to per-channel statistics below; the full
+per-(target~run,~channel) table is in
+\texttt{analysis/attack\_setting\_c.parquet}.
+
+\paragraph{Per-channel headline.}
+Averaged across all target runs:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Channel & Attack lift & AUROC & Top-$k$ recovery & $\mathrm{Corr}(K^\star, \text{lift})$ \\
+\midrule
+$\Adv_1$ (parameter-only)         & $-0.027$ &  $0.57$ & $0.31$ & $+0.12$ \\
+$\Adv_2^{\text{topo}}$ (structure) & $-0.001$ &  $0.52$ & $0.39$ & $-0.16$ \\
+$\Adv_2^{\text{org}}$ (org-label)  & $+0.018$ &  $0.78$ & $0.49$ & $+0.35$ \\
+$\Adv_2^{\text{full}}$ (combined)  & $+0.003$ &  $0.80$ & $0.46$ & $+0.35$ \\
+\bottomrule
+\end{tabular}
+\caption{Setting~C: \TADI per-channel attack metrics. ``Attack lift'' is
+constant-mean baseline calibration loss minus the regressor's
+calibration loss; positive lift indicates extraction of client-level
+information beyond the federation mean. ``Corr$(K^\star, \text{lift})$''
+is the Pearson correlation between the theoretical privacy bound
+$K^\star$ and the regressor's empirical attack lift, taken across
+target runs.}
+\label{tab:channels-c}
+\end{table}
+
+The four-channel decomposition reveals three empirical findings,
+each mapping onto a specific theoretical claim of \S\ref{sec:defense}.
+
+\paragraph{Finding 1: DP-SGD bounds the parameter channel
+empirically.}
+$\Adv_1$ achieves \emph{negative} attack lift in every regime tested.
+The parameter-only adversary cannot beat the trivial constant-mean
+predictor regardless of $\eta$, regardless of $U$, regardless of
+$\Tmax$. This is the empirical analogue of the controllable mechanism
+term in Theorem~\ref{thm:per-client}: the per-client noise allocation
+$\sigma_i$, combined with the chosen $(U, \Tmax, |B|)$ deployment,
+drives $T_{\max} C^2/(2\sigma_i^2|B|^2)$ low enough that the resulting
+posterior on $p_i$ is uninformative beyond the marginal. The negative
+sign indicates the regressor over-fits to spurious parameter features
+under DP noise, performing worse than the no-information baseline.
+
+\paragraph{Finding 2: The prior-coupling channel manifests
+monotonically in $\eta$.}
+Figure~\ref{fig:attack-eta-c} shows the per-channel attack lift as a
+function of the topology--data coupling $\eta$. The organisational
+channel exhibits a clean monotone gradient from $-0.024$ at $\eta=0$
+(IID null, no recoverable signal) to $+0.060$ at $\eta=1$ (maximum
+position-class coupling). Critically, the IID null at $\eta=0$ gives
+\emph{negative} lift across every channel: when there is no
+position-class correlation, the trained regressor performs strictly
+worse than predicting the federation mean. This is the methodological
+sanity check committed to in \S\ref{sec:reference-adv}, and it passes
+across all four channels.
+
+The growth pattern is the empirical signature of the uncontrollable
+prior-coupling floor $\ell_i^\circ$ in Theorem~\ref{thm:per-client}:
+the lateral information $I(p_i; D_{-i})$ that DP-SGD on client $i$
+cannot reduce, exposed here through the deployment-grade
+$\omega \to p_i$ correlation.
+
+\paragraph{Finding 3: The theoretical bound is directionally
+predictive of empirical attack capability.}
+The Pearson correlation between the predicted privacy bound $K^\star$
+(from Theorem~\ref{thm:allocation}) and the empirical attack lift is
+$+0.35$ on the two channels that carry signal
+($\Adv_2^{\text{org}}, \Adv_2^{\text{full}}$). The bound therefore has
+real predictive value for adversary capability under \TADI: higher
+$K^\star$ correlates with higher empirical lift across the
+$(U, \Tmax, \eta)$ grid. The correlation is modest in magnitude
+($R^2 \approx 0.12$); the bound is an upper bound, not a tight
+prediction, and the residual variance is consistent with both
+deployment-specific factors and the conservative slack documented in
+\S\ref{sec:defense-thm1}.
+
+Figure~\ref{fig:attack-K-c} plots the lift--$K^\star$ relationship
+directly. On $\Adv_1$ the relationship is essentially flat (DP-SGD
+bounds the parameter channel independently of $K^\star$, so $K^\star$'s
+mechanism term dominates the bound but barely the empirical signal);
+on $\Adv_2^{\text{topo}}$ it is near-zero in both quantities; on the
+two prior-coupling-bearing channels it slopes upward.
+
+\paragraph{Honest scope on Finding 2 + 3.}
+Both findings are tied to Setting~C's $\eta$-coupled construction: the
+partitioning is engineered so that class concentration tracks the
+position index $i \bmod K$, and the organisational label $\omega_i$
+in Setting~C is the position. The org channel's success therefore
+\emph{quantifies} a coupling we built into the setting, rather than
+discovering a novel attack surface in the wild. The
+calibration--null condition at $\eta=0$ (\textbf{Finding 2}) is what
+gives the result interpretive force --- it confirms the regressor only
+extracts signal where the deployment structure actually contains it ---
+and the monotone gradient in $\eta$ matches the analytic dependence
+of $\ell_i^\circ$ on the partitioning hyperparameter. The cross-setting
+generalisation, where the leverage proxy is dataset-size or graph
+degree rather than $\eta$-position, awaits Settings A and B
+(\S\ref{sec:experiments-pareto}).
+
+\paragraph{What the data does not say.}
+Two non-results worth reporting plainly:
+\begin{itemize}[topsep=2pt,itemsep=2pt,leftmargin=*]
+\item $\Adv_2^{\text{full}}$ does not strictly dominate
+$\Adv_2^{\text{org}}$ on Setting~C. Attack lift is slightly lower for
+the combined channel ($+0.003$ vs.\ $+0.018$); top-$k$ recovery is
+also slightly worse ($0.46$ vs.\ $0.49$). AUROC marginally favours
+the combined channel ($0.80$ vs.\ $0.78$). The most defensible reading
+is that the regressor's combined feature set is contaminated by noisy
+parameter and structural features that LightGBM cannot fully
+deprioritise on a 50-shadow-run training set; when most of the signal
+lives in a single channel, additional channels are noise. We do not
+claim the four-channel adversary is universally the worst case.
+\item $\Adv_2^{\text{topo}}$ adds essentially no signal in Setting~C.
+Graph degree, depth, and one-hot organisational features are
+correlated through the hierarchical structure, and Setting~C's
+partitioning routes the class signal through $\omega$ rather than
+through structural position. Settings where leverage derives from
+degree variation (Corollary~\ref{cor:degree}) or dataset-size
+heterogeneity (Corollary~\ref{cor:influence}) should yield different
+single-channel decompositions; we report those once Settings A and
+B's shadow corpus is established.
+\end{itemize}
 
 \begin{figure}[t]
 \centering
-\fbox{\parbox{0.92\linewidth}{
-\centering\vspace{0.6em}
-\PLACE{\textbf{Figure~\ref{fig:channels}: \TADI attack lift per
-channel ablation across the three settings.}\\
-Bar chart with four bars per setting (one per channel:
-$\Adv_1, \Adv_2^{\text{topo}}, \Adv_2^{\text{org}}, \Adv_2^{\text{full}}$).
-Y-axis: attack lift relative to constant-mean baseline. Error bars:
-$95\%$ CI across target runs.}\vspace{0.6em}}}
-\caption{Per-channel decomposition of \TADI's information advantage.
-The full-channel adversary should strictly dominate each single-channel
-adversary; the IID-null condition gives lift $\approx 0$ for all
-channels by construction.}
-\label{fig:channels}
+\includegraphics[width=0.78\linewidth]{figures/attack_lift_eta_setting_c.pdf}
+\caption{Setting~C \TADI attack lift across the four channel
+ablations, as a function of the topology--data coupling $\eta$.
+Shaded bands are $95\%$ CI across target runs at each $\eta$. The
+IID-null condition ($\eta=0$, dashed reference at $\text{lift}=0$)
+gives negative lift on every channel. The organisational channel
+($\Adv_2^{\text{org}}$, red) exhibits clean monotone growth with
+$\eta$; the parameter channel ($\Adv_1$, grey) is bounded below
+zero throughout; the structural channel ($\Adv_2^{\text{topo}}$,
+green) is flat near zero.}
+\label{fig:attack-eta-c}
 \end{figure}
 
-\PLACE{Report whether attack lift is significantly positive at
-$\eta > 0$, whether $\Adv_2^{\text{full}}$ strictly dominates each
-single-channel ablation, and which channel contributes most per
-setting (we expect organisational labels to dominate when groups are
-small and few; structural features to dominate when topology degrees
-are highly asymmetric).}
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/attack_lift_vs_K_setting_c.pdf}
+\caption{Setting~C \TADI attack lift versus the predicted bound
+$K^\star$ (Theorem~\ref{thm:allocation}), per channel. Each point is
+one target run; colour encodes $\eta$. Dashed lines show linear
+best-fit; the panel title reports Pearson $r$ and the number of
+target runs. On the two channels carrying prior-coupling signal
+($\Adv_2^{\text{org}}, \Adv_2^{\text{full}}$) the relationship has
+correlation $+0.35$; on $\Adv_1$ and $\Adv_2^{\text{topo}}$ the
+relationship is essentially flat, consistent with DP-SGD bounding
+the parameter channel and the structural channel carrying no
+class-relevant signal in this setting.}
+\label{fig:attack-K-c}
+\end{figure*}
 
 \subsection{Robustness Ablations}
 \label{sec:experiments-ablations}

@@ -128,9 +128,24 @@ appropriate channel subset.
 \TADI is not novel as a learning architecture: it is shadow-trained
 supervised regression on parameter and structural features. The
 contribution is the empirical \emph{characterisation} that this attack
-yields under DP-SGD across the four channel ablations, on three FL
+yields under DP-SGD across the four channel ablations, on FL
 benchmarks, with explicit attribution of marginal information value to
 parameter, structural, and organisational components. To our knowledge
-no prior work isolates these channels per client. The attack also serves
-as the empirical comparator against which we validate the predictive
-power of the privacy bound proved in \S\ref{sec:defense}.
+no prior work isolates these channels per client. The attack also
+serves as the empirical comparator against which we validate the
+predictive power of the privacy bound proved in \S\ref{sec:defense}.
+
+\paragraph{What the channel decomposition is for.}
+The Stage~3 hypothesis was that the combined adversary
+$\Adv_2^{\text{full}}$ strictly dominates each single-channel ablation.
+The empirical evidence in \S\ref{sec:experiments-channels} qualifies
+that hypothesis: when one channel dominates the recoverable signal,
+the others contribute noise that the regressor cannot perfectly
+deprioritise on a finite shadow corpus, and the combined attack can
+underperform the dominant single channel on some metrics (attack
+lift, top-$k$ recovery) while marginally improving on others (AUROC).
+We therefore use the four channels as a \emph{decomposition} of the
+adversary's available information, not as a tournament of strictly
+ordered attackers. The dominant channel per deployment characterises
+\emph{which} information surface the attacker exploits, and is itself
+the empirical claim of the section.

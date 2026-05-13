@@ -197,8 +197,14 @@ def cmd_export_table(args) -> int:
 
 
 def cmd_attack_eval(args) -> int:
-    """Train TADI from shadow runs and evaluate against target runs (per channel)."""
-    from fulcrum.analysis.attack_eval import evaluate_all_targets
+    """Train TADI from shadow runs, evaluate against target runs, generate figures."""
+    from fulcrum.analysis.attack_eval import evaluate_all_targets, join_with_run_metadata
+    from fulcrum.analysis.figures import (
+        plot_attack_channel_ablation,
+        plot_attack_lift_eta,
+        plot_attack_lift_vs_K,
+    )
+    from fulcrum.analysis.loader import load_runs_df
 
     out_path = Path(args.out) if args.out else Path(args.out_dir) / f"attack_setting_{args.setting.lower()}.parquet"
     df = evaluate_all_targets(
@@ -218,6 +224,8 @@ def cmd_attack_eval(args) -> int:
         )
         return 1
     print(f"Wrote {len(df)} rows × {len(df.columns)} cols → {out_path}")
+
+    # --- Per-channel summary --------------------------------------------
     summary = df.groupby("channel").agg({
         "calibration_loss": ["mean", "std"],
         "attack_lift":      ["mean", "std"],
@@ -227,6 +235,49 @@ def cmd_attack_eval(args) -> int:
     print()
     print("Per-channel summary across target runs:")
     print(summary.to_string())
+
+    # --- Join with target-run config + K* so figures can use η and K* ---
+    runs_df = load_runs_df(args.db_path, args.runs_root,
+                           setting=args.setting, status="done")
+    enriched = join_with_run_metadata(df, runs_df)
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # --- Figure 1: attack lift vs η, one line per channel --------------
+    try:
+        eta_path = out_dir / f"attack_lift_eta_setting_{args.setting.lower()}"
+        plot_attack_lift_eta(enriched, args.setting, eta_path)
+        print(f"\nη-sweep attack-lift figure → {eta_path}.{{png,pdf}}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"  (skipped η-sweep figure: {exc})", file=sys.stderr)
+
+    # --- Figure 2: attack lift vs K*, per-channel scatter --------------
+    try:
+        k_path = out_dir / f"attack_lift_vs_K_setting_{args.setting.lower()}"
+        plot_attack_lift_vs_K(enriched, args.setting, k_path)
+        print(f"Attack-lift vs K* figure → {k_path}.{{png,pdf}}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"  (skipped K* figure: {exc})", file=sys.stderr)
+
+    # --- Figure 3: channel ablation bar chart --------------------------
+    try:
+        bar_path = out_dir / f"channel_ablation_setting_{args.setting.lower()}"
+        plot_attack_channel_ablation(df, bar_path)
+        print(f"Channel-ablation bar chart → {bar_path}.{{png,pdf}}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"  (skipped channel-ablation figure: {exc})", file=sys.stderr)
+
+    # --- K* correlation print --------------------------------------------
+    if "K_star" in enriched.columns:
+        print("\nCorrelation of attack lift with theoretical K* bound:")
+        for ch in ["A1", "A2_topo", "A2_org", "A2_full"]:
+            sub = enriched[enriched["channel"] == ch].dropna(subset=["K_star", "attack_lift"])
+            if len(sub) < 2:
+                continue
+            r = float(sub[["K_star", "attack_lift"]].corr().iloc[0, 1])
+            print(f"  {ch:10s} r = {r:+.3f}  (n = {len(sub)})")
+
     return 0
 
 

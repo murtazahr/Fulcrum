@@ -439,6 +439,172 @@ def plot_eta_sweep(
 # Channel-ablation bar chart
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Attack-lift figures (companions to channel ablation)
+# ---------------------------------------------------------------------------
+
+CHANNEL_ORDER = ["A1", "A2_topo", "A2_org", "A2_full"]
+CHANNEL_COLOR = {
+    "A1":      "#888888",   # parameter-only — neutral grey
+    "A2_topo": "#2ca02c",   # structural — green
+    "A2_org":  "#d62728",   # organisational — red (the dominant channel in Setting C)
+    "A2_full": "#1f77b4",   # combined — blue
+}
+CHANNEL_MARKER = {"A1": "o", "A2_topo": "^", "A2_org": "s", "A2_full": "D"}
+
+
+def plot_attack_lift_eta(
+    df: pd.DataFrame,
+    setting: str,
+    output_path: str | Path,
+    eta_col: str = "data.eta",
+    lift_col: str = "attack_lift",
+    channel_col: str = "channel",
+) -> None:
+    """Attack lift vs $\\eta$, one curve per channel ablation.
+
+    Expects ``df`` to be the (target_run, channel) attack-evaluation table
+    joined with the target run's config (so ``data.eta`` is available).
+    Plots the mean attack lift at each $\\eta$ with a shaded 95\\% CI from
+    seed variance, with a horizontal zero reference line.
+
+    The IID-null sanity is visible directly: at $\\eta=0$ every channel
+    should sit at or below zero.
+    """
+    _set_style()
+    import matplotlib.pyplot as plt
+
+    df = df.dropna(subset=[eta_col, lift_col, channel_col])
+    if df.empty:
+        raise ValueError(f"No attack-lift data for setting {setting}")
+
+    fig, ax = plt.subplots(figsize=(6.2, 3.6))
+    ax.axhline(0.0, color="gray", linewidth=0.8, linestyle="--", zorder=1)
+
+    for channel in CHANNEL_ORDER:
+        sub = df[df[channel_col] == channel]
+        if sub.empty:
+            continue
+        agg = (sub.groupby(eta_col)[lift_col]
+                  .agg(["mean", "std", "count"])
+                  .reset_index()
+                  .sort_values(eta_col))
+        ci = 1.96 * agg["std"].fillna(0.0) / np.sqrt(agg["count"].clip(lower=1))
+        ax.plot(
+            agg[eta_col], agg["mean"],
+            marker=CHANNEL_MARKER.get(channel, "o"),
+            color=CHANNEL_COLOR.get(channel, "black"),
+            linewidth=1.8, markersize=6,
+            label=channel, zorder=3,
+        )
+        ax.fill_between(
+            agg[eta_col],
+            agg["mean"] - ci, agg["mean"] + ci,
+            color=CHANNEL_COLOR.get(channel, "black"),
+            alpha=0.15, zorder=2,
+        )
+
+    ax.set_xlabel(r"Topology-data coupling $\eta$")
+    ax.set_ylabel("Attack lift (constant-mean baseline − calibration loss)")
+    ax.set_title(f"Setting {setting}: TADI attack lift across channel ablations")
+    ax.legend(loc="best", fontsize=8, framealpha=0.85)
+    fig.tight_layout()
+    _save(fig, output_path)
+    plt.close(fig)
+
+
+def plot_attack_lift_vs_K(
+    df: pd.DataFrame,
+    setting: str,
+    output_path: str | Path,
+    k_col: str = "K_star",
+    lift_col: str = "attack_lift",
+    channel_col: str = "channel",
+    eta_col: str = "data.eta",
+) -> None:
+    """Attack lift against the predicted privacy bound $K^\\star$.
+
+    One panel per channel; each panel scatters every target run as a
+    point coloured by $\\eta$ (deeper colour = stronger coupling).
+    Annotates the Pearson correlation and a linear best-fit line.
+    Reports correlation in the panel title.
+
+    Theorem 1 predicts higher $K^\\star$ → higher achievable adversary
+    capability. The empirical correlation tests how predictive the
+    theoretical bound is. For Setting C the correlation is +0.35 for
+    the org and full channels (modest but directional).
+    """
+    _set_style()
+    import matplotlib.pyplot as plt
+    from matplotlib import cm
+
+    df = df.dropna(subset=[k_col, lift_col, channel_col])
+    if df.empty:
+        raise ValueError(f"No K* / attack-lift data for setting {setting}")
+
+    n_channels = len(CHANNEL_ORDER)
+    fig, axes = plt.subplots(
+        1, n_channels, figsize=(3.0 * n_channels, 3.4),
+        sharey=True,
+    )
+    if n_channels == 1:
+        axes = [axes]
+
+    eta_norm = None
+    if eta_col in df.columns:
+        eta_vals = df[eta_col].dropna()
+        if not eta_vals.empty:
+            eta_norm = plt.Normalize(vmin=eta_vals.min(), vmax=eta_vals.max())
+    cmap = cm.get_cmap("viridis")
+
+    for ax, channel in zip(axes, CHANNEL_ORDER):
+        sub = df[df[channel_col] == channel].copy()
+        if sub.empty:
+            ax.set_title(f"{channel}\n(no data)")
+            continue
+        if eta_norm is not None and eta_col in sub.columns:
+            colors = cmap(eta_norm(sub[eta_col].fillna(eta_norm.vmin)))
+        else:
+            colors = CHANNEL_COLOR.get(channel, "black")
+        ax.scatter(sub[k_col], sub[lift_col], c=colors, alpha=0.7, s=22,
+                   edgecolors="none", zorder=3)
+
+        # Linear fit + correlation
+        if len(sub) >= 2:
+            corr = float(sub[[k_col, lift_col]].corr().iloc[0, 1])
+            xs = np.linspace(sub[k_col].min(), sub[k_col].max(), 50)
+            # Avoid polyfit on degenerate variance
+            if sub[k_col].std() > 1e-12:
+                a, b = np.polyfit(sub[k_col], sub[lift_col], 1)
+                ax.plot(xs, a * xs + b, color="black", linewidth=1.0,
+                        linestyle="--", zorder=2)
+            title = f"{channel}\n$r$ = {corr:+.3f}  ($n$ = {len(sub)})"
+        else:
+            title = f"{channel}\n(n={len(sub)})"
+
+        ax.axhline(0.0, color="gray", linewidth=0.6, linestyle=":", zorder=1)
+        ax.set_xscale("log")
+        ax.set_title(title, fontsize=9)
+        ax.set_xlabel(r"Predicted bound $K^\star$ (nats)")
+
+    axes[0].set_ylabel("Attack lift")
+
+    # Colourbar for η
+    if eta_norm is not None:
+        sm = cm.ScalarMappable(norm=eta_norm, cmap=cmap)
+        sm.set_array([])
+        cbar = fig.colorbar(sm, ax=axes, orientation="vertical",
+                            shrink=0.7, pad=0.02, aspect=20)
+        cbar.set_label(r"$\eta$", rotation=0, labelpad=8)
+
+    fig.suptitle(
+        f"Setting {setting}: TADI attack lift vs. theoretical bound",
+        y=1.02,
+    )
+    _save(fig, output_path)
+    plt.close(fig)
+
+
 def plot_attack_channel_ablation(
     df: pd.DataFrame,
     output_path: str | Path,
