@@ -98,7 +98,16 @@ def attack_lift(p_hat: np.ndarray, p_true: np.ndarray) -> float:
 
 @dataclass
 class _LightGBMBackend:
-    """LightGBM gradient-boosted trees — primary regressor."""
+    """LightGBM gradient-boosted trees — primary regressor.
+
+    Both ``fit`` and ``predict`` wrap the input array in a DataFrame with
+    stable column names (``f0..f{n-1}``). LightGBM stores
+    ``feature_names_in_`` at fit time, and sklearn's validator otherwise
+    emits a (cosmetic but extremely noisy) "X does not have valid feature
+    names" warning for every predict call when X is a bare numpy array.
+    Round-tripping through a DataFrame with the same column scheme makes
+    fit and predict agree.
+    """
 
     n_estimators: int = 400
     learning_rate: float = 0.05
@@ -106,6 +115,11 @@ class _LightGBMBackend:
     min_data_in_leaf: int = 5
     random_state: int = 0
     _model: Any = None
+
+    @staticmethod
+    def _wrap(X: np.ndarray):
+        import pandas as pd
+        return pd.DataFrame(X, columns=[f"f{i}" for i in range(X.shape[1])])
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         try:
@@ -123,12 +137,12 @@ class _LightGBMBackend:
             random_state=self.random_state,
             verbose=-1,
         )
-        self._model.fit(X, y)
+        self._model.fit(self._wrap(X), y)
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         if self._model is None:
             raise RuntimeError("Regressor not fitted")
-        return np.clip(self._model.predict(X), 0.0, 1.0)
+        return np.clip(self._model.predict(self._wrap(X)), 0.0, 1.0)
 
 
 @dataclass
