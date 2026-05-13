@@ -24,7 +24,10 @@ dependencies = [
     # (`scripts/setup_env.sh` installs FLamby from source). Both are
     # imported at module load time, so the loader fails before we ever
     # touch a dataset object if they're missing.
-    "albumentations>=1.3",         # used in fed_isic2019/dataset.py
+    # `albumentations.Flip` was removed in albumentations 2.0 (split
+    # into HorizontalFlip + VerticalFlip); FLamby's dataset.py still
+    # calls the pre-2.0 name, so pin to the 1.x line.
+    "albumentations>=1.3,<2.0",    # used in fed_isic2019/dataset.py
     "efficientnet_pytorch>=0.7",   # used in fed_isic2019/model.py
     # Attack regressors
     "lightgbm>=4.0",
