@@ -172,6 +172,21 @@ def load_shadow_dataset(
     if limit is not None:
         run_ids = run_ids[:limit]
 
+    # First pass: discover the common per-round feature width across all
+    # shadow runs. We truncate to the minimum so v1 (layer-norm-only)
+    # and v2 (with class-aware blocks) shadow runs can coexist if needed.
+    raw_widths: list[int] = []
+    for run_id in run_ids:
+        feat_path = runs_root / run_id / "features.npz"
+        if not feat_path.exists():
+            continue
+        npz = np.load(feat_path, allow_pickle=False)
+        raw_widths.append(int(npz["raw"].shape[-1]))
+    if not raw_widths:
+        return (np.zeros((0, 0), dtype=np.float32),
+                np.zeros((0,), dtype=np.float64), [])
+    common_raw_width = min(raw_widths)
+
     X_blocks: list[np.ndarray] = []
     p_blocks: list[np.ndarray] = []
     rid_blocks: list[str] = []
@@ -181,42 +196,40 @@ def load_shadow_dataset(
         feat_path = run_dir / "features.npz"
         cfg_path = run_dir / "config.json"
         if not feat_path.exists() or not cfg_path.exists():
-            # Skip runs missing artifacts — the runner would have logged the failure
             continue
         npz = np.load(feat_path, allow_pickle=False)
-        raw = npz["raw"]                            # shape (n_clients, T_max, F_raw)
-        p_true = npz["p_true"]                      # shape (n_clients,)
+        raw = npz["raw"]
+        p_true = npz["p_true"]
         neighbors = json.loads(str(npz["neighbors_json"]))
         omega = npz["omega"] if "omega" in npz.files else None
         if omega is not None and omega.dtype != np.int64:
             omega = omega.astype(np.int64)
 
         try:
-            X = build_attack_features(raw, neighbors=neighbors, omega=omega, channel=channel)
+            X = build_attack_features(
+                raw, neighbors=neighbors, omega=omega, channel=channel,
+                max_round_features=common_raw_width,
+            )
         except ValueError:
-            # Channel requires inputs the run didn't save — skip this run for this channel
             continue
         X_blocks.append(X)
         p_blocks.append(p_true.astype(np.float64))
         rid_blocks.extend([run_id] * X.shape[0])
 
     if not X_blocks:
-        return (
-            np.zeros((0, 0), dtype=np.float32),
-            np.zeros((0,), dtype=np.float64),
-            [],
-        )
+        return (np.zeros((0, 0), dtype=np.float32),
+                np.zeros((0,), dtype=np.float64), [])
 
-    # Different runs may produce different feature widths if topology/org dims differ.
-    # In that case the regressor would need shape-consistent features per training.
-    # For the common case (same setting, same n_clients, same topology family) the
-    # widths agree. Validate and raise loudly if they don't.
     widths = {block.shape[1] for block in X_blocks}
     if len(widths) > 1:
         raise ValueError(
-            f"Inconsistent feature widths across shadow runs ({widths}). "
-            "All shadow runs in a single training set must have the same topology "
-            "family and organizational structure for feature concatenation to be valid."
+            f"Inconsistent feature widths across shadow runs even after "
+            f"truncation to common_raw_width={common_raw_width}: {widths}. "
+            "Likely cause: different topology / organisational structures "
+            "across shadow runs."
         )
 
-    return np.concatenate(X_blocks, axis=0), np.concatenate(p_blocks, axis=0), rid_blocks
+    return (np.concatenate(X_blocks, axis=0),
+            np.concatenate(p_blocks, axis=0),
+            rid_blocks,
+            common_raw_width)  # so the caller can use the same truncation on target features

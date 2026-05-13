@@ -84,21 +84,29 @@ def fit_tadi_per_channel(
     """
     fitted: dict[str, TADI] = {}
     for channel in channels:
-        X, p, run_ids = load_shadow_dataset(
+        result = load_shadow_dataset(
             db_path=db_path,
             runs_root=runs_root,
             setting=setting,
             channel=channel,
             limit=shadow_run_limit,
         )
+        # Support both 3- and 4-tuple return forms (latter exposes the
+        # truncation width used during shadow loading so target features
+        # can be truncated to match).
+        if len(result) == 4:
+            X, p, run_ids, common_raw_width = result
+        else:
+            X, p, run_ids = result
+            common_raw_width = None
         if X.shape[0] == 0:
             continue
         attack = TADI(regressor=regressor)
         attack.fit(X, p)
-        # Stash provenance on the object for the eval row
-        attack.n_shadow_examples = int(X.shape[0])  # type: ignore[attr-defined]
-        attack.n_shadow_runs = len(set(run_ids))    # type: ignore[attr-defined]
-        attack.feature_width = int(X.shape[1])      # type: ignore[attr-defined]
+        attack.n_shadow_examples = int(X.shape[0])    # type: ignore[attr-defined]
+        attack.n_shadow_runs = len(set(run_ids))      # type: ignore[attr-defined]
+        attack.feature_width = int(X.shape[1])        # type: ignore[attr-defined]
+        attack.common_raw_width = common_raw_width    # type: ignore[attr-defined]
         fitted[channel] = attack
     return fitted
 
@@ -130,10 +138,17 @@ def evaluate_target_run(
 
     rows: list[AttackEvalRow] = []
     for channel, attack in fitted_tadis.items():
+        # Match the per-round feature width used during shadow training so
+        # v1 (layer-norm-only) and v2 (with class-aware blocks) features
+        # interop. The class-aware blocks sit at the end of each round's
+        # vector; truncating preserves the v1-compatible prefix.
+        common_raw_width = getattr(attack, "common_raw_width", None)
         try:
-            X = build_attack_features(raw, neighbors=neighbors, omega=omega, channel=channel)
+            X = build_attack_features(
+                raw, neighbors=neighbors, omega=omega, channel=channel,
+                max_round_features=common_raw_width,
+            )
         except ValueError:
-            # Channel needs inputs this run didn't persist
             continue
         expected_width = getattr(attack, "feature_width", None)
         if expected_width is not None and X.shape[1] != expected_width:

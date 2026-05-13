@@ -75,7 +75,11 @@ def fit_tadi(setting: str, db_path: str, runs_root: str, channel: str, regressor
     from fulcrum.attacks.shadow import load_shadow_dataset
     from fulcrum.attacks.tadi import TADI
 
-    X, p, run_ids = load_shadow_dataset(db_path, setting=setting, runs_root=runs_root, channel=channel)
+    result = load_shadow_dataset(db_path, setting=setting, runs_root=runs_root, channel=channel)
+    if len(result) == 4:
+        X, p, run_ids, _ = result
+    else:
+        X, p, run_ids = result
     if X.shape[0] == 0:
         click.echo(f"No completed shadow runs for setting={setting}, channel={channel}", err=True)
         sys.exit(1)
