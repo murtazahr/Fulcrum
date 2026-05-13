@@ -107,6 +107,13 @@ def fit_tadi_per_channel(
         attack.n_shadow_runs = len(set(run_ids))      # type: ignore[attr-defined]
         attack.feature_width = int(X.shape[1])        # type: ignore[attr-defined]
         attack.common_raw_width = common_raw_width    # type: ignore[attr-defined]
+        # Surface CV-tuning provenance if the backend supports it
+        backend = getattr(attack, "_backend", None)
+        best_params = getattr(backend, "_best_params", None)
+        best_score = getattr(backend, "_best_cv_score", None)
+        if best_params is not None:
+            print(f"  [TADI/{channel}] CV-tuned LightGBM: "
+                  f"best_mse={best_score:.5f}  params={best_params}")
         fitted[channel] = attack
     return fitted
 

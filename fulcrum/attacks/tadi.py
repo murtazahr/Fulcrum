@@ -98,15 +98,22 @@ def attack_lift(p_hat: np.ndarray, p_true: np.ndarray) -> float:
 
 @dataclass
 class _LightGBMBackend:
-    """LightGBM gradient-boosted trees — primary regressor.
+    """LightGBM gradient-boosted trees with cross-validated hyperparameter tuning.
+
+    With small shadow corpora (a few hundred training examples) and high-
+    dimensional features (per-channel feature widths in the tens), the
+    default LightGBM hyperparameters overfit. Cross-validated grid search
+    over the four most impactful hyperparameters (n_estimators,
+    learning_rate, num_leaves, min_data_in_leaf) consistently selects
+    simpler configurations on shadow training sets of this size, and
+    improves transferability of the regressor to target features.
+
+    Tuning is on by default; pass ``cv_tune=False`` to fall back to fixed
+    hyperparameters (e.g., for ablation or smoke tests).
 
     Both ``fit`` and ``predict`` wrap the input array in a DataFrame with
-    stable column names (``f0..f{n-1}``). LightGBM stores
-    ``feature_names_in_`` at fit time, and sklearn's validator otherwise
-    emits a (cosmetic but extremely noisy) "X does not have valid feature
-    names" warning for every predict call when X is a bare numpy array.
-    Round-tripping through a DataFrame with the same column scheme makes
-    fit and predict agree.
+    stable column names so LightGBM's ``feature_names_in_`` agrees at
+    train and predict time and sklearn's validator stays quiet.
     """
 
     n_estimators: int = 400
@@ -114,7 +121,11 @@ class _LightGBMBackend:
     num_leaves: int = 31
     min_data_in_leaf: int = 5
     random_state: int = 0
+    cv_tune: bool = True
+    cv_folds: int = 5
     _model: Any = None
+    _best_params: Any = None
+    _best_cv_score: Any = None
 
     @staticmethod
     def _wrap(X: np.ndarray):
@@ -129,15 +140,53 @@ class _LightGBMBackend:
                 "lightgbm not installed. Install with `pip install lightgbm` or use "
                 "regressor='linear' / 'mlp'."
             ) from exc
-        self._model = lgb.LGBMRegressor(
-            n_estimators=self.n_estimators,
-            learning_rate=self.learning_rate,
-            num_leaves=self.num_leaves,
-            min_data_in_leaf=self.min_data_in_leaf,
-            random_state=self.random_state,
-            verbose=-1,
+
+        X_df = self._wrap(X)
+
+        # Fall back to fixed hyperparams for very small corpora where CV
+        # would split into folds smaller than ``min_data_in_leaf`` and
+        # fits degenerate.
+        n_per_fold = len(y) // max(self.cv_folds, 1)
+        if not self.cv_tune or n_per_fold < 8:
+            self._model = lgb.LGBMRegressor(
+                n_estimators=self.n_estimators,
+                learning_rate=self.learning_rate,
+                num_leaves=self.num_leaves,
+                min_data_in_leaf=self.min_data_in_leaf,
+                random_state=self.random_state,
+                verbose=-1,
+            )
+            self._model.fit(X_df, y)
+            return
+
+        from sklearn.model_selection import GridSearchCV, KFold
+
+        # Compact grid focused on regularisation knobs that matter most
+        # for small training sets: shallower trees and larger leaf-data
+        # minimums prevent the classifier from memorising shadow quirks.
+        param_grid = {
+            "n_estimators":     [100, 200, 400],
+            "learning_rate":    [0.05, 0.1],
+            "num_leaves":       [7, 15, 31],
+            "min_data_in_leaf": [5, 10, 20],
+        }
+        base = lgb.LGBMRegressor(random_state=self.random_state, verbose=-1)
+        # KFold with shuffling so contiguous (run_id-ordered) shadow rows
+        # don't cluster in folds; random_state fixed for reproducibility.
+        kf = KFold(n_splits=self.cv_folds, shuffle=True, random_state=self.random_state)
+        gs = GridSearchCV(
+            base, param_grid,
+            cv=kf,
+            scoring="neg_mean_squared_error",
+            n_jobs=1,     # LightGBM is itself parallelised; avoid oversubscription
+            refit=True,
         )
-        self._model.fit(self._wrap(X), y)
+        gs.fit(X_df, y)
+        self._model = gs.best_estimator_
+        self._best_params = dict(gs.best_params_)
+        self._best_cv_score = float(-gs.best_score_)
+        # One line of provenance per channel is useful when diagnosing
+        # whether tuning is doing anything; printed by attack-eval driver.
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         if self._model is None:
