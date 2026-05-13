@@ -1,0 +1,26 @@
+# Setting B shadow training data — TADI adversary's offline training corpus.
+#
+# Generates labeled (features, p_i) pairs for the adversary to train on.
+# Uses synthetic re-partitioning of Fed-Heart-Disease across 4 clients
+# (matching the target sweep's client count) so the regressor's feature
+# width matches Setting B target runs.
+#
+# Shadow runs have NO DP (clean leakage signal) and use seeds disjoint
+# from the target sweep (10..19) to avoid leak-through.
+#
+# Total: 5 alphas × 10 seeds × 1 allocation = 50 shadow runs (~1.5 hr on L40S
+# — Setting B's logistic-regression-class model is much faster than C or A).
+
+base: configs/setting_b_canonical.yaml
+output_dir: runs
+db_path: experiments.db
+
+sweep:
+  experiment.mode: [shadow]
+  experiment.seed: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+  data.synthetic_partition: [true]
+  data.n_clients: [4]                # match target sweep's client count
+  data.alpha: [0.1, 0.3, 0.5, 1.0, 3.0]   # vary Dirichlet skew across runs
+  data.eta: [0.0]                    # no engineered position-class coupling
+  dp.enabled: [false]                # clean signal for adversary training
+  dp.allocation: [none]

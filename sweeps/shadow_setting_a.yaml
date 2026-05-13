@@ -1,0 +1,31 @@
+# Setting A shadow training data — TADI adversary's offline training corpus.
+#
+# Generates labeled (features, p_i) pairs via synthetic re-partitioning of
+# Fed-ISIC2019 across 6 clients (matching the target sweep's site count).
+# The re-partitioning ignores native FLamby site assignments and applies
+# Dirichlet(α) per shadow run, varying α across runs so that the regressor
+# sees a diverse distribution of (Θ_i, p_i) pairs.
+#
+# Shadow runs have NO DP (clean leakage signal) and use seeds disjoint
+# from the target sweep (10..19) to avoid leak-through.
+#
+# Total: 5 alphas × 10 seeds × 1 allocation = 50 shadow runs.
+# Each Setting A run is much slower than Setting B (CNN on dermoscopy
+# vs. tabular logistic): expect ~10-15 hr wall-clock on L40S for the
+# full sweep. Run only after `data/fed_isic2019/` is preprocessed and
+# the Setting A target Pareto sweep is at least partially done so that
+# the cached pooled-dataset extraction is amortised.
+
+base: configs/setting_a_canonical.yaml
+output_dir: runs
+db_path: experiments.db
+
+sweep:
+  experiment.mode: [shadow]
+  experiment.seed: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+  data.synthetic_partition: [true]
+  data.n_clients: [6]                # match target sweep's site count
+  data.alpha: [0.1, 0.3, 0.5, 1.0, 3.0]   # vary Dirichlet skew
+  data.eta: [0.0]                    # no engineered position-class coupling
+  dp.enabled: [false]                # clean signal for adversary training
+  dp.allocation: [none]

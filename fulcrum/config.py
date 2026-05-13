@@ -79,11 +79,19 @@ class ExperimentMeta:
 @dataclass
 class DataConfig:
     data_root: str = "data"
-    # Setting C only — ignored for A/B
+    # Setting C only — ignored for A/B target runs
     n_clients: int | None = None
     eta: float | None = None
     alpha: float | None = None
     sensitive_class: int | None = None
+    # Synthetic re-partitioning of FLamby datasets for shadow training.
+    # When True for Setting A or B, the runner ignores the native FLamby
+    # site partitioning and instead applies a Dirichlet(α)+η-coupled
+    # synthetic partitioning across n_clients clients (same construction
+    # as Setting C). Required for TADI shadow training on A and B since
+    # the native partitioning is fixed and would produce identical p_i
+    # across shadow runs.
+    synthetic_partition: bool = False
 
 
 @dataclass

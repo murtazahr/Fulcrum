@@ -48,9 +48,28 @@ def _build_clients_topology(cfg: ExperimentConfig):
     setting = cfg.setting
 
     if setting == "A":
-        from fulcrum.data.flamby_isic import FedISICConfig, default_organizational_labels, make_client_datasets
         from fulcrum.topology.hierarchical import make_hierarchical
         sensitive = cfg.data.sensitive_class if cfg.data.sensitive_class is not None else 0
+        if cfg.data.synthetic_partition:
+            # Shadow-style: re-partition the pooled FLamby data with
+            # Dirichlet+η coupling so each shadow run has a different p_i.
+            from fulcrum.data.flamby_synthetic import (
+                FlambySyntheticConfig, make_client_datasets,
+            )
+            n_clients = cfg.data.n_clients if cfg.data.n_clients is not None else 6
+            scfg = FlambySyntheticConfig(
+                dataset="fed_isic2019",
+                n_clients=n_clients,
+                alpha=cfg.data.alpha if cfg.data.alpha is not None else 0.5,
+                eta=cfg.data.eta if cfg.data.eta is not None else 0.0,
+                sensitive_class=sensitive,
+                seed=cfg.experiment.seed,
+            )
+            clients = make_client_datasets(scfg, cfg.data.data_root)
+            num_regions = cfg.topology.num_regions if cfg.topology.num_regions is not None else 3
+            topology, omega = make_hierarchical(num_clients=len(clients), num_regions=num_regions)
+            return clients, topology, omega
+        from fulcrum.data.flamby_isic import FedISICConfig, default_organizational_labels, make_client_datasets
         clients = make_client_datasets(FedISICConfig(sensitive_class=sensitive))
         num_regions = cfg.topology.num_regions if cfg.topology.num_regions is not None else 3
         topology, omega_default = make_hierarchical(num_clients=len(clients), num_regions=num_regions)
@@ -62,8 +81,25 @@ def _build_clients_topology(cfg: ExperimentConfig):
         return clients, topology, omega
 
     if setting == "B":
-        from fulcrum.data.flamby_heart import FedHeartConfig, make_client_datasets
         sensitive = cfg.data.sensitive_class if cfg.data.sensitive_class is not None else 1
+        if cfg.data.synthetic_partition:
+            from fulcrum.data.flamby_synthetic import (
+                FlambySyntheticConfig, make_client_datasets,
+            )
+            n_clients = cfg.data.n_clients if cfg.data.n_clients is not None else 4
+            scfg = FlambySyntheticConfig(
+                dataset="fed_heart_disease",
+                n_clients=n_clients,
+                alpha=cfg.data.alpha if cfg.data.alpha is not None else 0.5,
+                eta=cfg.data.eta if cfg.data.eta is not None else 0.0,
+                sensitive_class=sensitive,
+                seed=cfg.experiment.seed,
+            )
+            clients = make_client_datasets(scfg, cfg.data.data_root)
+            topology = _build_topology(cfg.topology, len(clients))
+            omega = np.arange(len(clients), dtype=np.int64)
+            return clients, topology, omega
+        from fulcrum.data.flamby_heart import FedHeartConfig, make_client_datasets
         clients = make_client_datasets(FedHeartConfig(sensitive_class=sensitive))
         topology = _build_topology(cfg.topology, len(clients))
         omega = np.arange(len(clients), dtype=np.int64)  # each client = own group

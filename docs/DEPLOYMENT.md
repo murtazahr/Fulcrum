@@ -135,9 +135,12 @@ python .flamby_src/flamby/datasets/fed_heart_disease/dataset_creation_scripts/do
     --output-folder data/fed_heart_disease
 ```
 
-### Fed-ISIC2019 (Setting A) — **manual, ~9 GB**
+### Fed-ISIC2019 (Setting A) — **manual, ~9 GB + preprocessing**
 
-This dataset is gated behind the ISIC Archive. Steps:
+This dataset is gated behind the ISIC Archive. Three steps: download,
+preprocess, verify.
+
+#### Download
 
 1. **Create a free account** at https://challenge.isic-archive.com/
 2. Navigate to the 2019 challenge and download three files:
@@ -150,28 +153,84 @@ This dataset is gated behind the ISIC Archive. Steps:
    mv ~/Downloads/ISIC_2019_Training_Input.zip data/fed_isic2019/
    mv ~/Downloads/ISIC_2019_Training_GroundTruth.csv data/fed_isic2019/
    mv ~/Downloads/ISIC_2019_Training_Metadata.csv data/fed_isic2019/
-   ```
-4. Run the FLamby preprocessing scripts:
-   ```bash
-   cd .flamby_src/flamby/datasets/fed_isic2019/dataset_creation_scripts
-   python download_isic.py --output-folder ../../../../../data/fed_isic2019
-   python resize_images.py --input-folder ../../../../../data/fed_isic2019 \
-                           --output-folder ../../../../../data/fed_isic2019/resized
-   cd ~/Fulcrum
-   ```
-5. Verify:
-   ```bash
-   ls data/fed_isic2019/resized | head
-   # Should show per-center subdirectories (center_0, center_1, ...)
-   ```
-6. Re-run the script to confirm FLamby sees it:
-   ```bash
-   python scripts/download_data.py
-   # Should now print: "==> Fed-ISIC2019 → ...  (already present)"
+   unzip data/fed_isic2019/ISIC_2019_Training_Input.zip -d data/fed_isic2019/
    ```
 
-If you want to skip Setting A initially (the manual step takes time), you can
-run Settings B and C first — they don't need ISIC.
+#### Resolve FLamby's transitive Python dependencies
+
+FLamby's `fed_isic2019` module imports several packages at module load
+time that aren't pulled in by FLamby's own install path. These are
+already pinned in `pyproject.toml` for fresh setups (`bash
+scripts/setup_env.sh`), but on existing checkouts run:
+
+```bash
+uv pip install 'albumentations==1.3.1' efficientnet_pytorch scikit-image qudida
+```
+
+Pin specifics worth knowing:
+- `albumentations==1.3.1` — `albumentations.Flip` was deprecated/removed
+  in later 1.4.x releases; FLamby still calls the pre-1.4 API.
+- `efficientnet_pytorch` — FLamby loads its Baseline model at module
+  import even if you don't use it.
+- `scikit-image` and `qudida` — transitive runtime deps of albumentations
+  1.3.x that some installs miss.
+
+Sanity check that FLamby's loader imports cleanly:
+
+```bash
+python -c "from flamby.datasets.fed_isic2019 import FedIsic2019; print('imports OK')"
+```
+
+If you see `AttributeError: module 'albumentations' has no attribute
+'Flip'`, your albumentations isn't `1.3.x` — re-pin with
+`uv pip install 'albumentations==1.3.1' --force-reinstall`.
+
+#### Preprocess
+
+FLamby ships a resize script that downsamples raw ISIC images to a
+uniform size for training. **The FedIsic2019 loader refuses to return
+data until this has been run.**
+
+```bash
+cd .flamby_src/flamby/datasets/fed_isic2019/dataset_creation_scripts
+python resize_images.py
+cd /DataVol/projects/Fulcrum   # or wherever your repo root is
+```
+
+This processes all 23,247 images and takes **15–30 minutes** depending
+on disk I/O. Successful run writes resized images to the
+FLamby-managed cache and flips a "preprocessing complete" flag in
+FLamby's config that the loader checks.
+
+#### Verify
+
+```bash
+python -c "
+from flamby.datasets.fed_isic2019 import FedIsic2019
+for c in range(6):
+    print(f'  Center {c}: {len(FedIsic2019(center=c, train=True))} samples')
+"
+```
+
+Expected:
+```
+  Center 0: 9930 samples
+  Center 1: 3163 samples
+  Center 2: 2691 samples
+  Center 3: 1807 samples
+  Center 4: 655 samples
+  Center 5: 351 samples
+```
+
+If you see `ValueError: It seems the preprocessing for dataset
+fed_isic2019 is not yet finished`, the resize script either didn't
+finish or wrote to the wrong path. Re-run from the
+`dataset_creation_scripts` directory specifically — the script reads
+relative paths from its own location.
+
+If you want to skip Setting A initially (the manual + preprocessing
+step takes ~1 hr end-to-end), you can run Settings B and C first —
+they don't need ISIC.
 
 ---
 
