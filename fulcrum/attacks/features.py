@@ -35,24 +35,57 @@ def collect_round_features(
     local_state_dict: "dict[str, torch.Tensor]",
     global_state_dict: "dict[str, torch.Tensor] | None" = None,
 ) -> np.ndarray:
-    """Extract a layer-norm summary vector from a single client's model state.
+    """Extract a per-client model-state summary vector at one round.
 
-    Output layout (length $L + L + 1$):
-        [layer_norms (L), cosine_to_global_per_layer (L), full_norm (1)]
-    where $L$ is the number of named tensors in ``local_state_dict``.
+    Output layout (length $L + L + 1 + K + K$):
+        [layer_norms        : L]   per-layer norm of local weights
+        [cos_to_global      : L]   per-layer cosine to current global state
+        [full_norm          : 1]   l2 norm across all layers
+        [output_row_norms   : K]   l2 norm of each output-class row of the
+                                   final classifier weight (signals which
+                                   classes this client trained on)
+        [output_delta_norms : K]   same, but on (local - global) for the
+                                   classifier weight (per-class drift signal
+                                   that survives DP noise better than the
+                                   absolute weight magnitudes)
+
+    where $L$ is the number of named tensors and $K$ is the output-class
+    count (last linear layer's first axis).
+
+    **Why the class-aware blocks** (added after v1 of the attack-eval gave
+    negative attack lift on Setting B): the layer-norm / cosine features
+    alone are *generic shape statistics* that don't distinguish "client saw
+    class 3" from "client saw class 7". The final linear layer's per-row
+    weights, however, are the model's output projection per class: a
+    client with many class-c samples produces systematically larger
+    gradient norms on row c of the classifier, which accumulates over
+    rounds. The class-row delta vs global is the cleanest empirical
+    surrogate for per-client class concentration and is the same signal
+    Melis et al. (2019) exploited in the no-DP setting. DP noise reduces
+    but does not eliminate it, because the per-class signal scales with
+    the number of samples in that class while the noise scales with $C/|B|$
+    independent of class.
+
+    If the model has no obvious classifier layer (e.g., a sequential
+    network with multiple linear layers), the heuristic picks the *last*
+    linear-shaped parameter in the state dict (a 2D tensor) and treats
+    its first dim as $K$. Setting $K = 2$ for Setting B's MLP, $K = 8$ for
+    Setting A's CNN, $K = 10$ for Setting C's CNN.
 
     Args:
         local_state_dict: client $i$'s model state at the end of round $t$.
         global_state_dict: server-aggregated state at end of round $t-1$ (optional).
-            If None, cosine entries are filled with zeros.
+            If None, cosine and delta entries are filled with zeros.
 
     Returns:
         1D numpy array of float32. Stored verbatim per (client, round) in features.npz.
     """
     import torch  # local import keeps the module importable without torch installed
-    layer_norms = []
-    cos_per_layer = []
+    layer_norms: list[float] = []
+    cos_per_layer: list[float] = []
     sq = 0.0
+    last_linear_local = None
+    last_linear_global = None
     for name, tensor in local_state_dict.items():
         flat = tensor.detach().to(torch.float32).flatten()
         n = float(torch.linalg.vector_norm(flat).item())
@@ -67,12 +100,42 @@ def collect_round_features(
                 cos_per_layer.append(0.0)
         else:
             cos_per_layer.append(0.0)
+        # Track the last 2D weight tensor — heuristic for the classifier.
+        # Linear layers have shape (out_features, in_features); the first
+        # dim is the class axis.
+        if tensor.detach().dim() == 2:
+            last_linear_local = tensor.detach().to(torch.float32)
+            if global_state_dict is not None and name in global_state_dict:
+                last_linear_global = global_state_dict[name].detach().to(torch.float32)
+            else:
+                last_linear_global = None
+
     full_norm = float(np.sqrt(sq))
-    return np.concatenate(
-        [np.asarray(layer_norms, dtype=np.float32),
-         np.asarray(cos_per_layer, dtype=np.float32),
-         np.asarray([full_norm], dtype=np.float32)]
-    )
+
+    # Class-aware blocks. If no 2D weight tensor was found, emit empty
+    # arrays — feature width then adapts per-run, and the attack-eval
+    # join will still work for runs collected with the same model.
+    if last_linear_local is not None and last_linear_local.dim() == 2:
+        # Per-class row norms of the classifier weight
+        per_class_norms = torch.linalg.vector_norm(last_linear_local, dim=1)
+        output_row_norms = per_class_norms.cpu().numpy().astype(np.float32)
+        if last_linear_global is not None and last_linear_global.shape == last_linear_local.shape:
+            delta = last_linear_local - last_linear_global
+            per_class_delta = torch.linalg.vector_norm(delta, dim=1)
+            output_delta_norms = per_class_delta.cpu().numpy().astype(np.float32)
+        else:
+            output_delta_norms = np.zeros_like(output_row_norms)
+    else:
+        output_row_norms = np.zeros(0, dtype=np.float32)
+        output_delta_norms = np.zeros(0, dtype=np.float32)
+
+    return np.concatenate([
+        np.asarray(layer_norms, dtype=np.float32),
+        np.asarray(cos_per_layer, dtype=np.float32),
+        np.asarray([full_norm], dtype=np.float32),
+        output_row_norms,
+        output_delta_norms,
+    ])
 
 
 # ---------------------------------------------------------------------------

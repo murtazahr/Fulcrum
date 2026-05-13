@@ -20,12 +20,24 @@ base: configs/setting_a_canonical.yaml
 output_dir: runs
 db_path: experiments.db
 
+# Same methodological change as shadow_setting_b: shadow runs apply DP
+# at matching levels so parameter-trajectory features come from the
+# same distribution as the target Pareto sweep. Without this, the
+# regressor can't transfer features from no-DP shadow training to
+# DP-perturbed target evaluation (see commit log for the v1 negative-
+# lift diagnosis on Setting B).
 sweep:
   experiment.mode: [shadow]
-  experiment.seed: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+  experiment.seed: [10, 11, 12]
   data.synthetic_partition: [true]
-  data.n_clients: [6]                # match target sweep's site count
-  data.alpha: [0.1, 0.3, 0.5, 1.0, 3.0]   # vary Dirichlet skew
-  data.eta: [0.0]                    # no engineered position-class coupling
-  dp.enabled: [false]                # clean signal for adversary training
-  dp.allocation: [none]
+  data.n_clients: [6]                       # match target site count
+  data.alpha: [0.1, 0.3, 1.0, 3.0]
+  data.eta: [0.0]
+  dp.enabled: [true]
+  dp.allocation: [topology_aware, uniform]
+  dp.utility_budget_U: [0.05, 0.2, 0.8]
+  dp.observation_window: [25, 100]
+# Total: 4 alphas × 3 seeds × 3 U × 2 T_max × 2 allocations = 144 runs.
+# At ~21 min/run on L40S = ~50 hr. This is the cost of methodologically
+# correct shadow training — to be run after the Setting A Pareto sweep
+# finishes. Setting B's smaller sweep (~5 hr) is the validation step.

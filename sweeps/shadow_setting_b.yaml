@@ -5,11 +5,22 @@
 # (matching the target sweep's client count) so the regressor's feature
 # width matches Setting B target runs.
 #
-# Shadow runs have NO DP (clean leakage signal) and use seeds disjoint
-# from the target sweep (10..19) to avoid leak-through.
+# **Critical methodological change vs the v1 sweep:** shadow runs now
+# apply DP at the same (U, T_max, allocation) levels as the target
+# Pareto sweep. A sophisticated adversary replicates the target's known
+# training setup (including DP noise level) when generating shadow data;
+# otherwise the parameter-trajectory features come from a different
+# distribution at training vs. test time, and the regressor cannot
+# transfer. (Per Stage 3 design §3.4: "sweeping topology, α, η, **DP
+# level**" — the original v1 implementation dropped the DP-level sweep
+# axis, which caused negative attack lifts on Setting B.)
 #
-# Total: 5 alphas × 10 seeds × 1 allocation = 50 shadow runs (~1.5 hr on L40S
-# — Setting B's logistic-regression-class model is much faster than C or A).
+# Shadow runs use seeds disjoint from the target sweep (10..19) to
+# avoid leak-through.
+#
+# Total: 4 alphas × 3 seeds × 3 U × 2 T_max × 2 allocations
+#      = 144 shadow runs (~5 hr on L40S — Setting B's MLP-class model
+# is small but DP-SGD has Opacus overhead).
 
 base: configs/setting_b_canonical.yaml
 output_dir: runs
@@ -17,10 +28,15 @@ db_path: experiments.db
 
 sweep:
   experiment.mode: [shadow]
-  experiment.seed: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+  experiment.seed: [10, 11, 12]
   data.synthetic_partition: [true]
-  data.n_clients: [4]                # match target sweep's client count
-  data.alpha: [0.1, 0.3, 0.5, 1.0, 3.0]   # vary Dirichlet skew across runs
-  data.eta: [0.0]                    # no engineered position-class coupling
-  dp.enabled: [false]                # clean signal for adversary training
-  dp.allocation: [none]
+  data.n_clients: [4]
+  data.alpha: [0.1, 0.3, 1.0, 3.0]       # vary Dirichlet skew
+  data.eta: [0.0]                        # no engineered position-class coupling
+  # Match the target Pareto sweep's DP grid so parameter features
+  # at shadow-train time come from the same distribution as at
+  # target-test time.
+  dp.enabled: [true]
+  dp.allocation: [topology_aware, uniform]
+  dp.utility_budget_U: [0.05, 0.2, 0.8]  # 3 values spanning the Pareto sweep range
+  dp.observation_window: [25, 100]       # short and long windows
