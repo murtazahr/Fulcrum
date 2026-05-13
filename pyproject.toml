@@ -32,6 +32,11 @@ dependencies = [
     # from source by setup_env.sh and we'd rather not maintain a
     # downstream patch.
     "albumentations==1.3.1",
+    # albumentations 1.3.x imports scikit-image at module load. It's
+    # listed as one of albumentations' own dependencies but our prior
+    # `--no-deps` installs of albumentations sometimes leave it out;
+    # pin it explicitly to make installs deterministic.
+    "scikit-image>=0.20",
     "efficientnet_pytorch>=0.7",   # used in fed_isic2019/model.py
     # Attack regressors
     "lightgbm>=4.0",
