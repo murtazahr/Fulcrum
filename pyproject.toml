@@ -19,11 +19,13 @@ dependencies = [
     "opacus>=1.4",
     # Federated learning framework
     "murmura @ git+https://github.com/Cloudslab/murmura.git",
-    # Image augmentation — required by FLamby's Fed-ISIC2019 loader
-    # (the FLamby package itself is installed from source by
-    # `scripts/setup_env.sh`; albumentations is a runtime dependency that
-    # isn't covered by FLamby's own install path).
-    "albumentations>=1.3",
+    # FLamby's Fed-ISIC2019 module has two undeclared runtime
+    # dependencies that aren't pulled in by its own install path
+    # (`scripts/setup_env.sh` installs FLamby from source). Both are
+    # imported at module load time, so the loader fails before we ever
+    # touch a dataset object if they're missing.
+    "albumentations>=1.3",         # used in fed_isic2019/dataset.py
+    "efficientnet_pytorch>=0.7",   # used in fed_isic2019/model.py
     # Attack regressors
     "lightgbm>=4.0",
     # Data and analysis
