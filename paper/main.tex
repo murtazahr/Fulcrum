@@ -11,6 +11,9 @@
 }
 
 % --- Math, theorems, algorithms ---
+% acmart already defines \Bbbk; clearing it here prevents amssymb's
+% redefinition from raising "Command \Bbbk already defined".
+\let\Bbbk\relax
 \usepackage{amsmath,amsfonts,amssymb}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
@@ -30,6 +33,9 @@
 % sub-figures are needed later.
 \usepackage{xcolor}
 \usepackage{enumitem}
+% \xspace is used by the \TADI, \Fulcrum, \eg, \ie, \cf macros below;
+% acmart does not load it transitively across all class options.
+\usepackage{xspace}
 
 % --- Theorem environments ---
 \declaretheorem[name=Theorem,numberwithin=section]{theorem}
