@@ -1,11 +1,10 @@
 \section{System and Threat Model}
 \label{sec:threat}
 
-We work with a passive, honest-but-curious adversary against a
-DP-protected federated learning system. The model is deliberately
-narrow: the attack we propose and the defense we prove succeed in the
-same threat model, so reductions or hidden assumption changes between
-attack and defense are precluded.
+We define a passive, honest-but-curious adversary against a DP-protected
+federated learning system. The threat model is deliberately narrow: by
+requiring the attack and defense to operate within the same assumptions,
+we preclude hidden scope changes between the two contributions.
 
 \subsection{System Model}
 \label{sec:system-model}
@@ -24,10 +23,10 @@ per-client noise scale $\sigma_i$.
 Throughout we adopt the standard cross-silo
 assumption~\cite{wang2021fieldguide} that client datasets are disjoint,
 so no two clients share training records. Aggregation follows
-FedAvg~\cite{mcmahan2018dpfedavg} for the centralized hierarchical case
+FedAvg~\cite{mcmahan2018dpfedavg} for centralised hierarchical settings
 and decentralised gossip~\cite{hegedus2021decentralized} for
-peer-to-peer topologies; both are expressible as weighted means of
-client parameter vectors.
+peer-to-peer topologies; both reduce to weighted averages of client
+parameter vectors.
 
 \subsection{Adversarial Model}
 \label{sec:adv-model}
@@ -49,7 +48,7 @@ $\Theta = \{\theta_i^{(t)} : i \in [n], t \in [\Tmax]\}$, plus
 communication metadata. This corresponds to a passive infrastructure
 observer (\eg curious cloud aggregator, network-level observer with
 broken or absent transport encryption) or a curious aggregator. The
-adversary's view is fixed by the protocol — the adversary cannot inject
+adversary's view is fixed by the protocol; the adversary cannot inject
 traffic or modify messages.
 
 \paragraph{Inference goal $\mathcal{I}$.} For a designated sensitive
@@ -102,22 +101,22 @@ We isolate the contribution of structural information by comparing four
 reference adversaries differing only in $\KNW$:
 
 \begin{itemize}[topsep=2pt,itemsep=2pt,leftmargin=*]
-\item $\Adv_0$ — random/constant-mean baseline. Outputs the federation
+\item $\Adv_0$: random/constant-mean baseline. Outputs the federation
   mean $\bar p$ for every client. Reference for attack lift.
-\item $\Adv_1$ — parameter-only.
+\item $\Adv_1$: parameter-only.
   $\KNW = \{\sigma_j\}$, $\OBS = \Theta$.
   Recovers $\hat p_i$ from parameter sequences alone. This is the
   ``no topology, no organisation'' Melis-style adversary~\cite{melis2019exploiting}.
-\item $\Adv_2^{\text{topo}}$ — structural-only.
+\item $\Adv_2^{\text{topo}}$: structural-only.
   $\KNW=\TOPO$, $\OBS=\Theta$.
   Recovers $\hat p_i$ from parameter sequences \emph{plus} structural
   features (degree, hierarchical depth, distance to root). Isolates
   the marginal value of topology.
-\item $\Adv_2^{\text{org}}$ — label-only.
+\item $\Adv_2^{\text{org}}$: label-only.
   $\KNW=\omega$, $\OBS=\Theta$.
   Recovers $\hat p_i$ from parameter sequences \emph{plus}
   organisational labels.
-\item $\Adv_2^{\text{full}}$ — full knowledge.
+\item $\Adv_2^{\text{full}}$: full knowledge.
   $\KNW = (\TOPO,\omega,\{\sigma_j\})$, $\OBS=\Theta$.
   The adversary of interest.
 \end{itemize}
@@ -127,5 +126,5 @@ the marginal contributions of structure and label are obtained by
 comparing $\Adv_2^{\text{full}}$ against the corresponding partial
 adversary. The \emph{IID-null condition} arises when the partitioning
 makes $p_i$ constant across clients: every adversary's calibration
-loss collapses to the variance of $p$, and attack lift is identically
-zero. We use this condition as a sanity check throughout.
+loss equals $\Var(p)$, and attack lift is identically zero. We use
+this condition as a sanity check throughout.

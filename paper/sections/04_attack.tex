@@ -5,11 +5,10 @@
 architecture with four channel ablations. The architecture is a learned
 regressor mapping observable inputs to per-client sensitive-class
 concentration estimates; the ablations differ only in which channels
-of $\KNW$ and $\OBS$ are exposed to the regressor. This design lets us
-quantify, per client and per metric, the marginal information value of
-each channel — which is necessary both for our paper's empirical
-contribution and for the theorem statements in \S\ref{sec:defense}
-that have to refer to specific channels.
+of $\KNW$ and $\OBS$ are exposed to the regressor. This design
+simultaneously serves the empirical contribution and the theory in
+\S\ref{sec:defense}, where the bound must decompose along the same
+channel boundaries.
 
 \subsection{Attack Architecture}
 \label{sec:attack-arch}
@@ -18,14 +17,14 @@ Let $f_\phi : (\Theta_i, x_i) \to \hat p_i \in [0,1]$ denote the
 adversary's regressor with parameters $\phi$. Inputs are:
 
 \begin{itemize}[topsep=2pt,itemsep=2pt,leftmargin=*]
-\item $\Theta_i = (\theta_i^{(1)},\ldots,\theta_i^{(\Tmax)})$ — client
+\item $\Theta_i = (\theta_i^{(1)},\ldots,\theta_i^{(\Tmax)})$: client
   $i$'s observed parameter sequence. From this we extract a
   fixed-dimensional feature vector combining per-round and
   temporal-aggregate signals: per-round parameter norms
   $\{\|\theta_i^{(t)}\|_2\}$, layer-wise norms, mean and standard
   deviation, linear trend, last-round value, and pairwise cosine
-  similarities to neighboring clients' updates.
-\item $x_i \in \mathbb{R}^k$ — structural and organisational features
+  similarities to neighbouring clients' updates.
+\item $x_i \in \mathbb{R}^k$: structural and organisational features
   derived from $(\TOPO,\omega)$: client $i$'s degree, distance to
   topology root, betweenness centrality, and one-hot encoding of
   $\omega_i$.
@@ -57,7 +56,7 @@ regressor sees:
 \item[$\Adv_1$] Parameter-only. Input: parameter features extracted from
   $\Theta_i$. Topology and organisational labels are zeroed out.
 \item[$\Adv_2^{\text{topo}}$] Structural-only. Input: structural features
-  from $(\TOPO,i)$ — degree, depth, centrality. Parameter features
+  from $(\TOPO,i)$, including degree, depth, and centrality. Parameter features
   zeroed.
 \item[$\Adv_2^{\text{org}}$] Organisational-only. Input: one-hot
   $\omega_i$. Parameter features zeroed.
@@ -125,13 +124,13 @@ appropriate channel subset.
 \subsection{What \TADI is and is not}
 \label{sec:attack-positioning}
 
-\TADI is not novel as a learning architecture: it is shadow-trained
-supervised regression on parameter and structural features. The
+As a learning architecture, \TADI is shadow-trained supervised
+regression on parameter and structural features; novelty lies not in
+the model class but in the channel decomposition it enables. The
 contribution is the empirical \emph{characterisation} that this attack
 yields under DP-SGD across the four channel ablations, on FL
 benchmarks, with explicit attribution of marginal information value to
-parameter, structural, and organisational components. To our knowledge
-no prior work isolates these channels per client. The attack also
+parameter, structural, and organisational components. The attack also
 serves as the empirical comparator against which we evaluate the
 realisability of the privacy bound proved in \S\ref{sec:defense}.
 
@@ -149,22 +148,22 @@ synthetic-shadow vs.\ native-target prior gap make
 $\ell_i^\circ$'s supremum out of reach?
 
 \paragraph{What we do not claim.}
-The original Stage~3 hypothesis predicted that the combined adversary
-$\Adv_2^{\text{full}}$ strictly dominates each single-channel
-ablation. The empirical evidence in \S\ref{sec:experiments-channels}
-qualifies that hypothesis on both settings examined:
+A natural hypothesis is that the combined adversary $\Adv_2^{\text{full}}$
+strictly dominates each single-channel ablation. The evidence in
+\S\ref{sec:experiments-channels} qualifies this hypothesis on both
+settings examined:
 
 \begin{itemize}[topsep=2pt,itemsep=2pt,leftmargin=*]
 \item On Setting~C (matched shadow/target prior), the org channel
-dominates the combined channel on attack lift and top-$k$ recovery
-while the combined channel marginally edges it on AUROC --- the
-regressor's combined feature set picks up noise the additional
-channels add without enough signal to overcome it on a finite
-shadow corpus.
+  dominates the combined channel on attack lift and top-$k$ recovery
+  while the combined channel marginally edges it on AUROC; the
+  regressor's combined feature set picks up noise that the additional
+  channels add without enough signal to overcome it on a finite
+  shadow corpus.
 \item On Setting~B (mismatched shadow/target prior), the combined
-channel reaches the highest AUROC of the four ($0.56$) but no
-channel achieves positive attack lift; the prior gap is empirically
-binding.
+  channel reaches the highest AUROC of the four ($0.56$) but no
+  channel achieves positive attack lift; the prior gap is empirically
+  binding.
 \end{itemize}
 
 The four channels are therefore best understood as a decomposition

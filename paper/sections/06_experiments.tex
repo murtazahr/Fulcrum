@@ -2,22 +2,24 @@
 \label{sec:experiments}
 
 We evaluate \Fulcrum on three federated benchmarks chosen to span the
-deployment regimes of \S\ref{sec:defense-regimes}. Setting~A is the
-realism anchor — Fed-ISIC2019 dermoscopy classification with native
-hospital-site partitioning. Setting~B is a small-$n$ binary task on
-Fed-Heart-Disease providing a forward-looking decentralised use case.
-Setting~C is a synthetic CIFAR-10 setup with parametric topology--data
-coupling, used as the statistical vehicle: it provides the only
-configuration in which AUROC is a meaningful metric (\(n \geq 20\)) and
-allows clean control over the η coupling parameter that drives lateral
-leakage. The combination is the canonical pattern of cross-silo FL
+deployment regimes of \S\ref{sec:defense-regimes}. Setting~A
+(Fed-ISIC2019) is the realism anchor, with native hospital-site
+partitioning and heterogeneous site sizes. Setting~B
+(Fed-Heart-Disease) is a small-$n$ cross-silo binary task on a ring
+topology; with four clients of equal degree, structural leverage is
+absent and all asymmetry is dataset-driven. Setting~C is a synthetic
+CIFAR-10 setup with parametric topology--data coupling, used as the
+statistical vehicle: it provides the only configuration in which AUROC
+is a meaningful metric ($n \geq 20$) and allows clean control over the
+$\eta$ coupling parameter that drives lateral leakage. Together they
+represent the canonical pattern of cross-silo FL
 benchmarks~\cite{flamby2022}: real datasets for realism, synthetic for
 statistical power.
 
 \subsection{Settings and Datasets}
 \label{sec:experiments-settings}
 
-\paragraph{Setting A — Fed-ISIC2019.}
+\paragraph{Setting A: Fed-ISIC2019.}
 The Fed-ISIC2019 component of FLamby~\cite{flamby2022} comprises
 \(23{,}247\) dermoscopy images from six hospital sites with eight skin
 lesion classes (melanoma is the designated sensitive class \(\Cs\)).
@@ -29,18 +31,17 @@ aggregators (two sites each) following the architectural pattern
 of~\cite{liu2020hierarchical}, and train a small convolutional network
 with GroupNorm replacing BatchNorm for DP-SGD compatibility.
 
-\paragraph{Setting B — Fed-Heart-Disease.}
+\paragraph{Setting B: Fed-Heart-Disease.}
 The Fed-Heart-Disease component of FLamby~\cite{flamby2022} provides
 \(740\) records across four clinical centres (\([199, 172, 30, 85]\)
 training samples) with 13 clinical features and a binary heart-disease
-indicator. With only four clients, every standard $k$-NN proximity
-topology reduces to a uniform-degree configuration (ring or complete);
-the topology itself cannot break leverage symmetry. The dataset-size
-leverage proxy of Corollary~\ref{cor:influence} provides the
-only principled non-degenerate choice and gives a leverage ratio of
-$6.6\times$ across the four sites.
+indicator. With four clients on a ring topology, all nodes share the
+same degree and the topology cannot break leverage symmetry. The
+dataset-size leverage proxy of Corollary~\ref{cor:influence} provides
+the only principled non-degenerate choice and gives a leverage ratio
+of $6.6\times$ across the four sites.
 
-\paragraph{Setting C — synthetic CIFAR-10 with parametric coupling.}
+\paragraph{Setting C: synthetic CIFAR-10 with parametric coupling.}
 We partition CIFAR-10 across $n=50$ synthetic clients using the
 $\eta$-coupled construction
 \(\Delta_i = (1-\eta)\,\tilde{\Delta}_i + \eta\,\Delta^*_{\phi(i)}\),
@@ -110,10 +111,13 @@ per panel: \Fulcrum (blue) and uniform allocation (red), with $95\%$
 confidence bands across seeds. Inset: per-$\eta$ gap
 $K_{\mathrm{uniform}} - K^\star$.}\vspace{0.6em}
 }}
-\caption{$\eta$-sweep on Setting~C. The IID-null condition ($\eta=0$)
-gives identical curves; the gap grows monotonically with $\eta$ on
-hierarchical, asymptotes near $a n/U$ on star, and is small but
-positive on line. Ring is the documented degeneracy of
+\caption{Setting~C $\eta$-sweep across four topologies. The $x$-axis
+is the topology--data coupling $\eta \in [0,1]$; the $y$-axis is the
+worst-case bound $K^\star$ (nats); curves show \Fulcrum (blue) and
+uniform allocation (red). The IID null at $\eta=0$ gives identical
+curves on every topology; the gap grows monotonically with $\eta$ where
+leverage is non-uniform, saturates near $an/U$ on the star, and is zero
+throughout on the ring, consistent with the degeneracy of
 Corollary~\ref{cor:strict}.}
 \label{fig:eta-sweep}
 \end{figure}
@@ -157,17 +161,19 @@ comparison: across all 18 paired $(U, \text{seed})$ configurations at
 each $\Tmax$, the mean accuracy gap is below $0.3$ percentage points
 and collapses to zero at $\Tmax = 100$, with the paired $t$-test
 unable to reject equality at any tested $\Tmax$. The privacy gain is
-therefore obtained without measurable utility cost.
+obtained without measurable utility cost.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.95\linewidth]{figures/pareto_setting_b.pdf}
-\caption{Setting~B privacy--utility curves. Each panel fixes $\Tmax$
-and sweeps the utility budget $U$. Topology-aware (\Fulcrum, blue
-circles) lies strictly below uniform allocation (red squares) across
-every $(U, \Tmax)$ cell; the shaded region is the absolute $K^\star$
-gap. $K^\star$ is analytic in the allocation and carries no seed
-noise.}
+\caption{Setting~B (Fed-Heart-Disease) privacy--utility Pareto curves.
+The $x$-axis is utility budget $U$; the $y$-axis is the worst-case
+bound $K^\star$ (nats); each panel fixes the observation window
+$\Tmax$. Topology-aware allocation (\Fulcrum, blue circles) lies
+strictly below uniform allocation (red squares) at every $(U, \Tmax)$
+cell, with the shaded region showing the absolute $K^\star$ gap;
+$K^\star$ is determined analytically from the allocation and carries no
+seed variance.}
 \label{fig:pareto-b}
 \end{figure*}
 
@@ -190,7 +196,7 @@ qualitative behaviour transfers across proxies as predicted by
 Corollary~\ref{cor:strict}.
 
 Table~\ref{tab:util-consistency-c} reports the matched-pair utility
-comparison. Absolute test accuracy is in the $21$--$32\%$ range — well
+comparison. Absolute test accuracy is in the $21$--$32\%$ range, well
 above random ($10\%$) but reflecting that Setting~C is the synthetic
 \emph{statistical vehicle} rather than a deployment realism anchor: 50
 clients on a small CNN under DP-SGD with $\eta = 0.5$ coupling is a
@@ -201,19 +207,20 @@ configurations at each $\Tmax$, the mean $|\Delta|$ accuracy is below
 $0.02$ percentage points, the maximum is $0.07$~pp, and the paired
 $t$-test cannot reject equality at any $\Tmax$
 ($p \in [0.484, 0.740]$). The TA/tie/uniform direction tally is
-near-balanced at every $\Tmax$. Allocation strategy therefore has no
-measurable effect on test accuracy at fixed utility budget — confirming
+near-balanced at every $\Tmax$. Allocation strategy has no measurable
+effect on test accuracy at fixed utility budget, confirming
 Proposition~\ref{prop:utility} empirically on the synthetic vehicle.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.95\linewidth]{figures/pareto_setting_c.pdf}
-\caption{Setting~C privacy--utility curves. Same layout as
-Figure~\ref{fig:pareto-b}: each panel fixes $\Tmax$ and sweeps the
-utility budget $U$; topology-aware (\Fulcrum, blue circles) lies
-strictly below uniform allocation (red squares) at every cell. The
-shaded region is the absolute $K^\star$ gap. Setting~C uses the
-imbalanced hierarchical topology $[20,15,10,3,2]$ with $\eta=0.5$.}
+\caption{Setting~C (synthetic CIFAR-10, hierarchical $[20,15,10,3,2]$,
+$\eta=0.5$) privacy--utility Pareto curves. Layout matches
+Figure~\ref{fig:pareto-b}: $x$-axis is utility budget $U$, $y$-axis is
+$K^\star$ (nats), each panel fixes $\Tmax$. Topology-aware allocation
+(\Fulcrum, blue circles) lies strictly below uniform allocation (red
+squares) at every cell, with the absolute gap largest at small $U$ and
+short $\Tmax$.}
 \label{fig:pareto-c}
 \end{figure*}
 
@@ -236,17 +243,18 @@ along the axis that defines the threat model's adversary prior:
 
 \begin{itemize}[topsep=2pt,itemsep=2pt,leftmargin=*]
 \item For \textbf{Setting~C} (synthetic vehicle), the shadow corpus
-uses the same $\eta$-coupled partitioning adapter as the target,
-varying only seeds and $\eta$. The shadow and target prior families
-match by construction.
+  uses the same $\eta$-coupled partitioning adapter as the target,
+  varying only seeds and $\eta$. The shadow and target prior families
+  match by construction.
 \item For \textbf{Settings~B and~A} (realism anchors), the shadow
-corpus is built from synthetic Dirichlet$(\alpha)$ re-partitioning of
-the public FLamby data --- the only shadow construction available to
-an adversary that knows only public protocol parameters and does not
-have per-site labels (the Stage~\ref{sec:adv-model} threat model).
-The target uses FLamby's native hospital-site partitioning. The
-prior families therefore differ by construction: synthetic
-Dirichlet at shadow time, real cross-silo demographics at test time.
+  corpus is built from synthetic Dirichlet$(\alpha)$ re-partitioning of
+  the public FLamby data, which is the only shadow construction
+  available to an adversary that knows only public protocol parameters
+  and does not have per-site labels (the threat model of
+  \S\ref{sec:adv-model}). The target uses FLamby's native hospital-site
+  partitioning. The prior families therefore differ by construction:
+  synthetic Dirichlet at shadow time, real cross-silo demographics at
+  test time.
 \end{itemize}
 
 This deliberate asymmetry is the cross-setting axis our results
@@ -278,13 +286,15 @@ $\Adv_2^{\text{org}}$ (org-label)  & $+0.018$ &  $0.78$ & $0.49$ & $+0.35$ \\
 $\Adv_2^{\text{full}}$ (combined)  & $+0.003$ &  $0.80$ & $0.46$ & $+0.35$ \\
 \bottomrule
 \end{tabular}
-\caption{Setting~C: \TADI per-channel attack metrics. ``Attack lift'' is
-constant-mean baseline calibration loss minus the regressor's
-calibration loss; positive lift indicates extraction of client-level
-information beyond the federation mean. ``Corr$(K^\star, \text{lift})$''
-is the Pearson correlation between the theoretical privacy bound
-$K^\star$ and the regressor's empirical attack lift, taken across
-target runs.}
+\caption{Setting~C \TADI per-channel attack metrics, averaged across
+228 target runs. Attack lift is constant-mean baseline calibration loss
+minus regressor calibration loss (positive = information extracted
+beyond the federation aggregate); $\mathrm{Corr}(K^\star, \text{lift})$
+is the Pearson correlation between the theoretical bound and empirical
+lift across target runs. Only the prior-coupling-bearing channels
+($\Adv_2^{\text{org}}, \Adv_2^{\text{full}}$) achieve positive lift;
+the parameter channel ($\Adv_1$) remains below the constant-mean
+baseline throughout.}
 \label{tab:channels-c}
 \end{table}
 
@@ -339,8 +349,7 @@ deployment-specific factors and the conservative slack documented in
 
 Figure~\ref{fig:attack-K-c} plots the lift--$K^\star$ relationship
 directly. On $\Adv_1$ the relationship is essentially flat (DP-SGD
-bounds the parameter channel independently of $K^\star$, so $K^\star$'s
-mechanism term dominates the bound but barely the empirical signal);
+bounds the parameter channel independently of $K^\star$);
 on $\Adv_2^{\text{topo}}$ it is near-zero in both quantities; on the
 two prior-coupling-bearing channels it slopes upward.
 
@@ -351,47 +360,47 @@ position index $i \bmod K$, and the organisational label $\omega_i$
 in Setting~C is the position. The org channel's success therefore
 \emph{quantifies} a coupling we built into the setting. Two facts
 give the result interpretive force despite the construction: (i) the
-calibration--null condition at $\eta=0$ confirms the regressor
+calibration-null condition at $\eta=0$ confirms the regressor
 extracts no signal where the deployment structure contains none, and
 (ii) the monotone gradient in $\eta$ matches the analytic dependence
 of $\ell_i^\circ$ on the partitioning hyperparameter. The org
-channel's positive lift is therefore the empirical manifestation of
-$\ell_i^\circ$ being achievable when adversary's shadow prior matches
-target's deployment prior --- a prerequisite that Setting~C satisfies
-by construction and Settings~B and~A do not.
+channel's positive lift is the empirical manifestation of
+$\ell_i^\circ$ being achievable when the adversary's shadow prior
+matches the target's deployment prior, a prerequisite that Setting~C
+satisfies by construction and Settings~B and~A do not.
 
 \paragraph{Setting~C non-results worth reporting plainly.}
 \begin{itemize}[topsep=2pt,itemsep=2pt,leftmargin=*]
 \item $\Adv_2^{\text{full}}$ does not strictly dominate
-$\Adv_2^{\text{org}}$ on Setting~C. Attack lift is slightly lower for
-the combined channel ($+0.003$ vs.\ $+0.018$); top-$k$ recovery is
-slightly worse ($0.46$ vs.\ $0.49$); AUROC marginally favours the
-combined channel ($0.80$ vs.\ $0.78$). The most defensible reading is
-that the regressor's combined feature set is contaminated by noisy
-parameter and structural features that LightGBM cannot fully
-deprioritise on a 50-shadow-run corpus; when most of the signal
-lives in a single channel, additional channels add noise. We do not
-claim the four-channel adversary is universally the worst case.
+  $\Adv_2^{\text{org}}$ on Setting~C. Attack lift is slightly lower for
+  the combined channel ($+0.003$ vs.\ $+0.018$); top-$k$ recovery is
+  slightly worse ($0.46$ vs.\ $0.49$); AUROC marginally favours the
+  combined channel ($0.80$ vs.\ $0.78$). The most defensible reading is
+  that the regressor's combined feature set is contaminated by noisy
+  parameter and structural features that LightGBM cannot fully
+  deprioritise on a 50-shadow-run corpus; when most of the signal
+  lives in a single channel, additional channels add noise. We do not
+  claim the four-channel adversary is universally the worst case.
 \item $\Adv_2^{\text{topo}}$ adds essentially no signal in
-Setting~C. Setting~C routes the class signal through $\omega$, not
-through structural position; the hierarchical topology's degree
-asymmetry doesn't correlate with $p_i$ here. This is the
-\emph{decomposition} we set out to characterise: the channel that
-matters depends on the deployment.
+  Setting~C. Setting~C routes the class signal through $\omega$, not
+  through structural position; the hierarchical topology's degree
+  asymmetry does not correlate with $p_i$ here. This is precisely
+  the decomposition we set out to characterise: which channel matters
+  depends on the deployment.
 \end{itemize}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.78\linewidth]{figures/attack_lift_eta_setting_c.pdf}
-\caption{Setting~C \TADI attack lift across the four channel
-ablations, as a function of the topology--data coupling $\eta$.
-Shaded bands are $95\%$ CI across target runs at each $\eta$. The
-IID-null condition ($\eta=0$, dashed reference at $\text{lift}=0$)
-gives negative lift on every channel. The organisational channel
-($\Adv_2^{\text{org}}$, red) exhibits clean monotone growth with
-$\eta$; the parameter channel ($\Adv_1$, grey) is bounded below
-zero throughout; the structural channel ($\Adv_2^{\text{topo}}$,
-green) is flat near zero.}
+\caption{Setting~C \TADI attack lift as a function of topology--data
+coupling $\eta$, for each of the four channel ablations. Shaded bands
+are $95\%$ CI across target runs; the dashed reference at
+$\text{lift}=0$ marks the constant-mean baseline. Every channel gives
+negative lift at the IID null ($\eta=0$); the organisational channel
+($\Adv_2^{\text{org}}$, red) grows monotonically to $+0.060$ at
+$\eta=1$, while the parameter channel ($\Adv_1$, grey) remains
+negative throughout, consistent with DP-SGD bounding the mechanism
+term independently of $\eta$.}
 \label{fig:attack-eta-c}
 \end{figure}
 
@@ -399,15 +408,14 @@ green) is flat near zero.}
 \centering
 \includegraphics[width=0.95\linewidth]{figures/attack_lift_vs_K_setting_c.pdf}
 \caption{Setting~C \TADI attack lift versus the predicted bound
-$K^\star$ (Theorem~\ref{thm:allocation}), per channel. Each point is
-one target run; colour encodes $\eta$. Dashed lines show linear
-best-fit; the panel title reports Pearson $r$ and the number of
-target runs. On the two channels carrying prior-coupling signal
-($\Adv_2^{\text{org}}, \Adv_2^{\text{full}}$) the relationship has
-correlation $+0.35$; on $\Adv_1$ and $\Adv_2^{\text{topo}}$ the
-relationship is essentially flat, consistent with DP-SGD bounding
-the parameter channel and the structural channel carrying no
-class-relevant signal in this setting.}
+$K^\star$ (Theorem~\ref{thm:allocation}), one panel per channel.
+Each point is one target run; colour encodes $\eta$. On the two
+prior-coupling-bearing channels ($\Adv_2^{\text{org}},
+\Adv_2^{\text{full}}$) the Pearson correlation is $+0.35$, confirming
+that $K^\star$ has directional predictive value for adversary
+capability; on $\Adv_1$ and $\Adv_2^{\text{topo}}$ the relationship
+is essentially flat, consistent with DP-SGD bounding the parameter
+channel and structural features carrying no class-relevant signal here.}
 \label{fig:attack-K-c}
 \end{figure*}
 
@@ -417,7 +425,7 @@ Setting~B's shadow corpus comprised $144$ runs sweeping a synthetic
 Dirichlet re-partitioning of the public Fed-Heart-Disease data
 ($\alpha \in \{0.1, 0.3, 1.0, 3.0\}$, three seeds, three $U$ values,
 two $\Tmax$, both allocations, DP enabled at every cell to match the
-target distribution). Per the Stage~\ref{sec:adv-model} threat model,
+target distribution). Per the threat model of \S\ref{sec:adv-model},
 the adversary has access to the public dataset but \emph{not} to
 labelled-by-site samples; synthetic Dirichlet re-partitioning is the
 only public-proxy shadow available to them. Targets are the $108$
@@ -441,13 +449,15 @@ $\Adv_2^{\text{org}}$ (org-label)  & $-0.040$ & $0.25$ & $0.00$ & ---     \\
 $\Adv_2^{\text{full}}$ (combined)  & $-0.041$ & $\mathbf{0.56}$ & $0.36$ & $+0.20$ \\
 \bottomrule
 \end{tabular}
-\caption{Setting~B: \TADI per-channel attack metrics after the full
+\caption{Setting~B \TADI per-channel attack metrics after the full
 implementation pipeline (DP-matched shadow, class-aware features,
-CV-tuned regressor). $\Adv_2^{\text{org}}$ and $\Adv_2^{\text{topo}}$
-show no variance across target runs because their inputs (omega
-one-hot and ring-topology degree features) are identical across all
-108 target runs; their $K^\star$ correlations are accordingly
-undefined.}
+CV-tuned \textsc{LightGBM}). Attack lift is negative across all four
+channels, consistent with the prior-coupling supremum not being
+realised under the public-proxy threat model.
+$\Adv_2^{\text{topo}}$ and $\Adv_2^{\text{org}}$ have constant inputs
+across all 108 target runs (ring-topology degree features and
+four-site one-hot encoding are invariant to sweep parameters), so
+their $K^\star$ correlations are undefined.}
 \label{tab:channels-b}
 \end{table}
 
@@ -455,17 +465,17 @@ Two observations matter for the cross-setting story.
 
 First, \textbf{the parameter channel is still bounded.} $\Adv_1$
 attack lift is negative on Setting~B as it is on Setting~C: DP-SGD
-on the per-client noise allocation drives the controllable mechanism
+with the per-client noise allocation drives the controllable mechanism
 term in Theorem~\ref{thm:per-client} low enough that the regressor
-cannot beat constant-mean baseline regardless of which shadow prior
+cannot beat the constant-mean baseline regardless of which shadow prior
 it was trained on. This is the most robust empirical finding in the
-paper, and it holds across both the synthetic-vehicle and realism-
-anchor regimes.
+paper, and it holds across both the synthetic-vehicle and realism-anchor
+regimes.
 
 Second, \textbf{the prior-coupling channel is not empirically
 realised.} The full-channel $\Adv_2^{\text{full}}$ attack reaches
-AUROC $= 0.56$ --- positive discriminative power, just past the
-random-prediction threshold --- but its attack lift on the
+AUROC $= 0.56$, representing positive discriminative power just past
+the random-prediction threshold, but its attack lift on the
 calibration-loss metric remains negative ($-0.041$). The regressor
 extracts \emph{some} signal that ranks target sites' $p_i$ slightly
 better than chance, but not enough signal to lower calibration loss
@@ -477,14 +487,13 @@ Dirichlet re-partitioning of public FLamby data does not match
 FLamby's native cross-silo distribution.
 
 The negative lift on Setting~B is not a failure of the attack
-architecture --- three orthogonal methodological improvements
-(DP-matched shadow, class-aware features, CV-tuned regressor) drove
-$\Adv_1$ lift from $-0.097$ to $-0.058$ and $\Adv_2^{\text{full}}$
-AUROC from $0.19$ to $0.56$, demonstrating that within-pipeline
-optimisation does carry signal across the gap. The residual
-negativity is the empirical signature of a \emph{structural} prior
-gap between public-proxy shadow training and native cross-silo
-targets.
+architecture. Three orthogonal methodological improvements (DP-matched
+shadow, class-aware features, CV-tuned regressor) drove $\Adv_1$ lift
+from $-0.097$ to $-0.058$ and $\Adv_2^{\text{full}}$ AUROC from
+$0.19$ to $0.56$, demonstrating that within-pipeline optimisation does
+carry signal across the gap. The residual negativity is the empirical
+signature of a \emph{structural} prior gap between public-proxy shadow
+training and native cross-silo targets.
 
 \PLACE{Setting~A reporting will mirror Setting~B once the Pareto
 sweep completes; the attack-eval on Setting~A is omitted as
@@ -497,28 +506,28 @@ of Theorem~\ref{thm:per-client}'s bound across deployment regimes:
 
 \begin{itemize}[topsep=2pt,itemsep=2pt,leftmargin=*]
 \item \textbf{Controllable mechanism term ($\Adv_1$, all settings).}
-DP-SGD with the per-client noise allocation drives the parameter
-channel below the constant-mean baseline empirically in every
-configuration tested. The defense's controllable contribution is
-robust.
+  DP-SGD with the per-client noise allocation drives the parameter
+  channel below the constant-mean baseline empirically in every
+  configuration tested. The defense's controllable contribution is
+  robust across the synthetic-vehicle and realism-anchor regimes.
 \item \textbf{Prior-coupling term, prior-matched (Setting~C).} The
-supremum $\ell_i^\circ$ is achievable when the adversary's shadow
-training distribution matches the target's. Empirically: attack
-lift positive on the org channel, monotone in the coupling
-parameter, calibration-null at $\eta=0$.
+  supremum $\ell_i^\circ$ is achievable when the adversary's shadow
+  training distribution matches the target's. Empirically: attack
+  lift positive on the org channel, monotone in the coupling
+  parameter, calibration-null at $\eta=0$.
 \item \textbf{Prior-coupling term, prior-mismatched (Settings~B
-and~A).} Under the threat model's public-proxy adversary, who has
-synthetic re-partitioning of public data but not site labels, the
-supremum is not realised: $\Adv_2^{\text{full}}$ AUROC crosses 0.5
-but attack lift remains negative. The bound is conservative in a
-deployment-favourable direction.
+  and~A).} Under the threat model's public-proxy adversary, who has
+  synthetic re-partitioning of public data but not site labels, the
+  supremum is not realised: $\Adv_2^{\text{full}}$ AUROC crosses 0.5
+  but attack lift remains negative. The bound is conservative in a
+  deployment-favourable direction.
 \end{itemize}
 
-The combined result is that \emph{Fulcrum's bound is valid as an
-upper bound, tight in the prior-matched regime, and conservative
-in the public-proxy regime}. The defense's empirical efficacy
-(Pareto dominance, utility consistency, controllable-term bounding)
-is independent of which regime applies.
+\Fulcrum's bound is valid as an upper bound, tight in the
+prior-matched regime, and conservative in the public-proxy regime.
+The defense's empirical efficacy (Pareto dominance, utility
+consistency, and controllable-term bounding) is independent of which
+regime applies.
 
 \subsection{Robustness Ablations}
 \label{sec:experiments-ablations}
@@ -558,7 +567,7 @@ choices are most sensitive.}
 
 The headline threat model assumes per-client parameter observability.
 Under secure aggregation~\cite{bonawitz2017secagg}, the adversary's view
-collapses to neighborhood-aggregated updates. We re-evaluate \TADI in
+collapses to neighbourhood-aggregated updates. We re-evaluate \TADI in
 this regime by replacing $\Theta_i$ with the local sum
 $\Theta_i^{\mathrm{agg}} = \sum_{j \in N(i)} \theta_j^{(t)}$ in the
 feature extraction step; the structural and organisational channels are

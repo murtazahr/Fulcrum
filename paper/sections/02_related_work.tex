@@ -2,8 +2,11 @@
 \label{sec:related}
 
 We position our work along three axes: privacy attacks against FL,
-privacy mechanisms for FL, and the (largely separate) literature on
-topology in FL.
+privacy mechanisms for FL, and the largely separate literature on
+topology in FL. The gap our work fills, namely topology-conditional
+distributional inference under DP with a defense paired by construction,
+sits at the intersection of all three and, to our knowledge, has
+not been addressed.
 
 \subsection{Privacy Attacks Against Federated Learning}
 \label{sec:related-attacks}
@@ -20,7 +23,7 @@ constraint of this family is sensitivity to per-batch noise: in the
 DP-SGD regime that we study, gradient inversion degrades sharply because
 clipping plus Gaussian perturbation removes the high-frequency signal
 needed for pixel-level reconstruction. We treat gradient inversion as a
-\emph{complementary} threat — most relevant when DP is weak — and include
+\emph{complementary} threat (most relevant when DP is weak) and include
 it as an empirical baseline in our evaluation.
 
 \emph{Inference attacks} target distributional or membership properties
@@ -61,10 +64,10 @@ A second line of defense is cryptographic. Secure
 aggregation~\cite{bonawitz2017secagg} hides individual client updates
 behind a sum, leaving only the aggregate visible. Combined with DP,
 secure aggregation reduces the adversary's effective observation to
-\emph{neighborhood-aggregated} updates rather than per-client ones; this
+\emph{neighbourhood-aggregated} updates rather than per-client ones; this
 weakens \TADI's parameter channel without addressing the structural and
 organisational channels. We evaluate this regime as an extension
-experiment (\S\ref{sec:experiments}).
+experiment (\S\ref{sec:experiments-sa}).
 
 What none of these mechanisms address is \emph{which} clients should
 receive how much noise when the topology breaks symmetry. Existing
@@ -107,11 +110,12 @@ operational reasons. Our work fills this gap by treating the topology
 as a first-class component of both the threat model and the defense.
 
 \paragraph{Summary of positioning.}
-We are the first, to our knowledge, to (i) define a per-client
+We are the first, to our knowledge, to (i)~define a per-client
 distributional inference attack with explicit channel ablations
-isolating parameter, structural, and organisational information; (ii)
-prove a tight MI bound that decomposes into a controllable mechanism
-term plus an uncontrollable prior-coupling floor; and (iii) derive a
-closed-form noise-allocation policy that strictly improves on uniform
-DP-SGD whenever the topology breaks leverage symmetry, with three
-principled proxies for instantiating leverage in deployed regimes.
+isolating parameter, structural, and organisational information;
+(ii)~prove a tight MI bound that decomposes into a controllable
+mechanism term plus an uncontrollable prior-coupling floor; and
+(iii)~derive a closed-form noise-allocation policy that strictly
+improves on uniform DP-SGD whenever the topology breaks leverage
+symmetry, with three principled proxies for instantiating leverage
+in deployed regimes.

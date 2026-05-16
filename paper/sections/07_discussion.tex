@@ -2,12 +2,12 @@
 \label{sec:discussion}
 
 \paragraph{When the defense matters most.}
-Theorem~\ref{thm:per-client} decomposes per-client leakage into a
+By Theorem~\ref{thm:per-client}, per-client leakage decomposes into a
 controllable mechanism term and an uncontrollable prior-coupling floor.
 The defense can only shrink the controllable term; the floor is
 deployment-determined and beyond DP-SGD's reach. The defense's
 \emph{relative} value is therefore highest when the controllable term
-dominates — \ie when DP noise is calibrated to be informative
+dominates, that is, when DP noise is calibrated to be informative
 ($\sigma$ small enough that $a/\sigma_i^2$ is comparable to
 $\ell_i^\circ$). Once $\ell_i^\circ$ swamps $a/\sigma_i^2$, additional
 noise allocation produces diminishing returns; the appropriate response
@@ -18,52 +18,50 @@ defense.
 
 \paragraph{The bound is conservative in a deployment-favourable
 direction.}
-Theorem~\ref{thm:per-client}'s prior-coupling term $\ell_i^\circ$ is
-defined as a \emph{supremum} over the family of priors
+The prior-coupling term $\ell_i^\circ$ in Theorem~\ref{thm:per-client}
+is defined as a \emph{supremum} over the family of priors
 $\FAM_{\TOPO,\omega}$: it is the worst case across all priors
-consistent with the deployment's topology and organisational
-structure. Achieving the supremum empirically requires the
-adversary's shadow training distribution to match the target's
-deployment prior. \S\ref{sec:experiments-channels} provides direct
-empirical evidence on this point. In Setting~C, where shadow and
-target use the same $\eta$-coupling adapter (same prior family),
-$\ell_i^\circ$ is empirically realised: the org channel attack lift
-is positive, scales monotonically with $\eta$, and vanishes at
-$\eta = 0$. In Settings~B and~A, where the adversary has only
-synthetic Dirichlet re-partitioning of public data while the target
-uses native FLamby cross-silo sites, three orthogonal
-methodological improvements (DP-matched shadow, class-aware
-features, cross-validated regressor) moved $\Adv_2^{\text{full}}$
-AUROC across the 0.5 threshold (0.19~$\to$~0.56) but did not
-flip attack lift positive. The supremum is not realised because the
-adversary's prior does not match.
+consistent with the deployment's topology and organisational structure.
+Achieving the supremum empirically requires the adversary's shadow
+training distribution to match the target's deployment prior.
+\S\ref{sec:experiments-channels} provides direct evidence on this
+point. In Setting~C, where shadow and target use the same
+$\eta$-coupling adapter, $\ell_i^\circ$ is empirically realised: the
+org channel attack lift is positive, scales monotonically with $\eta$,
+and vanishes at $\eta = 0$. In Settings~B and~A, where the adversary
+has only synthetic Dirichlet re-partitioning of public data while the
+target uses native FLamby cross-silo sites, three orthogonal
+methodological improvements (DP-matched shadow, class-aware features,
+cross-validated regressor) moved $\Adv_2^{\text{full}}$ AUROC across
+the 0.5 threshold ($0.19 \to 0.56$) but did not flip attack lift
+positive. The supremum is not realised because the adversary's prior
+does not match.
 
 This is the right kind of conservatism for a privacy guarantee.
-Fulcrum's bound is valid as an upper bound across all priors in the
-family; it is tight when the adversary's prior matches the
-deployment's; it is loose --- in a \emph{deployment-favourable}
-direction --- when the adversary has only public-proxy data without
-site labels. The bound therefore over-states realisable attack
-capability in cross-silo deployments where adversaries cannot
-obtain matching shadow priors, which is the typical condition for
-hospitals, banks, and industrial consortia operating under
-data-sharing constraints. We do not weaken the bound to remove this
-slack: privacy guarantees are appropriately conservative when the
-threat-model assumption (the worst-case adversary in the prior
-family) is stronger than the realistic adversary (a public-proxy
-attacker with no site-labelled training data). The empirical
-characterisation in \S\ref{sec:experiments-channels} \emph{quantifies}
-this conservatism rather than claiming the bound is tight.
+\Fulcrum's bound is valid as an upper bound across all priors in the
+family; it is tight when the adversary's prior matches the deployment's;
+and it is loose, in a deployment-favourable direction, when
+the adversary has only public-proxy data without site labels. The bound
+therefore over-states realisable attack capability in cross-silo
+deployments where adversaries cannot obtain matching shadow priors,
+which is the typical condition for hospitals, banks, and industrial
+consortia operating under data-sharing constraints. We do not weaken
+the bound to remove this slack: privacy guarantees are appropriately
+conservative when the threat-model assumption (the worst-case adversary
+in the prior family) is stronger than the realistic adversary (a
+public-proxy attacker with no site-labelled training data). The
+empirical characterisation in \S\ref{sec:experiments-channels}
+\emph{quantifies} this conservatism, a strength of the framework, not a limitation.
 
 \paragraph{Why our defense reduces to uniform under symmetry.}
-Corollary~\ref{cor:strict} establishes that the topology-aware allocation
-collapses to standard uniform DP-SGD whenever leverage scores are
-identical across clients. We treat this as a feature: the theorem
-recovers the standard practice exactly in the regime that the standard
-practice was designed for, and then strictly improves on it whenever
-the deployment introduces structural asymmetry. This yields a clean
-deployment recommendation: \emph{use \Fulcrum unconditionally} — when
-the topology happens to be symmetric, you pay no price for the choice.
+By Corollary~\ref{cor:strict}, the topology-aware allocation collapses
+to standard uniform DP-SGD whenever leverage scores are identical
+across clients. This is a feature: the theorem recovers standard
+practice exactly in the regime for which standard practice was designed,
+then strictly improves on it whenever the deployment introduces
+structural asymmetry. The deployment recommendation is accordingly
+clean: \emph{use \Fulcrum unconditionally}; when the topology happens
+to be symmetric, there is no price for the choice.
 
 \paragraph{Three proxies, three deployments.}
 The three leverage proxies of \S\ref{sec:defense-proxies} are not
@@ -74,10 +72,9 @@ topology uses Corollary~\ref{cor:degree}; cross-silo FL with
 heterogeneous client dataset sizes uses
 Corollary~\ref{cor:influence}. A practical deployment can blend
 proxies by passing weighted leverage vectors to
-Theorem~\ref{thm:allocation}. We do not address the question of
-\emph{which} proxy is universally best because there is no universal
-answer: the right proxy is the one that captures the dominant
-asymmetry in the deployment's structural prior.
+Theorem~\ref{thm:allocation}. The right proxy is the one that captures
+the dominant asymmetry in the deployment's structural prior; there is
+no universal answer.
 
 \paragraph{Honest limitations.}
 Three limitations bound the scope of our claims.
@@ -85,21 +82,20 @@ Three limitations bound the scope of our claims.
 \textit{Conservative bounds.}
 Theorem~\ref{thm:per-client} drops a non-negative subtractive term in
 the chain-rule decomposition (Appendix~\ref{app:thm1}) and uses the
-Cuff-Yu KL-to-MI conversion~\cite{cuff2016mi} which is loose at extreme
-$\sigma$. The bound is a valid upper bound but not tight; tighter
-conversion via Asoodeh et~al.~\cite{asoodeh2021variants} or amplified
-RDP via Wang et~al.~\cite{wang2019subsampled} would shrink the bound
-substantially under Poisson subsampling. The conservative bound is
-appropriate for a privacy guarantee (we want an upper bound on adversary
-leakage, not the actual achievable leakage). Tighter bounds are a
-follow-up direction.
+Cuff-Yu KL-to-MI conversion~\cite{cuff2016mi}, which is loose at
+extreme $\sigma$. The bound is a valid upper bound but not tight;
+tighter conversion via Asoodeh et~al.~\cite{asoodeh2021variants} or
+amplified RDP via Wang et~al.~\cite{wang2019subsampled} would shrink
+the bound substantially under Poisson subsampling. This slack is
+appropriate for a privacy guarantee. Tighter bounds are a follow-up
+direction.
 
 \textit{Heuristic proxies.}
-Corollaries~\ref{cor:degree} and~\ref{cor:influence} are heuristic; only
-Corollary~\ref{cor:sbm} carries a rigorous information-theoretic
-derivation. The heuristic proxies are validated empirically on real and
-synthetic deployments, but a tight analytical bound for either remains
-an open problem.
+Corollaries~\ref{cor:degree} and~\ref{cor:influence} are heuristic;
+only Corollary~\ref{cor:sbm} carries a rigorous information-theoretic
+derivation. The heuristic proxies are validated empirically on real
+and synthetic deployments, but a tight analytical bound for either
+remains an open problem.
 
 \textit{Disjoint datasets.}
 Assumption (IA2) precludes deployments where the same individual
@@ -111,21 +107,22 @@ target, naturally satisfy (IA2) because each site enrols disjoint
 populations.
 
 \paragraph{Cross-pollination with active threats.}
-Our threat model is passive. Active adversaries that manipulate the
-training protocol — \eg malicious aggregators that selectively retain
-gradients, or Sybil clients that inject misleading updates — operate in
-a regime that DP-SGD fundamentally cannot bound. We expect the
-topology-aware allocation to be \emph{compatible} with active-defense
-mechanisms (Byzantine-resilient aggregators, anomaly detection) in the
-same way that DP-SGD is, but proving non-trivial guarantees in the
-active setting requires distinct machinery.
+Our threat model is passive; active manipulation of the training
+protocol lies outside its scope. The topology-aware allocation is
+compatible with active-defense mechanisms such as Byzantine-resilient
+aggregators and anomaly detection, in the same way that standard
+DP-SGD is: the two defense layers address different threat axes and
+compose naturally. Proving guarantees against active adversaries in
+the presence of topology-aware noise requires distinct machinery and
+is left for future work.
 
 \paragraph{Toward tighter theory.}
-The natural next theoretical step is to prove the Wang/Balle/Kasiviswanathan
-amplified RDP~\cite{wang2019subsampled} version of
-Theorem~\ref{thm:per-client}. Under Poisson subsampling at rate
-\(q = |B|/|\Dset_i|\), the per-round RDP scales as $q^2 \alpha/(2\sigma_i^2)$
-rather than $\alpha/(2\sigma_i^2)$. The corresponding bound would be
+The natural next theoretical step is to prove the amplified RDP version
+of Theorem~\ref{thm:per-client} under Wang, Balle, and
+Kasiviswanathan's subsampling analysis~\cite{wang2019subsampled}. Under
+Poisson subsampling at rate $q = |B|/|\Dset_i|$, the per-round RDP
+scales as $q^2 \alpha/(2\sigma_i^2)$ rather than $\alpha/(2\sigma_i^2)$.
+The corresponding bound would be
 \(\Tmax q_i^2 C^2 / (2\sigma_i^2 |B|^2) + \ell_i^\circ\), giving
 \emph{client-specific} amplification: clients with smaller datasets
 (higher $q_i$) gain more from amplification. This integrates naturally

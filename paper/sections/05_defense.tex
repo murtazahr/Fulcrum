@@ -10,10 +10,9 @@ adversary of \S\ref{sec:adv-model}, and show the allocation is balanced
 min-max optimal: it strictly dominates uniform DP-SGD whenever the
 leverage scores are non-uniform across clients.
 
-We label the allocation \emph{Fulcrum} because it is the privacy
-balance point: per-client privacy bounds are equilibrated across the
-asymmetric leverage profile under a fixed utility budget, the way an
-asymmetric lever finds its fulcrum at the balance point of unequal loads.
+We label the allocation \emph{Fulcrum}: per-client privacy bounds are
+equilibrated across the asymmetric leverage profile at a fixed utility
+budget, as a lever balances unequal loads about its fulcrum.
 
 \subsection{Notation and Setup}
 \label{sec:defense-setup}
@@ -92,12 +91,12 @@ Cuff and Yu's max-KL bound~\cite{cuff2016mi}. The second term is bounded
 by $\ell_i^\circ$ by definition. Full proof in Appendix~\ref{app:thm1}.
 \end{proof}
 
-The decomposition is the key structural feature. The first term is
+The additive structure is the key feature of the bound. The first term is
 \emph{controllable}: it shrinks as the per-client noise $\sigma_i$
 grows. The second term is \emph{uncontrollable}: it is a property of the
-prior and is not reduced by DP-SGD noise on client $i$. We design the
-allocation to manage the controllable term given that the uncontrollable
-floor is fixed.
+prior and is not reduced by DP-SGD noise on client $i$. The allocation
+of \S\ref{sec:defense-thm2} manages the controllable term given that
+the uncontrollable floor is fixed.
 
 \subsection{Balanced Min-Max Optimal Allocation}
 \label{sec:defense-thm2}
@@ -152,14 +151,13 @@ Theorem~\ref{thm:allocation} satisfies
 $\ell_i^\circ$ are equal.
 \end{corollary}
 
-The corollary characterises both when our allocation helps and when it
-collapses to standard DP-SGD. Symmetric topologies — ring, complete,
-balanced hierarchical — produce uniform leverage and our allocation
-reduces to uniform DP-SGD; this is the appropriate behaviour, not a
-flaw, since under those topologies there is no asymmetry to exploit.
-Asymmetric topologies — line, hierarchical with uneven groups, star — and
-deployments with heterogeneous client dataset sizes both produce
-non-uniform leverage and admit a strict gap.
+By Corollary~\ref{cor:strict}, the topology-aware allocation helps
+exactly when it should. Symmetric topologies (ring, complete, balanced hierarchical) produce
+uniform leverage and the allocation reduces to uniform DP-SGD; this is
+the appropriate behaviour, not a flaw, since there is no asymmetry to
+exploit. Asymmetric topologies (line, hierarchical with uneven groups,
+star) and deployments with heterogeneous client dataset sizes both
+produce non-uniform leverage and admit a strict gap.
 
 \subsection{Practical Leverage Proxies}
 \label{sec:defense-proxies}
@@ -176,9 +174,9 @@ finite-entropy block parameter $\Phi$,
 \(\ell_i^\circ \leq H(\Phi_{\omega_i})\),
 asymptotically independent of block size; for finite blocks,
 $\ell_i^\circ$ is approximated by the group size $|G_i|$ scaled by a
-prior-dependent constant. Use the proxy
-$\ell_i^{\mathrm{org}} \propto |G_i|$ in hierarchical FL with uneven
-groups (\eg Briggs et al.\ clustering~\cite{briggs2020hierarchical}).
+prior-dependent constant. This motivates the proxy
+$\ell_i^{\mathrm{org}} \propto |G_i|$ for hierarchical FL with uneven
+organisational groups (\eg Briggs et al.\ clustering~\cite{briggs2020hierarchical}).
 \end{corollary}
 
 \begin{corollary}[Degree heuristic, decentralised FL]
@@ -201,7 +199,7 @@ each client's update is weighted proportionally to its dataset size.
 We adopt the proxy $\ell_i^{\mathrm{ds}} \propto |\Dset_i|/\bar{|\Dset|}$
 (mean-normalised) as a heuristic for cross-silo settings where topology
 is symmetric (\eg ring, complete) but client dataset sizes vary
-substantially — the typical FLamby regime~\cite{flamby2022}. Like
+substantially, as in the typical FLamby regime~\cite{flamby2022}. Like
 Corollary~\ref{cor:degree}, this is empirically validated rather than
 proven.
 \end{corollary}
@@ -249,11 +247,11 @@ regimes are summarised in Table~\ref{tab:regimes}.
 
 \begin{table}[h]
 \centering
-\caption{When the topology-aware allocation strictly improves over
-uniform DP-SGD. Measured gap values are
-$K_{\mathrm{uniform}} - K^\star$ at $\eta=1$ on Setting~C
-($n=50$, $\Tmax=100$, $|B|=64$, $C=1.0$, $U=0.5$); the predicted
-star asymptote is $an/U = 1.2207$.}
+\caption{Conditions under which the topology-aware allocation strictly
+improves over uniform DP-SGD, with measured $K^\star$ gaps.
+Gaps are $K_{\mathrm{uniform}} - K^\star$ at $\eta=1$ on Setting~C
+($n=50$, $\Tmax=100$, $|B|=64$, $C=1.0$, $U=0.5$); the star gap
+saturates near the theoretical asymptote $an/U = 1.2207$.}
 \label{tab:regimes}
 \begin{tabular}{@{}lllc@{}}
 \toprule

@@ -21,25 +21,24 @@ have become the canonical defense, with R\'enyi-DP composition giving
 the tightest practical accounting~\cite{mironov2017rdp}.
 
 What that programme does \emph{not} address is the topology around the
-content. Real deployments organise clients into structured graphs ---
+content. Real deployments organise clients into structured graphs, including
 hierarchical client--edge--cloud cascades~\cite{liu2020hierarchical,abad2020icassp},
 gossip-based peer-to-peer protocols~\cite{roy2019braintorrent,hegedus2021decentralized},
-DAG-aggregation variants~\cite{beilharz2021dag} --- because no single
+and DAG-aggregation variants~\cite{beilharz2021dag}, because no single
 flat protocol meets every constraint. The topology choice is treated
 as a performance lever (bandwidth, latency, scalability)~\cite{wang2021fieldguide};
 its privacy implications have remained largely unexamined. An adversary
-who can observe per-round updates and knows the topology has access to
-two information channels that DP-SGD does not bound: the structural
-position of each client in the communication graph, and the
-organisational membership encoded by deployment design.
+who observes per-round updates and knows the topology exploits two
+channels that DP-SGD does not bound: the structural position of each
+client in the communication graph, and the organisational membership
+encoded by deployment design.
 
-This paper studies that gap. We identify a class of \emph{topology-conditional}
-distributional inference attacks against
-DP-protected FL, prove a per-client mutual-information bound that
-applies in the presence of these adversaries, and derive a noise
-allocation that is provably optimal under that bound. Our two
-contributions are therefore one attack and one defense, paired by
-construction.
+This paper addresses that gap with two contributions, an attack and a
+defense, each validated within the same threat model. We identify a
+class of \emph{topology-conditional} distributional inference attacks
+against DP-protected FL, prove a per-client mutual-information bound
+that applies against these adversaries, and derive a noise allocation
+that is provably optimal under that bound.
 
 \paragraph{Attack: \TADI.}
 \TADI (Topology-Aware Distributional Inference) is a
@@ -54,12 +53,14 @@ condition (no topology--data correlation) gives zero attack lift by
 construction.
 
 \paragraph{Defense: \Fulcrum.}
-We name the defense after the balance point of a lever: under a fixed
-utility budget, the privacy bound for high-leverage clients (those whose
-structural position exposes more lateral leakage) is held in
-equilibrium with that of low-leverage clients by allocating noise
-asymmetrically. Concretely, we prove that the per-client conditional
-mutual information satisfies
+The defense takes its name from the lever's balance point: under a
+fixed utility budget, noise is allocated asymmetrically so that
+per-client privacy bounds are equilibrated across the leverage profile,
+with more noise assigned to high-leverage clients and less to
+low-leverage ones. The key structural insight is that the per-client
+conditional mutual information splits into two additive terms, one
+shrinkable by DP noise and one not, and the optimal allocation targets
+only the shrinkable term:
 \begin{equation*}
 I(p_i;\hat{p}_i \mid \TOPO,\omega,\{\sigma_j\})
 \;\leq\;
@@ -67,56 +68,52 @@ I(p_i;\hat{p}_i \mid \TOPO,\omega,\{\sigma_j\})
 \;+\;
 \underbrace{\ell_i^\circ}_{\text{prior coupling}}
 \end{equation*}
-and that the closed-form min-max optimal allocation
+By Theorems~\ref{thm:per-client} and~\ref{thm:allocation}, the
+closed-form min-max optimal allocation
 $\sigma_i^{*2} = a/(K^\star - \ell_i^\circ)$ \emph{strictly dominates}
 the uniform DP-SGD allocation whenever the structural-leverage scores
-$\ell_i^\circ$ are non-uniform across clients (Theorems~\ref{thm:per-client}
-and~\ref{thm:allocation}). The leverage abstraction admits three
-practical proxies covering the canonical deployment regimes.
+$\ell_i^\circ$ are non-uniform across clients. Three practical proxies
+cover the canonical deployment regimes.
 
 \paragraph{Contributions.}
 \begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=2pt]
 \item A formal threat model for topology-conditional distributional
-  inference under DP-SGD, with a per-client metric (calibration loss /
-  attack lift over a constant-mean baseline) that has statistical power
-  at small client counts and AUROC equivalence at larger ones
+  inference under DP-SGD, with calibration loss and attack lift over a
+  constant-mean baseline as the primary per-client metrics, designed
+  to retain statistical power at small client counts
   (\S\ref{sec:threat}).
 \item The \TADI attack with four channel ablations and a constant-mean
   comparator, providing the first per-channel decomposition of
   topology-conditional leakage in DP-FL (\S\ref{sec:attack}).
-\item Theorems~\ref{thm:per-client} and~\ref{thm:allocation} establishing
-  an additive MI bound and a closed-form balanced min-max allocation,
-  with three principled leverage proxies and an explicit
-  \emph{regime-of-applicability} characterisation
-  (\S\ref{sec:defense}).
+\item Theorems~\ref{thm:per-client} and~\ref{thm:allocation}
+  establishing an additive MI bound and a closed-form balanced min-max
+  allocation, with three principled leverage proxies and an explicit
+  regime-of-applicability characterisation (\S\ref{sec:defense}).
 \item Empirical evaluation on Fed-ISIC2019, Fed-Heart-Disease, and
-  synthetic CIFAR-10 with parametric coupling. The defense is
-  validated end-to-end: topology-aware allocation strictly dominates
-  uniform DP-SGD on the privacy bound at every $(U, \Tmax)$ cell
-  tested on every setting; the defense costs no measurable utility
+  synthetic CIFAR-10 with parametric coupling, validating the defense
+  end-to-end (\S\ref{sec:experiments}). Topology-aware allocation
+  strictly dominates uniform DP-SGD on the privacy bound at every
+  $(U, \Tmax)$ cell tested; the defense costs no measurable utility
   (paired $t$-tests over seeds give $p > 0.48$ at every cell); and
-  DP-SGD bounds the parameter channel of the \TADI attack
-  ($\Adv_1$ attack lift negative across all configurations on all
-  settings). The empirical realisability of Theorem~\ref{thm:per-client}'s
-  prior-coupling term is characterised across deployment regimes:
-  when the adversary's shadow training prior matches the target
-  deployment's prior (Setting~C, $\eta$-coupled synthetic), the
-  supremum is empirically attained --- attack lift positive,
-  monotone in the coupling parameter, calibration-null at
-  $\eta = 0$. Under the public-proxy threat model on cross-silo
-  benchmarks (Settings~B and~A), where the adversary has only
-  synthetic re-partitioning of public data, the supremum is not
-  empirically realised --- the bound is conservative in a
-  deployment-favourable direction (\S\ref{sec:experiments},
-  \S\ref{sec:discussion}).
+  DP-SGD bounds the \TADI parameter channel ($\Adv_1$ lift negative)
+  across all settings. The prior-coupling term of
+  Theorem~\ref{thm:per-client} is empirically characterised across
+  deployment regimes: when the adversary's shadow prior matches the
+  target deployment's prior (Setting~C, $\eta$-coupled synthetic), the
+  bound is attained, with attack lift positive, monotone in the
+  coupling parameter, and calibration-null at $\eta=0$. Under the
+  public-proxy threat model on cross-silo benchmarks (Settings~B
+  and~A), where the adversary has only synthetic re-partitioning of
+  public data, the bound is conservative in a deployment-favourable
+  direction (\S\ref{sec:discussion}).
 \end{enumerate}
 
 \paragraph{Out of scope.}
 We assume an honest-but-curious passive adversary; active manipulation
-of the protocol, malicious aggregators, and Sybil attacks are out of
-scope and complementary to the threats we address.
-Secure-aggregation~\cite{bonawitz2017secagg} reduces our adversary's
-observations to neighborhood sums and changes the threat model;
+of the protocol, malicious aggregators, and Sybil attacks are
+complementary threats outside our scope.
+Secure aggregation~\cite{bonawitz2017secagg} reduces our adversary's
+observations to neighbourhood sums and changes the threat model;
 we evaluate this as an extension experiment rather than the headline
 threat. Our results assume static topologies and disjoint client
 datasets; dynamic reconfiguration and overlapping client populations

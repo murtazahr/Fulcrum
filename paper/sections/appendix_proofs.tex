@@ -2,8 +2,8 @@
 \label{app:thm1}
 
 We restate the theorem and give the full proof, organised as four
-lemmas plus an assembly step. The proof uses standard machinery — chain
-rule of mutual information, Mironov's RDP for the Gaussian
+lemmas plus an assembly step. The proof uses standard machinery:
+chain rule of mutual information, Mironov's RDP for the Gaussian
 mechanism~\cite{mironov2017rdp}, and the Cuff-Yu max-KL to MI-DP
 conversion~\cite{cuff2016mi}.
 
@@ -21,6 +21,11 @@ I_{\mathbb{P}}\big(p_i;\,\hat p_i \;\big|\; \TOPO,\omega,\{\sigma_j\}\big)
 \ell_i^\circ.
 \]
 \end{theorem}
+
+The proof decomposes into four lemmas. Lemmas~\ref{lem:chain}
+and~\ref{lem:lateral} isolate the lateral-leakage term via a chain-rule
+inequality; Lemmas~\ref{lem:perround} and~\ref{lem:composition} bound
+the mechanism term using DP-SGD's Gaussian noise structure.
 
 \begin{lemma}[Chain-rule decomposition]
 \label{lem:chain}
@@ -66,7 +71,8 @@ adjacent databases implies MI-DP with the same parameter~\cite{cuff2016mi}.
 
 \begin{lemma}[Sequential composition]
 \label{lem:composition}
-Under (IA1)--(IA2),
+Under (IA1)--(IA2), sequential composition of the per-round bound
+across all $\Tmax$ rounds gives:
 \[
 I\big(D_i;\, \Theta_i \;\big|\; D_{-i}\big)
 \;\leq\;
@@ -127,7 +133,8 @@ throughout because these quantities are constants of the deployment
 The optimisation problem is
 \(\min \max_i [a/\sigma_i^2 + \ell_i^\circ]\) subject to
 $\sum_i \sigma_i^2 \leq U, \sigma_i^2 > 0$. The objective is
-non-smooth so we reformulate via slack variable $K$:
+non-smooth, so we reformulate via a slack variable $K$ to obtain a
+convex programme amenable to KKT analysis:
 \begin{equation}
 \min_{K, \{\sigma_i^2 > 0\}} K
 \quad\text{s.t.}\quad
@@ -186,11 +193,11 @@ constant.
 
 \paragraph{Edge case: small $U$.}
 The KKT solution requires $K^\star > \max_i \ell_i^\circ$, equivalently
-$U > n a/(K - \ell_{\max})$ for the relevant $K$. For very small $U$
-the optimum saturates with some $\sigma_i^2 \to 0$ at low-leverage
-clients and most of the budget concentrated at high-leverage ones; in
-practice this regime is below the deployment-relevant range and we do
-not address it further.
+$U > n a/(K - \ell_{\max})$ for the relevant $K$. When $U$ is very
+small, the optimum saturates: some $\sigma_i^2 \to 0$ for low-leverage
+clients while the budget concentrates on high-leverage ones. This
+regime falls below the deployment-relevant range and is not analysed
+further.
 
 \paragraph{Computational note.}
 Solving \eqref{eq:budget-eq} numerically via 1-D bisection on $K$ is
