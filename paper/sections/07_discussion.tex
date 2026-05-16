@@ -83,12 +83,23 @@ Three limitations bound the scope of our claims.
 Theorem~\ref{thm:per-client} drops a non-negative subtractive term in
 the chain-rule decomposition (Appendix~\ref{app:thm1}) and uses the
 Cuff-Yu KL-to-MI conversion~\cite{cuff2016mi}, which is loose at
-extreme $\sigma$. The bound is a valid upper bound but not tight;
-tighter conversion via Asoodeh et~al.~\cite{asoodeh2021variants} or
-amplified RDP via Wang et~al.~\cite{wang2019subsampled} would shrink
-the bound substantially under Poisson subsampling. This slack is
-appropriate for a privacy guarantee. Tighter bounds are a follow-up
-direction.
+extreme $\sigma$. The bound is a valid upper bound but not tight.
+A back-of-envelope estimate at the Setting~C operating point
+($T_{\max}=100$, $|B|=64$, $C=1$, $\sigma_i \approx 0.1$ under
+$U=0.5$, $n=50$) gives a controllable-term magnitude of
+$T_{\max} C^2/(2\sigma_i^2 |B|^2) \approx 1.22$~nats; the
+unobservable subtractive term and the Cuff-Yu slack together upper-bound
+the realisable adversary leakage somewhere strictly below this
+analytic figure, which is consistent with the empirically modest
+attack lifts observed in \S\ref{sec:experiments-channels}. Tighter
+conversion via Asoodeh et~al.~\cite{asoodeh2021variants} or amplified
+RDP via Wang et~al.~\cite{wang2019subsampled} would shrink the bound
+substantially under the Poisson subsampling that the Opacus
+implementation actually uses; under per-client subsampling rate
+$q_i = |B|/|\Dset_i|$, the per-round contribution is reduced by
+$q_i^2$, which is sub-percent at $|\Dset_i|$ in the thousands. This
+slack is appropriate for a privacy guarantee. Tighter bounds are a
+follow-up direction (\S``Toward tighter theory'' below).
 
 \textit{Heuristic proxies.}
 Corollaries~\ref{cor:degree} and~\ref{cor:influence} are heuristic;

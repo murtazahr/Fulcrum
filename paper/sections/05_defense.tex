@@ -98,6 +98,24 @@ prior and is not reduced by DP-SGD noise on client $i$. The allocation
 of \S\ref{sec:defense-thm2} manages the controllable term given that
 the uncontrollable floor is fixed.
 
+\paragraph{Bound slack.}
+Theorem~\ref{thm:per-client} is an upper bound, not a tight equality.
+Two sources of slack are worth flagging upfront. First, the chain-rule
+step in the proof drops a non-negative subtractive term
+$I(p_i; D_{-i} \mid \Theta) \geq 0$, which is the lateral information
+that the adversary's observation of $\Theta$ resolves about
+$D_{-i}$ given $p_i$. Second, the Cuff-Yu KL$\to$MI
+conversion~\cite{cuff2016mi} is loose at extreme $\sigma$. The
+implementation of \S\ref{sec:experiments} additionally uses Poisson
+subsampling at rate $q = |B|/|\Dset_i|$ via Opacus, for which
+amplified RDP~\cite{wang2019subsampled} would shrink the per-round
+contribution from $C^2/(2\sigma_i^2|B|^2)$ to
+$q^2 C^2/(2\sigma_i^2|B|^2) = C^2/(2\sigma_i^2|\Dset_i|^2)$, a
+substantial tightening when $|\Dset_i| \gg |B|$. Tighter bounds via
+Asoodeh et~al.~\cite{asoodeh2021variants} or amplified RDP are
+straightforward extensions of the proof structure here and are
+discussed in \S\ref{sec:discussion}.
+
 \subsection{Balanced Min-Max Optimal Allocation}
 \label{sec:defense-thm2}
 

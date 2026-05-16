@@ -143,6 +143,20 @@ evidence accordingly: a privacy line plot ($U \to K^\star$, one panel
 per $\Tmax$) for the dominance claim, and a separate
 utility-consistency table for the ``defense costs no utility'' claim.
 
+\paragraph{Proxy versus rigorous $K^\star$.}
+Two of the three leverage proxies of \S\ref{sec:defense-proxies}
+(degree, Cor.~\ref{cor:degree}; dataset size,
+Cor.~\ref{cor:influence}) are heuristic instantiations of
+$\ell_i^\circ$, not analytical bounds on the supremum. The $K^\star$
+values reported below for Settings~B and~A are accordingly $K^\star$
+under the chosen proxy, not bounds on the true min-max optimal
+$K^\star$ under the abstract leverage of
+Definition~\ref{def:leverage}. Within-proxy strict dominance over
+uniform allocation is what these results establish; the reduction to
+analytical $\ell_i^\circ$ holds rigorously only in the SBM regime
+(Cor.~\ref{cor:sbm}), partially relevant to Setting~C. We discuss this
+gap in \S\ref{sec:discussion}.
+
 \paragraph{Setting~B (Fed-Heart-Disease, dataset-size proxy).}
 The Setting~B Pareto sweep covers
 $U \in \{0.025, 0.05, 0.1, 0.2, 0.4, 0.8\}$ and
@@ -156,11 +170,21 @@ observation window. The cross-silo dataset-size leverage proxy of
 Corollary~\ref{cor:influence} drives the asymmetry (native FLamby site
 sizes $[199, 172, 30, 85]$, $6.6\times$ ratio).
 Table~\ref{tab:util-consistency-b} reports the matched-pair utility
-comparison: across all 18 paired $(U, \text{seed})$ configurations at
+comparison. Across all 18 paired $(U, \text{seed})$ configurations at
 each $\Tmax$, the mean accuracy gap is below $0.3$ percentage points
-and collapses to zero at $\Tmax = 100$, with the paired $t$-test
-unable to reject equality at any tested $\Tmax$. The privacy gain is
-obtained without measurable utility cost.
+and collapses to zero at $\Tmax = 100$. We report two statistical
+quantities: a conventional paired $t$-test $p$-value (for $H_0$: zero
+mean difference; high values indicate failure to reject equality) and
+a Two One-Sided Tests (TOST) equivalence $p$-value with a
+$\pm 0.5$~pp margin (for $H_0$: $|\mathbb{E}[\Delta]|\ge 0.5$~pp;
+small values establish equivalence within the margin). The TOST
+formulation addresses the standard caveat that a high paired-$t$
+$p$-value alone does not establish equivalence: TOST inverts the null
+to require the effect to be small to be rejected, converting a
+non-rejection of difference into an active rejection of
+practically-meaningful difference. The privacy gain is therefore
+obtained at no practically-meaningful utility cost within the
+$\pm 0.5$~pp margin.
 
 \begin{figure*}[t]
 \centering
@@ -203,11 +227,12 @@ deliberately stressful regime selected to control the topology--data
 correlation analytically. The defense--utility comparison is meaningful
 \emph{within} this regime: across all 18 paired $(U, \text{seed})$
 configurations at each $\Tmax$, the mean $|\Delta|$ accuracy is below
-$0.02$ percentage points, the maximum is $0.07$~pp, and the paired
-$t$-test cannot reject equality at any $\Tmax$
-($p \in [0.484, 0.740]$). The TA/tie/uniform direction tally is
-near-balanced at every $\Tmax$. Allocation strategy has no measurable
-effect on test accuracy at fixed utility budget, confirming
+$0.02$ percentage points and the maximum is $0.07$~pp. Both the
+paired $t$-test (failure to reject zero difference,
+$p \in [0.484, 0.740]$) and the TOST equivalence test at a
+$\pm 0.5$~pp margin support the conclusion of practical equivalence.
+Allocation strategy therefore has no practically-meaningful effect
+on test accuracy at fixed utility budget, confirming
 Proposition~\ref{prop:utility} empirically on the synthetic vehicle.
 
 \begin{figure*}[t]
@@ -379,7 +404,14 @@ satisfies by construction and Settings~B and~A do not.
   parameter and structural features that LightGBM cannot fully
   deprioritise on a 50-shadow-run corpus; when most of the signal
   lives in a single channel, additional channels add noise. We do not
-  claim the four-channel adversary is universally the worst case.
+  claim the four-channel adversary is universally the worst case. A
+  deeper alternative reading is that finite-shadow noise interference
+  is itself a constraint on adversary capability: even granted the
+  full $\KNW=(\TOPO,\omega,\{\sigma_j\})$ knowledge of the threat
+  model, a regressor trained on a realistically-sized public corpus
+  may underperform a single-channel specialist, further widening the
+  gap between $\ell_i^\circ$ and realised adversary capability. This
+  reinforces the deployment-favourable conservatism of the bound.
 \item $\Adv_2^{\text{topo}}$ adds essentially no signal in
   Setting~C. Setting~C routes the class signal through $\omega$, not
   through structural position; the hierarchical topology's degree
@@ -529,6 +561,34 @@ prior-matched regime, and conservative in the public-proxy regime.
 The defense's empirical efficacy (Pareto dominance, utility
 consistency, and controllable-term bounding) is independent of which
 regime applies.
+
+\paragraph{Observation (Prior-realisability gap).}
+We summarise the cross-setting evidence as a single empirical
+observation about when Theorem~\ref{thm:per-client}'s bound is
+tight versus loose:
+
+\begin{quote}
+\emph{The prior-coupling supremum $\ell_i^\circ$ is empirically
+attained when the divergence between the adversary's shadow prior
+$\mathbb{P}_{\mathrm{shadow}}$ and the deployment's target prior
+$\mathbb{P}_{\mathrm{target}}$ within the family
+$\FAM_{\TOPO,\omega}$ is small (Setting~C, where shadow and target
+share an $\eta$-coupling adapter and differ only in seed). When that
+divergence is large (Settings~B and~A, where shadow uses synthetic
+Dirichlet re-partitioning of public data and target uses native
+cross-silo sites), the empirical attack lift falls strictly below
+$\ell_i^\circ$ and the bound becomes correspondingly conservative.}
+\end{quote}
+
+We do not formalise the divergence threshold quantitatively; doing so
+would require an analytical relationship between the adversary's
+expected attack lift and a divergence measure (KL or TV) on the
+prior family $\FAM_{\TOPO,\omega}$, which we leave as future work.
+Empirically, the qualitative split is clear: prior matched
+$\Rightarrow$ supremum attained; prior mismatched
+$\Rightarrow$ supremum unrealised. This observation is independent of
+the controllable-mechanism bound (Finding~1), which holds in both
+regimes.
 
 \subsection{Implementation Choices and Robustness}
 \label{sec:experiments-ablations}

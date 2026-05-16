@@ -72,6 +72,18 @@ secure aggregation as a complementary defense; we discuss the
 implications and leave a full empirical evaluation under secure
 aggregation to future work (\S\ref{sec:discussion}).
 
+A separate line on \emph{personalised} differential privacy
+permits per-individual privacy budgets driven by user preferences.
+J{\o}rgensen et~al.~\cite{jorgensen2015personalized} introduce
+personalised DP for sample-release queries; subsequent work extends
+this to ML training. Our setting is distinct: the asymmetry that
+motivates per-client noise is structural (topology and organisational
+position) rather than preferential, and the allocation is derived
+from a worst-case MI bound rather than from declared user
+preferences. The two lines are complementary; an integrated
+allocation combining structural leverage with per-user preferences
+is a natural extension we do not pursue here.
+
 What none of these mechanisms address is \emph{which} clients should
 receive how much noise when the topology breaks symmetry. Existing
 implementations apply uniform noise multipliers across clients, implicitly

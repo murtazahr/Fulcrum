@@ -17,9 +17,11 @@ deployment regimes: stochastic-block-model group size (hierarchical
 \mbox{FedAvg}-influence dataset size (cross-silo \mbox{FL}). On three
 federated benchmarks (Fed-ISIC2019 dermoscopy, Fed-Heart-Disease tabular,
 and synthetic \mbox{CIFAR-10} with parametric topology--data coupling), the
-defense dominates uniform \mbox{DP-SGD} on the privacy bound at every tested
-budget, costs no measurable accuracy (paired $t$-tests give $p>0.48$ on every
-setting), and bounds the \TADI parameter channel across all configurations.
+defense dominates uniform \mbox{DP-SGD} on the (proxy) privacy bound at every
+tested budget under the leverage proxy appropriate to each deployment regime,
+exhibits utility equivalence to uniform allocation within a sub-percentage-point
+margin (paired equivalence tests on per-seed accuracy), and bounds the \TADI
+parameter channel across all configurations.
 The prior-coupling term is empirically attained when adversary and target
 priors match, and conservative in a deployment-favourable direction when only
 public-proxy data is available.

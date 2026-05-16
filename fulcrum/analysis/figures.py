@@ -186,6 +186,7 @@ def utility_consistency_table(
     budget_col: str = "dp.utility_budget_U",
     seed_col: str = "experiment.seed",
     accuracy_pp: bool = True,
+    equivalence_margin_pp: float = 0.5,
 ) -> pd.DataFrame:
     """Build the utility-invariance table that accompanies :func:`plot_pareto_setting`.
 
@@ -196,7 +197,19 @@ def utility_consistency_table(
     - max and mean $|\\Delta\\text{acc}|$ across all paired configs
     - direction tally (TA wins / ties / uniform wins)
     - paired $t$-test $p$-value over all pairs
+    - **TOST equivalence p-value** for the null
+      $|\\mathbb{E}[\\Delta\\text{acc}]| \\ge \\text{margin}$ vs.\\ alternative
+      $|\\mathbb{E}[\\Delta\\text{acc}]| < \\text{margin}$. A small TOST p-value
+      (< 0.05) lets us conclude statistical equivalence within the margin.
+    - 95% confidence interval on the paired difference
     - number of pairs
+
+    The TOST formulation addresses the reviewer's concern that a high
+    paired-$t$ $p$-value does not establish equivalence — it only fails to
+    reject the null of zero difference. TOST (Two One-Sided Tests) inverts
+    the null to require the effect size to be small to be "rejected,"
+    converting a non-rejection of difference into an active rejection of
+    practically-meaningful difference.
 
     Returns a tidy DataFrame indexed by $T_{\\max}$, ready for
     ``df.to_latex(...)`` or ``df.to_markdown(...)``. Accuracy values are in
@@ -207,25 +220,30 @@ def utility_consistency_table(
         budget_col: column holding utility budget $U$.
         seed_col: column holding the random seed (for pairing).
         accuracy_pp: if True, report accuracy fields ×100 (percentage points).
+        equivalence_margin_pp: equivalence margin for the TOST in
+            percentage-point units (default 0.5pp). The reported TOST p-value
+            tests whether mean |Δ| < margin.
 
     Returns:
         DataFrame with one row per $T_{\\max}$ and columns:
         ``ta_acc_mean``, ``unif_acc_mean``, ``abs_delta_max``,
         ``abs_delta_mean``, ``ta_wins``, ``ties``, ``unif_wins``,
-        ``paired_t_pvalue``, ``n_pairs``.
+        ``paired_t_pvalue``, ``tost_pvalue``, ``ci95_low``, ``ci95_high``,
+        ``equivalence_margin_pp``, ``n_pairs``.
     """
     needed = ["test_accuracy", "dp.allocation", "dp.observation_window",
               budget_col, seed_col]
     df = df.dropna(subset=needed)
 
     try:
-        from scipy.stats import ttest_rel  # noqa: F401  (used per-row below)
+        from scipy.stats import ttest_rel, t as student_t  # noqa: F401
         have_scipy = True
     except Exception:
         have_scipy = False
 
     rows: list[dict] = []
     scale = 100.0 if accuracy_pp else 1.0
+    margin = equivalence_margin_pp / scale  # convert margin into the data's units
     for t_max in sorted(df["dp.observation_window"].unique()):
         sub = df[df["dp.observation_window"] == t_max]
         paired = (sub.pivot_table(
@@ -239,12 +257,33 @@ def utility_consistency_table(
         ta = paired["topology_aware"]
         un = paired["uniform"]
         delta = ta - un
+        n = int(len(delta))
 
-        if have_scipy and len(delta) > 1:
-            from scipy.stats import ttest_rel
+        if have_scipy and n > 1:
+            from scipy.stats import ttest_rel, t as student_t
             pval: float | None = float(ttest_rel(ta, un).pvalue)
+            # Two One-Sided Tests for equivalence within ±margin.
+            # Lower test: H0_low: μ ≤ -margin vs H1_low: μ > -margin
+            # Upper test: H0_up:  μ ≥  margin vs H1_up: μ <  margin
+            # Equivalence p-value = max(p_low, p_up).
+            mean_d = float(delta.mean())
+            sd_d = float(delta.std(ddof=1)) if delta.std(ddof=1) > 0 else 1e-12
+            se_d = sd_d / np.sqrt(n)
+            t_low = (mean_d - (-margin)) / se_d
+            t_up = (mean_d - margin) / se_d
+            df_t = n - 1
+            p_low = 1 - student_t.cdf(t_low, df=df_t)   # P(T > t_low) under H0_low
+            p_up = student_t.cdf(t_up, df=df_t)         # P(T < t_up)  under H0_up
+            tost_p: float | None = float(max(p_low, p_up))
+            # 95% CI on paired difference (used as supporting evidence)
+            half = float(student_t.ppf(0.975, df=df_t)) * se_d
+            ci_low = mean_d - half
+            ci_high = mean_d + half
         else:
             pval = None
+            tost_p = None
+            ci_low = float("nan")
+            ci_high = float("nan")
 
         rows.append({
             "T_max": int(t_max),
@@ -256,7 +295,11 @@ def utility_consistency_table(
             "ties": int((delta == 0).sum()),
             "unif_wins": int((delta < 0).sum()),
             "paired_t_pvalue": pval,
-            "n_pairs": int(len(delta)),
+            "tost_pvalue": tost_p,
+            "ci95_low_pp": scale * float(ci_low),
+            "ci95_high_pp": scale * float(ci_high),
+            "equivalence_margin_pp": float(equivalence_margin_pp),
+            "n_pairs": n,
         })
     return pd.DataFrame(rows).set_index("T_max")
 
@@ -277,17 +320,28 @@ def utility_consistency_latex(
     (already in ``paper/main.tex``).
     """
     label = label or f"tab:util-consistency-{setting.lower()}"
+    margin = float(table_df["equivalence_margin_pp"].iloc[0]) if "equivalence_margin_pp" in table_df.columns else 0.5
     caption = caption or (
         f"Setting {setting}: utility consistency under topology-aware vs.\\ "
         f"uniform DP-SGD allocation. Each row aggregates paired runs at "
-        f"matched $(U, \\text{{seed}})$. Accuracy fields in percentage points; "
-        f"$p$ from a paired $t$-test across all pairs."
+        f"matched $(U, \\text{{seed}})$. Accuracy fields in percentage points. "
+        f"``Paired $t$ $p$'' is the conventional $p$-value for $H_0$: zero mean "
+        f"difference; a high value indicates failure to reject equality. "
+        f"``TOST $p$'' is the equivalence $p$-value for $H_0$: "
+        f"$|\\mathbb{{E}}[\\Delta]|\\ge {margin:.2g}$~pp; a small value (< 0.05) "
+        f"establishes statistical equivalence within the margin. "
+        f"95\\% CI is on the paired mean difference."
     )
 
     def fmt_p(p):
         if p is None or pd.isna(p):
             return "---"
         return f"{p:.3f}" if p >= 1e-3 else f"{p:.1e}"
+
+    def fmt_ci(lo, hi):
+        if pd.isna(lo) or pd.isna(hi):
+            return "---"
+        return f"$[{lo:+.3f}, {hi:+.3f}]$"
 
     body = []
     for t_max, row in table_df.iterrows():
@@ -297,8 +351,9 @@ def utility_consistency_latex(
             f"{row['unif_acc_mean']:.2f}",
             f"{row['abs_delta_max']:.2f}",
             f"{row['abs_delta_mean']:.3f}",
-            f"{int(row['ta_wins'])}/{int(row['ties'])}/{int(row['unif_wins'])}",
+            fmt_ci(row.get("ci95_low_pp", float("nan")), row.get("ci95_high_pp", float("nan"))),
             fmt_p(row["paired_t_pvalue"]),
+            fmt_p(row.get("tost_pvalue", None)),
             f"{int(row['n_pairs'])}",
         ]) + r" \\")
 
@@ -307,11 +362,11 @@ def utility_consistency_latex(
         r"\centering",
         rf"\caption{{{caption}}}",
         rf"\label{{{label}}}",
-        r"\begin{tabular}{@{}rcccccccc@{}}",
+        r"\begin{tabular}{@{}rccccccccc@{}}",
         r"\toprule",
         r"$T_{\max}$ & TA acc (\%) & Uniform acc (\%) & "
         r"$\max|\Delta|$ (pp) & $\overline{|\Delta|}$ (pp) & "
-        r"TA / tie / Unif & paired $t$ $p$ & $n$ \\",
+        r"95\% CI on $\Delta$ (pp) & paired $t$ $p$ & TOST $p$ & $n$ \\",
         r"\midrule",
         *body,
         r"\bottomrule",
