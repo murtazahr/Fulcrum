@@ -17,18 +17,35 @@ SBM-derived group size, degree-based, and FedAvg-influence-derived
 dataset size — cover the canonical hierarchical, decentralised, and
 cross-silo deployment regimes.
 
-\PLACE{Empirical headline (pending Stage~6 completion):
-report the area-between-curves advantage on each setting, the
-$\eta$-sweep gap pattern across the four topologies, and confirm the
-correlation between predicted privacy bound $K^\star$ and measured
-\TADI attack lift.}
+Empirically, the defense delivers what the theorems predict.
+Topology-aware allocation strictly dominates uniform DP-SGD on the
+privacy bound $K^\star$ at every $(U, \Tmax)$ cell tested on every
+setting; the gap saturates at the predicted $an/U$ asymptote on
+star topologies (within 2\% on Setting~C), reaches up to $14.9\%$
+relative reduction on the cross-silo Setting~B with the dataset-size
+leverage proxy, and grows monotonically with the topology-coupling
+parameter $\eta$ on Setting~C. The defense costs no measurable
+test accuracy --- paired $t$-tests over seeds give $p > 0.48$ at
+every $(U, \Tmax)$ cell tested on every setting. DP-SGD's bound on
+the parameter-observation channel of the \TADI attack
+($\Adv_1$) is empirically realised on every setting and every
+configuration. The prior-coupling channel
+($\Adv_2^{\text{org}} / \Adv_2^{\text{full}}$) is empirically
+attained when the adversary's shadow training prior matches the
+target's deployment prior (Setting~C, $\eta$-coupled synthetic) ---
+attack lift monotone in $\eta$, calibration-null at $\eta=0$ --- and
+not realised under the public-proxy threat model on real cross-silo
+deployments (Settings~B and~A), characterising
+Theorem~\ref{thm:per-client}'s prior-coupling supremum as
+conservative in a deployment-favourable direction.
 
 The framework provides a deployable defense that is consistent with its
 threat model, comes with a provable bound, and admits a measurable
 privacy--utility trade-off curve. Open directions include amplified-RDP
 tightening of Theorem~\ref{thm:per-client} under Poisson subsampling,
-extension to active adversaries, and analytical leverage bounds for
-the heuristic proxies.
+extension to active adversaries, analytical leverage bounds for the
+heuristic proxies, and a stronger-prior adversary model that closes
+the public-proxy to native-deployment gap empirically.
 
 \paragraph{Reproducibility.}
 The implementation, configurations, sweep specifications, and analysis

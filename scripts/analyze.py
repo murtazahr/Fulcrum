@@ -281,6 +281,53 @@ def cmd_attack_eval(args) -> int:
     return 0
 
 
+def cmd_cross_setting(args) -> int:
+    """Build the cross-setting Pareto and channel-ablation figures."""
+    from fulcrum.analysis.figures import (
+        plot_attack_channel_ablation_cross_setting,
+        plot_pareto_cross_setting,
+    )
+    from fulcrum.analysis.loader import load_runs_df
+
+    # --- Pareto comparison ---------------------------------------------
+    setting_runs = {}
+    for s in ("A", "B", "C"):
+        df = load_runs_df(args.db_path, args.runs_root, setting=s, status="done")
+        if df.empty:
+            continue
+        df = _apply_pareto_filter(df, s)
+        if not df.empty:
+            setting_runs[s] = df
+
+    if setting_runs:
+        out_path = Path(args.out_dir) / "pareto_cross_setting"
+        plot_pareto_cross_setting(setting_runs, out_path)
+        print(f"Cross-setting Pareto figure → {out_path}.{{png,pdf}}")
+    else:
+        print("No setting Pareto data found for cross-setting Pareto figure.",
+              file=sys.stderr)
+
+    # --- Channel-ablation comparison -----------------------------------
+    import pandas as pd
+    setting_attack = {}
+    for s in ("A", "B", "C"):
+        parquet = Path(args.out_dir) / f"attack_setting_{s.lower()}.parquet"
+        if parquet.exists():
+            setting_attack[s] = pd.read_parquet(parquet)
+
+    if setting_attack:
+        out_path = Path(args.out_dir) / "channel_ablation_cross_setting"
+        plot_attack_channel_ablation_cross_setting(setting_attack, out_path)
+        print(f"Cross-setting channel-ablation figure → {out_path}.{{png,pdf}}")
+    else:
+        print(
+            "No attack_setting_*.parquet files found under "
+            f"{args.out_dir}; run `attack-eval --setting <X>` first.",
+            file=sys.stderr,
+        )
+    return 0
+
+
 def cmd_summary(args) -> int:
     """Print a quick text summary of all completed runs."""
     from fulcrum.analysis.loader import load_runs_df
@@ -342,6 +389,12 @@ def main() -> int:
         help="Output format(s) to write under --out-dir.",
     )
     p_util.set_defaults(func=cmd_utility_table)
+
+    p_cross = sub.add_parser(
+        "cross-setting",
+        help="Build the cross-setting Pareto + channel-ablation figures.",
+    )
+    p_cross.set_defaults(func=cmd_cross_setting)
 
     args = parser.parse_args()
     return args.func(args)

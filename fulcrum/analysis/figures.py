@@ -647,3 +647,173 @@ def plot_attack_channel_ablation(
     ax.axhline(0, color="black", linewidth=0.5)
     _save(fig, output_path)
     plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# Cross-setting comparison figures
+# ---------------------------------------------------------------------------
+
+def plot_pareto_cross_setting(
+    setting_dfs: dict,
+    output_path: str | Path,
+    budget_col: str = "dp.utility_budget_U",
+) -> None:
+    """Side-by-side $U \\to K^\\star$ comparison across settings.
+
+    Args:
+        setting_dfs: mapping setting label ("A", "B", "C") → runs DataFrame
+            (post-:func:`_apply_pareto_filter`). Settings missing from the
+            dict are simply skipped (so this can be called incrementally
+            as Pareto sweeps finish).
+        output_path: figure path (without extension).
+        budget_col: name of the utility-budget column.
+
+    Each panel is one setting; within a panel the curves are grouped by
+    ``dp.observation_window`` (one line per $T_{\\max}$ value, per
+    allocation). Y-axis is log-scaled with plain numerals so the
+    cross-setting comparison is read off in nats directly. Settings with
+    no data (e.g., Setting~A while its Pareto sweep is still running)
+    show as a placeholder panel.
+    """
+    _set_style()
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator, ScalarFormatter
+
+    settings = ["A", "B", "C"]
+    settings = [s for s in settings if s in setting_dfs]
+    n_panels = len(settings)
+    if n_panels == 0:
+        raise ValueError("No setting data provided for cross-setting Pareto plot")
+
+    fig, axes = plt.subplots(1, n_panels, figsize=(4.4 * n_panels, 3.6), sharey=False)
+    if n_panels == 1:
+        axes = [axes]
+
+    color_map = {"topology_aware": "#1f77b4", "uniform": "#d62728"}
+    marker_map = {"topology_aware": "o", "uniform": "s"}
+
+    for ax, setting in zip(axes, settings):
+        df = setting_dfs[setting]
+        df = df.dropna(subset=["K_star", "dp.allocation",
+                               "dp.observation_window", budget_col])
+        if df.empty:
+            ax.text(0.5, 0.5, f"Setting {setting}\n(no data yet)",
+                    ha="center", va="center", transform=ax.transAxes,
+                    fontsize=11, color="gray")
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_title(f"Setting {setting}")
+            continue
+
+        # Plot one line per (allocation, T_max) — group by both;
+        # vary linewidth across T_max so the cross-product remains
+        # legible without producing too many separate legend entries.
+        t_values = sorted(df["dp.observation_window"].unique())
+        for alloc in ["uniform", "topology_aware"]:
+            for j, t_max in enumerate(t_values):
+                sub = df[(df["dp.allocation"] == alloc) &
+                         (df["dp.observation_window"] == t_max)]
+                if sub.empty:
+                    continue
+                agg = (sub.groupby(budget_col)["K_star"]
+                          .mean().reset_index().sort_values(budget_col))
+                ax.plot(
+                    agg[budget_col], agg["K_star"],
+                    marker=marker_map[alloc],
+                    color=color_map[alloc],
+                    linewidth=1.3 + 0.4 * j,
+                    markersize=4 + j,
+                    alpha=0.85,
+                    label=f"{alloc} (T={int(t_max)})" if setting == settings[0] else None,
+                )
+
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xlabel(r"Utility budget $U$")
+        if setting == settings[0]:
+            ax.set_ylabel(r"Privacy bound $K^\star$ (nats)")
+        ax.set_title(f"Setting {setting}")
+
+        # Nice log-tick formatting
+        u_values = sorted(df[budget_col].unique())
+        if u_values:
+            ax.xaxis.set_major_locator(FixedLocator(u_values))
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _pos: f"{x:g}"))
+            ax.xaxis.set_minor_locator(NullLocator())
+        k_lo, k_hi = float(df["K_star"].min()), float(df["K_star"].max())
+        nice = [1, 2, 3, 5, 7, 10, 15, 20, 30, 50, 70]
+        yticks = [t for t in nice if k_lo / 1.2 <= t <= k_hi * 1.2]
+        if len(yticks) >= 2:
+            ax.yaxis.set_major_locator(FixedLocator(yticks))
+            ax.yaxis.set_major_formatter(ScalarFormatter())
+            ax.yaxis.set_minor_locator(NullLocator())
+
+    axes[0].legend(loc="upper right", fontsize=7, framealpha=0.85)
+    fig.suptitle("Privacy-bound dominance across settings", y=1.02)
+    fig.tight_layout()
+    _save(fig, output_path)
+    plt.close(fig)
+
+
+def plot_attack_channel_ablation_cross_setting(
+    setting_attack_dfs: dict,
+    output_path: str | Path,
+    metric_col: str = "attack_lift",
+    channel_col: str = "channel",
+) -> None:
+    """Per-channel attack-lift bar chart across settings.
+
+    Args:
+        setting_attack_dfs: mapping setting label → attack-eval DataFrame
+            (as written by ``cmd_attack_eval`` to ``analysis/attack_setting_*.parquet``).
+            Settings without an attack-eval parquet are skipped.
+
+    Groups by (setting, channel); shows mean attack lift with 95% CI
+    bars across target runs. The figure is the central cross-setting
+    visualisation that demonstrates: (i) DP-SGD bounds A_1 across all
+    settings, (ii) the prior-coupling channels are positive on
+    Setting~C (matched shadow/target prior) and not realised on
+    Settings~B and~A (mismatched prior).
+    """
+    _set_style()
+    import matplotlib.pyplot as plt
+
+    settings = [s for s in ("A", "B", "C") if s in setting_attack_dfs]
+    if not settings:
+        raise ValueError("No attack-eval data provided")
+
+    channels = CHANNEL_ORDER
+    width = 0.18
+    fig, ax = plt.subplots(figsize=(7.5, 3.8))
+
+    for i, ch in enumerate(channels):
+        means, cis = [], []
+        for s in settings:
+            df = setting_attack_dfs[s]
+            sub = df[df[channel_col] == ch]
+            if sub.empty:
+                means.append(0.0)
+                cis.append(0.0)
+            else:
+                m = float(sub[metric_col].mean())
+                std = float(sub[metric_col].std())
+                ci = 1.96 * std / np.sqrt(max(len(sub), 1))
+                means.append(m)
+                cis.append(ci)
+        x_pos = np.arange(len(settings)) + (i - (len(channels) - 1) / 2) * width
+        ax.bar(
+            x_pos, means, width, yerr=cis,
+            label=ch, capsize=2,
+            color=CHANNEL_COLOR.get(ch, "gray"),
+            edgecolor="black", linewidth=0.4,
+        )
+
+    ax.set_xticks(np.arange(len(settings)))
+    ax.set_xticklabels([f"Setting {s}" for s in settings])
+    ax.set_ylabel(r"Attack lift = $L_{\mathrm{cal}}(\bar p) - L_{\mathrm{cal}}(\hat p)$")
+    ax.set_title("\\TADI channel ablation across settings")
+    ax.axhline(0, color="black", linewidth=0.6, linestyle="--", alpha=0.6)
+    ax.legend(loc="upper left", fontsize=8, framealpha=0.85, ncol=4)
+    fig.tight_layout()
+    _save(fig, output_path)
+    plt.close(fig)

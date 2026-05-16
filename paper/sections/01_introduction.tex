@@ -90,9 +90,25 @@ practical proxies covering the canonical deployment regimes.
   \emph{regime-of-applicability} characterisation
   (\S\ref{sec:defense}).
 \item Empirical evaluation on Fed-ISIC2019, Fed-Heart-Disease, and
-  synthetic CIFAR-10 with parametric coupling, validating that the
-  predicted privacy-bound gap matches measured attack lift across
-  topologies (\S\ref{sec:experiments}).
+  synthetic CIFAR-10 with parametric coupling. The defense is
+  validated end-to-end: topology-aware allocation strictly dominates
+  uniform DP-SGD on the privacy bound at every $(U, \Tmax)$ cell
+  tested on every setting; the defense costs no measurable utility
+  (paired $t$-tests over seeds give $p > 0.48$ at every cell); and
+  DP-SGD bounds the parameter channel of the \TADI attack
+  ($\Adv_1$ attack lift negative across all configurations on all
+  settings). The empirical realisability of Theorem~\ref{thm:per-client}'s
+  prior-coupling term is characterised across deployment regimes:
+  when the adversary's shadow training prior matches the target
+  deployment's prior (Setting~C, $\eta$-coupled synthetic), the
+  supremum is empirically attained --- attack lift positive,
+  monotone in the coupling parameter, calibration-null at
+  $\eta = 0$. Under the public-proxy threat model on cross-silo
+  benchmarks (Settings~B and~A), where the adversary has only
+  synthetic re-partitioning of public data, the supremum is not
+  empirically realised --- the bound is conservative in a
+  deployment-favourable direction (\S\ref{sec:experiments},
+  \S\ref{sec:discussion}).
 \end{enumerate}
 
 \paragraph{Out of scope.}

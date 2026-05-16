@@ -21,11 +21,18 @@ decentralised, and cross-silo deployments respectively. We evaluate
 \Fulcrum on three federated benchmarks --- Fed-ISIC2019 dermoscopy,
 Fed-Heart-Disease tabular, and a synthetic \mbox{CIFAR-10} setup with
 parametric topology--data coupling --- spanning star, hierarchical, line,
-and ring topologies. \PLACE{Headline results
-pending: per-setting Pareto frontier, $\eta$-sweep gap pattern,
-empirical \TADI attack lift across the four channel ablations, and
-ablations on regressor architecture, feature set, and shadow data
-quantity.} The framework provides a deployable defense that is consistent
-with its threat model, comes with a provable bound, and admits a
-measurable privacy--utility trade-off curve.
+and ring topologies. The defense empirically dominates uniform
+\mbox{DP-SGD} on the privacy bound at every utility budget tested,
+costs no measurable test accuracy (paired $t$-tests give $p > 0.48$
+on every setting), and bounds the parameter channel of the \TADI
+attack across all configurations. The
+prior-coupling term's empirical realisability is regime-dependent:
+when the adversary's shadow training prior matches the target's
+deployment prior, the bound is empirically attained; under the
+public-proxy threat model with cross-silo benchmarks, the bound is
+conservative in a deployment-favourable direction. The framework
+provides a deployable defense consistent with its threat model,
+with a provable bound, a closed-form noise allocation, and an
+empirical characterisation of when its bound is tight versus
+conservative.
 \end{abstract}
