@@ -106,6 +106,21 @@ Cross-silo healthcare and industry consortia, the deployments we
 target, naturally satisfy (IA2) because each site enrols disjoint
 populations.
 
+\paragraph{Composition with secure aggregation.}
+Secure aggregation~\cite{bonawitz2017secagg} hides individual client
+updates behind a sum, leaving only neighbourhood-aggregated updates
+visible. Under secure aggregation, \TADI's parameter channel
+($\Adv_1$) operates on aggregated rather than per-client updates, and
+its information content collapses correspondingly; the structural and
+organisational channels ($\Adv_2^{\text{topo}}, \Adv_2^{\text{org}}$)
+are unaffected because they depend on $(\TOPO,\omega)$ and not on
+$\Theta$. \Fulcrum's allocation composes naturally with secure
+aggregation, since per-client noise calibration is performed before
+aggregation; the two defense layers address different threat axes.
+A full empirical evaluation under secure aggregation, including
+implementation of the neighbourhood-aggregated variant of \TADI,
+is left for future work.
+
 \paragraph{Cross-pollination with active threats.}
 Our threat model is passive; active manipulation of the training
 protocol lies outside its scope. The topology-aware allocation is

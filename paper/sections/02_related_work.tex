@@ -23,8 +23,9 @@ constraint of this family is sensitivity to per-batch noise: in the
 DP-SGD regime that we study, gradient inversion degrades sharply because
 clipping plus Gaussian perturbation removes the high-frequency signal
 needed for pixel-level reconstruction. We treat gradient inversion as a
-\emph{complementary} threat (most relevant when DP is weak) and include
-it as an empirical baseline in our evaluation.
+\emph{complementary} threat that is most relevant when DP is weak;
+under the DP-SGD regime we study, it is outside the scope of our
+empirical evaluation.
 
 \emph{Inference attacks} target distributional or membership properties
 rather than per-sample reconstruction. Shokri et~al.\ established the
@@ -64,10 +65,12 @@ A second line of defense is cryptographic. Secure
 aggregation~\cite{bonawitz2017secagg} hides individual client updates
 behind a sum, leaving only the aggregate visible. Combined with DP,
 secure aggregation reduces the adversary's effective observation to
-\emph{neighbourhood-aggregated} updates rather than per-client ones; this
-weakens \TADI's parameter channel without addressing the structural and
-organisational channels. We evaluate this regime as an extension
-experiment (\S\ref{sec:experiments-sa}).
+\emph{neighbourhood-aggregated} updates rather than per-client ones,
+weakening \TADI's parameter channel without addressing the structural
+and organisational channels. \Fulcrum's allocation is compatible with
+secure aggregation as a complementary defense; we discuss the
+implications and leave a full empirical evaluation under secure
+aggregation to future work (\S\ref{sec:discussion}).
 
 What none of these mechanisms address is \emph{which} clients should
 receive how much noise when the topology breaks symmetry. Existing
@@ -113,8 +116,9 @@ as a first-class component of both the threat model and the defense.
 We are the first, to our knowledge, to (i)~define a per-client
 distributional inference attack with explicit channel ablations
 isolating parameter, structural, and organisational information;
-(ii)~prove a tight MI bound that decomposes into a controllable
-mechanism term plus an uncontrollable prior-coupling floor; and
+(ii)~prove an additive per-client MI bound that separates a
+controllable mechanism term from an uncontrollable prior-coupling
+floor; and
 (iii)~derive a closed-form noise-allocation policy that strictly
 improves on uniform DP-SGD whenever the topology breaks leverage
 symmetry, with three principled proxies for instantiating leverage

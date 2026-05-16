@@ -86,8 +86,10 @@ Per (target run, channel) pair we compute:
 \item[Top-$k$ recovery] Fraction of true top-$k$ clients (by
   $p_i$) in the predicted top-$k$. Bounded, interpretable.
 \item[AUROC] for the binary task
-  $y_i = \mathbb{1}[p_i > \tau]$. Reported only when $n \geq 20$
-  (Setting~C).
+  $y_i = \mathbb{1}[p_i > \tau]$. Reported across all settings as a
+  ranking-quality indicator; statistical power for AUROC requires
+  $n \geq 20$, so quantitative significance applies primarily to
+  Setting~C, with Setting~B's AUROC ($n=4$) treated as directional.
 \end{description}
 
 Statistical significance is assessed via paired bootstrap on calibration

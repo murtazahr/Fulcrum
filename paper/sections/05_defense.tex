@@ -206,9 +206,10 @@ proven.
 
 The three proxies are not mutually exclusive: a deployment can blend
 them by passing per-client weight vectors that combine size, degree,
-and group size, normalised to mean 1. We treat the choice of proxy as a
-deployment design parameter and report sensitivity to it as part of
-\S\ref{sec:experiments-ablations}.
+and group size, normalised to mean 1. We treat the choice of proxy as
+a deployment design parameter; each empirical setting in
+\S\ref{sec:experiments} uses the proxy that matches its dominant
+asymmetry, and the cross-proxy comparison is left for follow-up work.
 
 \subsection{Utility Cost}
 \label{sec:defense-utility}
