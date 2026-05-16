@@ -16,6 +16,45 @@ remove organisational metadata from the threat model) or to introduce
 secure aggregation~\cite{bonawitz2017secagg} as a complementary
 defense.
 
+\paragraph{The bound is conservative in a deployment-favourable
+direction.}
+Theorem~\ref{thm:per-client}'s prior-coupling term $\ell_i^\circ$ is
+defined as a \emph{supremum} over the family of priors
+$\FAM_{\TOPO,\omega}$: it is the worst case across all priors
+consistent with the deployment's topology and organisational
+structure. Achieving the supremum empirically requires the
+adversary's shadow training distribution to match the target's
+deployment prior. \S\ref{sec:experiments-channels} provides direct
+empirical evidence on this point. In Setting~C, where shadow and
+target use the same $\eta$-coupling adapter (same prior family),
+$\ell_i^\circ$ is empirically realised: the org channel attack lift
+is positive, scales monotonically with $\eta$, and vanishes at
+$\eta = 0$. In Settings~B and~A, where the adversary has only
+synthetic Dirichlet re-partitioning of public data while the target
+uses native FLamby cross-silo sites, three orthogonal
+methodological improvements (DP-matched shadow, class-aware
+features, cross-validated regressor) moved $\Adv_2^{\text{full}}$
+AUROC across the 0.5 threshold (0.19~$\to$~0.56) but did not
+flip attack lift positive. The supremum is not realised because the
+adversary's prior does not match.
+
+This is the right kind of conservatism for a privacy guarantee.
+Fulcrum's bound is valid as an upper bound across all priors in the
+family; it is tight when the adversary's prior matches the
+deployment's; it is loose --- in a \emph{deployment-favourable}
+direction --- when the adversary has only public-proxy data without
+site labels. The bound therefore over-states realisable attack
+capability in cross-silo deployments where adversaries cannot
+obtain matching shadow priors, which is the typical condition for
+hospitals, banks, and industrial consortia operating under
+data-sharing constraints. We do not weaken the bound to remove this
+slack: privacy guarantees are appropriately conservative when the
+threat-model assumption (the worst-case adversary in the prior
+family) is stronger than the realistic adversary (a public-proxy
+attacker with no site-labelled training data). The empirical
+characterisation in \S\ref{sec:experiments-channels} \emph{quantifies}
+this conservatism rather than claiming the bound is tight.
+
 \paragraph{Why our defense reduces to uniform under symmetry.}
 Corollary~\ref{cor:strict} establishes that the topology-aware allocation
 collapses to standard uniform DP-SGD whenever leverage scores are

@@ -132,20 +132,42 @@ yields under DP-SGD across the four channel ablations, on FL
 benchmarks, with explicit attribution of marginal information value to
 parameter, structural, and organisational components. To our knowledge
 no prior work isolates these channels per client. The attack also
-serves as the empirical comparator against which we validate the
-predictive power of the privacy bound proved in \S\ref{sec:defense}.
+serves as the empirical comparator against which we evaluate the
+realisability of the privacy bound proved in \S\ref{sec:defense}.
 
 \paragraph{What the channel decomposition is for.}
-The Stage~3 hypothesis was that the combined adversary
-$\Adv_2^{\text{full}}$ strictly dominates each single-channel ablation.
-The empirical evidence in \S\ref{sec:experiments-channels} qualifies
-that hypothesis: when one channel dominates the recoverable signal,
-the others contribute noise that the regressor cannot perfectly
-deprioritise on a finite shadow corpus, and the combined attack can
-underperform the dominant single channel on some metrics (attack
-lift, top-$k$ recovery) while marginally improving on others (AUROC).
-We therefore use the four channels as a \emph{decomposition} of the
-adversary's available information, not as a tournament of strictly
-ordered attackers. The dominant channel per deployment characterises
-\emph{which} information surface the attacker exploits, and is itself
-the empirical claim of the section.
+We use the four channels as a \emph{decomposition} of the adversary's
+available information, not as a tournament of strictly ordered
+attackers. The empirical questions we ask of the decomposition are:
+(i) does DP-SGD effectively bound the parameter channel under the
+per-client allocation, separately from any prior coupling?
+(ii) which non-parameter channel (structural position or organisational
+label) carries the prior-coupling signal in a given deployment?
+(iii) is the prior-coupling channel's signal realisable under the
+public-proxy threat model of \S\ref{sec:adv-model}, or does the
+synthetic-shadow vs.\ native-target prior gap make
+$\ell_i^\circ$'s supremum out of reach?
+
+\paragraph{What we do not claim.}
+The original Stage~3 hypothesis predicted that the combined adversary
+$\Adv_2^{\text{full}}$ strictly dominates each single-channel
+ablation. The empirical evidence in \S\ref{sec:experiments-channels}
+qualifies that hypothesis on both settings examined:
+
+\begin{itemize}[topsep=2pt,itemsep=2pt,leftmargin=*]
+\item On Setting~C (matched shadow/target prior), the org channel
+dominates the combined channel on attack lift and top-$k$ recovery
+while the combined channel marginally edges it on AUROC --- the
+regressor's combined feature set picks up noise the additional
+channels add without enough signal to overcome it on a finite
+shadow corpus.
+\item On Setting~B (mismatched shadow/target prior), the combined
+channel reaches the highest AUROC of the four ($0.56$) but no
+channel achieves positive attack lift; the prior gap is empirically
+binding.
+\end{itemize}
+
+The four channels are therefore best understood as a decomposition
+of information sources, with the realised-channel-dominance pattern
+depending on the deployment regime and the adversary's prior
+knowledge.
