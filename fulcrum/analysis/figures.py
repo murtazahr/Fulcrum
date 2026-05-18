@@ -85,7 +85,7 @@ def plot_pareto_setting(
     """
     _set_style()
     import matplotlib.pyplot as plt
-    from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator, ScalarFormatter
+    from matplotlib.ticker import FixedLocator, FuncFormatter, LogLocator, NullLocator
 
     needed = ["K_star", "K_uniform", "dp.allocation",
               "dp.observation_window", budget_col]
@@ -151,14 +151,21 @@ def plot_pareto_setting(
 
         # y-axis: nice numerals on the log scale
         if means:
-            k_range = pd.concat([m["K_mean"] for m in means.values()])
-            k_lo, k_hi = k_range.min(), k_range.max()
-            nice = [1, 2, 3, 5, 7, 10, 15, 20, 30, 50, 70]
-            yticks = [t for t in nice if k_lo / 1.2 <= t <= k_hi * 1.2]
-            if len(yticks) >= 2:
-                ax.yaxis.set_major_locator(FixedLocator(yticks))
-                ax.yaxis.set_major_formatter(ScalarFormatter())
-                ax.yaxis.set_minor_locator(NullLocator())
+            # Adaptive log-scale ticks. The previous hardcoded "nice
+            # numbers" list (1, 2, 3, 5, 7, 10, ...) had no values
+            # below 1 and silently fell through to the matplotlib
+            # default when <2 ticks landed in range — producing
+            # empty or single-tick y-axes on Setting~A where K* can
+            # dip below 1. Use a LogLocator with sub-decade ticks at
+            # (1, 2, 3, 5, 7) which gives dense, clean labels across
+            # any decade range from 10^-2 upward, paired with a
+            # FuncFormatter that emits compact decimals ("0.5", "5",
+            # "50") rather than scientific notation.
+            ax.yaxis.set_major_locator(
+                LogLocator(base=10.0, subs=(1.0, 2.0, 3.0, 5.0, 7.0), numticks=12)
+            )
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _pos: f"{y:g}"))
+            ax.yaxis.set_minor_locator(NullLocator())
 
         # x-axis: ticks at every sampled U value
         u_values = sorted(sub[budget_col].unique())
@@ -732,7 +739,7 @@ def plot_pareto_cross_setting(
     """
     _set_style()
     import matplotlib.pyplot as plt
-    from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator, ScalarFormatter
+    from matplotlib.ticker import FixedLocator, FuncFormatter, LogLocator, NullLocator
 
     settings = ["A", "B", "C"]
     settings = [s for s in settings if s in setting_dfs]
@@ -795,13 +802,15 @@ def plot_pareto_cross_setting(
             ax.xaxis.set_major_locator(FixedLocator(u_values))
             ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _pos: f"{x:g}"))
             ax.xaxis.set_minor_locator(NullLocator())
-        k_lo, k_hi = float(df["K_star"].min()), float(df["K_star"].max())
-        nice = [1, 2, 3, 5, 7, 10, 15, 20, 30, 50, 70]
-        yticks = [t for t in nice if k_lo / 1.2 <= t <= k_hi * 1.2]
-        if len(yticks) >= 2:
-            ax.yaxis.set_major_locator(FixedLocator(yticks))
-            ax.yaxis.set_major_formatter(ScalarFormatter())
-            ax.yaxis.set_minor_locator(NullLocator())
+        # Same adaptive log-scale ticks as plot_pareto_setting: dense
+        # sub-decade ticks (1, 2, 3, 5, 7) with compact decimal labels
+        # so the y-axis populates correctly for any per-setting K*
+        # range, including Setting A where K* dips below 1.
+        ax.yaxis.set_major_locator(
+            LogLocator(base=10.0, subs=(1.0, 2.0, 3.0, 5.0, 7.0), numticks=12)
+        )
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _pos: f"{y:g}"))
+        ax.yaxis.set_minor_locator(NullLocator())
 
     axes[0].legend(loc="upper right", fontsize=7, framealpha=0.85)
     fig.suptitle("Privacy-bound dominance across settings", y=1.02)
