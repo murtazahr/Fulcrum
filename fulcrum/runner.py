@@ -148,6 +148,11 @@ def _build_topology(tcfg, num_nodes: int):
     if type_ == "star":
         from fulcrum.topology.star import make_star
         return make_star(n, hub=int(params.get("hub", 0)))
+    if type_ in ("barabasi_albert", "barabasi", "ba"):
+        from fulcrum.topology.barabasi_albert import make_barabasi_albert
+        m = int(params.get("m", 2))
+        seed = int(params.get("seed", 12345))
+        return make_barabasi_albert(n, m=m, seed=seed)
 
     # Murmura's built-in topologies (ring, fully/complete, erdos, k-regular).
     # Pass only topology-relevant params to avoid kwarg errors.

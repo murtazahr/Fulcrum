@@ -97,7 +97,8 @@ class DataConfig:
 @dataclass
 class TopologyConfig:
     type: Literal[
-        "hierarchical", "line", "ring", "complete", "erdos", "k-regular", "fully", "star"
+        "hierarchical", "line", "ring", "complete", "erdos", "k-regular", "fully", "star",
+        "barabasi_albert", "barabasi", "ba",
     ] = "hierarchical"
     num_regions: int | None = None
     num_nodes: int | None = None
