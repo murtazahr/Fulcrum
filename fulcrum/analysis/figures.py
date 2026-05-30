@@ -498,6 +498,247 @@ def plot_eta_sweep(
 
 
 # ---------------------------------------------------------------------------
+# η-sweep gap heatmap — primary Theorem 5.3 validation figure
+# ---------------------------------------------------------------------------
+
+def _topology_row_label(row: pd.Series) -> str:
+    """Compact, publication-ready label for one (topology, params) row.
+
+    Used as the y-axis tick label for the η-sweep heatmap. Keeps ASCII only
+    so the figure renders identically under any LaTeX font setup; the
+    accented topology names (Erdős–Rényi, Barabási–Albert) are abbreviated
+    to ``ER`` and ``BA`` to avoid encoding pitfalls.
+    """
+    topo = row["topology.type"]
+    if topo == "ring":
+        return "Ring"
+    if topo == "line":
+        return "Line"
+    if topo == "star":
+        return "Star"
+    if topo == "hierarchical":
+        sizes = row.get("topology.params.region_sizes")
+        if isinstance(sizes, (list, tuple, np.ndarray)) and len(sizes) > 0:
+            return "Hier. [" + ",".join(str(int(s)) for s in sizes) + "]"
+        return "Hierarchical"
+    if topo == "erdos":
+        p = row.get("topology.params.p")
+        return f"ER p={p:g}" if pd.notna(p) else "ER"
+    if topo in ("barabasi_albert", "barabasi", "ba"):
+        m = row.get("topology.params.m")
+        return f"BA m={int(m)}" if pd.notna(m) else "BA"
+    return str(topo)
+
+
+def _topology_group_key(label: str) -> tuple[int, str]:
+    """Stable sort key grouping topologies into families for fall-back ordering.
+
+    Families: deterministic-symmetric (ring), deterministic-asymmetric
+    (line, hierarchical, star), random homogeneous (ER), scale-free (BA).
+    Inside a family the secondary key is the label itself, so ER p=0.3
+    sorts before ER p=0.7.
+    """
+    if label.startswith("Ring"):
+        return (0, label)
+    if label.startswith("Line"):
+        return (1, label)
+    if label.startswith("Hier"):
+        return (2, label)
+    if label.startswith("ER"):
+        return (3, label)
+    if label.startswith("BA"):
+        return (4, label)
+    if label.startswith("Star"):
+        return (5, label)
+    return (9, label)
+
+
+def plot_eta_gap_heatmap(
+    df: pd.DataFrame,
+    output_path: str | Path,
+    eta_col: str = "data.eta",
+    allocation_col: str = "dp.allocation",
+    topology_col: str = "topology.type",
+    annotate: bool = True,
+    sort_by: str = "max_gap",
+    asymptote_anU: float | None = None,
+) -> None:
+    """Heatmap of the topology-aware vs uniform privacy-bound gap.
+
+    Replaces the multi-panel line plot in :func:`plot_eta_sweep` for the
+    primary Theorem~5.3 validation figure. Rows are (topology, params)
+    configurations and columns are η values. Cell colour is
+    $K_{\\mathrm{uniform}} - K^\\star$ (nats), the headline quantity of
+    Corollary~5.4 (strict improvement over uniform allocation).
+
+    Three structural properties of the bound are readable directly from
+    the heatmap:
+
+    - **IID-null calibration.** At η = 0, every cell should be exactly
+      zero (uniform partitioning + degenerate leverage gives no gap).
+    - **Symmetric-topology degeneracy.** Rows for uniform-leverage
+      topologies (ring, balanced hierarchies) should be a flat zero band
+      across all η.
+    - **Asymmetric saturation.** The maximally asymmetric row (star, or
+      a heavy-tailed BA) approaches the analytic asymptote
+      $a n / U$ as η grows; this is the bound's saturation value.
+
+    Args:
+        df: combined runs DataFrame for Setting~C, already restricted to
+            the η-sweep grid (typically $U = 0.5$, $T_{\\max} = 100$).
+        output_path: figure path (without extension).
+        eta_col, allocation_col, topology_col: column names.
+        annotate: print the numeric gap inside each cell.
+        sort_by: either ``"max_gap"`` (data-driven; degenerate rows at
+            top, asymmetric at bottom) or ``"family"`` (deterministic
+            order by topology family).
+        asymptote_anU: if provided, marks the analytic asymptote
+            $a n / U$ on the colourbar with a thin black tick.
+    """
+    _set_style()
+    import matplotlib.pyplot as plt
+    from matplotlib import colors as mcolors
+
+    needed = {eta_col, allocation_col, topology_col, "K_star", "K_uniform"}
+    missing = needed - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing columns for eta heatmap: {sorted(missing)}")
+    df = df.dropna(subset=[eta_col, allocation_col, topology_col, "K_star", "K_uniform"])
+
+    # Build a (topology-config, label) key per row. Hierarchical and ER/BA
+    # rows carry params that distinguish multiple configurations of the same
+    # topology family; we tuple-key on the relevant params column so they
+    # become separate heatmap rows.
+    def _config_key(row: pd.Series) -> tuple:
+        t = row[topology_col]
+        if t == "hierarchical":
+            sizes = row.get("topology.params.region_sizes")
+            if isinstance(sizes, (list, tuple, np.ndarray)):
+                return ("hierarchical", tuple(int(s) for s in sizes))
+            return ("hierarchical", None)
+        if t == "erdos":
+            return ("erdos", row.get("topology.params.p"))
+        if t in ("barabasi_albert", "barabasi", "ba"):
+            return ("ba", row.get("topology.params.m"))
+        return (t, None)
+
+    df = df.copy()
+    df["_config_key"] = df.apply(_config_key, axis=1)
+    df["_row_label"] = df.apply(_topology_row_label, axis=1)
+
+    # Aggregate K_star and K_uniform per (config, η, allocation). K_star and
+    # K_uniform are analytic so the seed-mean is exact; using mean is just
+    # protection against any per-seed drift that may have crept in.
+    agg = (
+        df.groupby(["_config_key", "_row_label", eta_col, allocation_col])
+          [["K_star", "K_uniform"]].mean().reset_index()
+    )
+
+    # Pivot to (row, η) with separate K_star_TA and K_uniform columns.
+    ta = agg[agg[allocation_col] == "topology_aware"].set_index(
+        ["_config_key", "_row_label", eta_col]
+    )["K_star"]
+    un = agg[agg[allocation_col] == "uniform"].set_index(
+        ["_config_key", "_row_label", eta_col]
+    )["K_uniform"]
+    # Fall back to K_uniform from the TA row if no uniform-allocation row
+    # exists for that cell (the analytic K_uniform is identical regardless
+    # of which allocation we read it from).
+    if un.empty:
+        un = agg[agg[allocation_col] == "topology_aware"].set_index(
+            ["_config_key", "_row_label", eta_col]
+        )["K_uniform"]
+    gap = (un - ta).reset_index(name="gap")
+
+    # Pivot to wide form: rows = config, cols = η, values = gap.
+    pivot = gap.pivot_table(
+        index=["_config_key", "_row_label"],
+        columns=eta_col,
+        values="gap",
+        aggfunc="mean",
+    )
+    # Sort columns ascending in η.
+    pivot = pivot.reindex(sorted(pivot.columns), axis=1)
+
+    # Row ordering.
+    if sort_by == "max_gap":
+        order = pivot.max(axis=1).sort_values().index
+    else:
+        order = sorted(pivot.index, key=lambda idx: _topology_group_key(idx[1]))
+    pivot = pivot.reindex(order)
+
+    row_labels = [lbl for _, lbl in pivot.index]
+    eta_values = list(pivot.columns)
+    data = pivot.to_numpy(dtype=float)
+
+    fig_h = max(2.5, 0.42 * len(row_labels) + 1.4)
+    fig, ax = plt.subplots(figsize=(6.8, fig_h))
+
+    # Linear color scale anchored at 0; vmax slightly above asymptote so
+    # the saturation row doesn't peg to pure black/white.
+    vmax_data = float(np.nanmax(data)) if data.size else 1.0
+    vmax = max(vmax_data, asymptote_anU or 0.0) * 1.05 if vmax_data > 0 else 1.0
+    cmap = plt.get_cmap("rocket_r") if "rocket_r" in plt.colormaps() else plt.get_cmap("magma_r")
+    norm = mcolors.Normalize(vmin=0.0, vmax=vmax)
+
+    im = ax.imshow(data, aspect="auto", cmap=cmap, norm=norm)
+
+    ax.set_xticks(np.arange(len(eta_values)))
+    ax.set_xticklabels([f"{e:g}" for e in eta_values])
+    ax.set_yticks(np.arange(len(row_labels)))
+    ax.set_yticklabels(row_labels)
+    ax.set_xlabel(r"Topology--data coupling $\eta$")
+    ax.set_ylabel("Topology configuration")
+    ax.set_title(
+        r"Privacy-bound gap $K_{\mathrm{uniform}} - K^\star$ (nats)"
+        " across topologies"
+    )
+
+    # Disable the default grid for the heatmap; draw a faint white grid
+    # along cell boundaries instead so the cells read as distinct tiles.
+    ax.grid(False)
+    ax.set_xticks(np.arange(len(eta_values) + 1) - 0.5, minor=True)
+    ax.set_yticks(np.arange(len(row_labels) + 1) - 0.5, minor=True)
+    ax.tick_params(which="minor", bottom=False, left=False)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.grid(which="minor", color="white", linewidth=1.0)
+
+    # Cell annotations.
+    if annotate:
+        # Use white text on dark cells, black on light, threshold at half vmax.
+        threshold = 0.55 * vmax
+        for i, _ in enumerate(row_labels):
+            for j, _ in enumerate(eta_values):
+                v = data[i, j]
+                if np.isnan(v):
+                    txt = "—"
+                    color = "gray"
+                else:
+                    txt = f"{v:.3f}" if v < 1.0 else f"{v:.2f}"
+                    color = "white" if v >= threshold else "#1a1a1a"
+                ax.text(j, i, txt, ha="center", va="center",
+                        fontsize=7.5, color=color)
+
+    # Colorbar with optional asymptote tick.
+    cbar = fig.colorbar(im, ax=ax, shrink=0.85, pad=0.02)
+    cbar.set_label(r"$K_{\mathrm{uniform}} - K^\star$ (nats)")
+    if asymptote_anU is not None and 0 < asymptote_anU < vmax:
+        cbar.ax.axhline(asymptote_anU, color="black", linewidth=0.8)
+        cbar.ax.text(
+            1.7, asymptote_anU,
+            r"$an/U$",
+            va="center", ha="left",
+            transform=cbar.ax.get_yaxis_transform(),
+            fontsize=8,
+        )
+
+    fig.tight_layout()
+    _save(fig, output_path)
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # Channel-ablation bar chart
 # ---------------------------------------------------------------------------
 
