@@ -1,14 +1,14 @@
 \begin{table}[t]
 \centering
-\caption{Setting B: utility consistency under topology-aware vs.\ uniform DP-SGD allocation. Each row aggregates paired runs at matched $(U, \text{seed})$. Accuracy fields in percentage points; $p$ from a paired $t$-test across all pairs.}
+\caption{Setting B: utility consistency under topology-aware vs.\ uniform DP-SGD allocation. Each row aggregates paired runs at matched $(U, \text{seed})$. Accuracy fields in percentage points. ``Paired $t$ $p$'' is the conventional $p$-value for $H_0$: zero mean difference; a high value indicates failure to reject equality. ``TOST $p$'' is the equivalence $p$-value for $H_0$: $|\mathbb{E}[\Delta]|\ge 0.5$~pp; a small value (< 0.05) establishes statistical equivalence within the margin. 95\% CI is on the paired mean difference.}
 \label{tab:util-consistency-b}
-\begin{tabular}{@{}rcccccccc@{}}
+\begin{tabular}{@{}rccccccccc@{}}
 \toprule
-$T_{\max}$ & TA acc (\%) & Uniform acc (\%) & $\max|\Delta|$ (pp) & $\overline{|\Delta|}$ (pp) & TA / tie / Unif & paired $t$ $p$ & $n$ \\
+$T_{\max}$ & TA acc (\%) & Uniform acc (\%) & $\max|\Delta|$ (pp) & $\overline{|\Delta|}$ (pp) & 95\% CI on $\Delta$ (pp) & paired $t$ $p$ & TOST $p$ & $n$ \\
 \midrule
-20 & 70.74 & 70.61 & 2.00 & 0.156 & 2/15/1 & 0.280 & 18 \\
-50 & 70.59 & 70.58 & 0.28 & 0.016 & 1/17/0 & 0.331 & 18 \\
-100 & 68.92 & 68.92 & 0.00 & 0.000 & 0/18/0 & --- & 18 \\
+25 & 69.45 & 69.43 & 0.87 & 0.178 & $[-0.274, +0.302]$ & 0.913 & 0.002 & 9 \\
+50 & 70.59 & 70.58 & 0.28 & 0.016 & $[-0.017, +0.049]$ & 0.331 & 1.0e-16 & 18 \\
+100 & 70.09 & 70.09 & 0.10 & 0.006 & $[-0.003, +0.015]$ & 0.168 & 8.7e-37 & 27 \\
 \bottomrule
 \end{tabular}
 \end{table}
