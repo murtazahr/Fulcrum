@@ -660,6 +660,16 @@ def plot_eta_gap_heatmap(
     # Sort columns ascending in η.
     pivot = pivot.reindex(sorted(pivot.columns), axis=1)
 
+    # Analytic fill for missing η=0 cells. The η-position leverage proxy
+    # collapses to uniform leverage at η=0, so topology-aware allocation
+    # degenerates to uniform DP-SGD and the gap is zero by construction.
+    # ER and BA runs at η=0 with the TA allocation fail the
+    # assert_non_uniform_leverage check for exactly this reason; the
+    # resulting NaN cells should read 0, not "—".
+    zero_eta = next((c for c in pivot.columns if float(c) == 0.0), None)
+    if zero_eta is not None:
+        pivot.loc[pivot[zero_eta].isna(), zero_eta] = 0.0
+
     # Row ordering.
     if sort_by == "max_gap":
         order = pivot.max(axis=1).sort_values().index
@@ -687,12 +697,14 @@ def plot_eta_gap_heatmap(
     ax.set_xticklabels([f"{e:g}" for e in eta_values])
     ax.set_yticks(np.arange(len(row_labels)))
     ax.set_yticklabels(row_labels)
-    ax.set_xlabel(r"Topology--data coupling $\eta$")
+    # Avoid the LaTeX-style "--" en-dash sequence (matplotlib renders it
+    # as two literal hyphens, not an en-dash, which reads as noise in the
+    # figure). Plain "vs." is the cleanest substitute.
+    ax.set_xlabel(r"Topology vs. data coupling $\eta$")
     ax.set_ylabel("Topology configuration")
-    ax.set_title(
-        r"Privacy-bound gap $K_{\mathrm{uniform}} - K^\star$ (nats)"
-        " across topologies"
-    )
+    # No figure title; the caption carries the description in the
+    # manuscript. Removing the title also eliminates the redundancy with
+    # the colorbar label below and leaves more vertical room for cells.
 
     # Disable the default grid for the heatmap; draw a faint white grid
     # along cell boundaries instead so the cells read as distinct tiles.
@@ -704,32 +716,34 @@ def plot_eta_gap_heatmap(
         spine.set_visible(False)
     ax.grid(which="minor", color="white", linewidth=1.0)
 
-    # Cell annotations.
+    # Cell annotations. All cells carry a numeric value after the η=0
+    # analytic fill above, so no missing-data placeholder is needed.
     if annotate:
-        # Use white text on dark cells, black on light, threshold at half vmax.
+        # White text on dark cells, black on light, threshold at half vmax.
         threshold = 0.55 * vmax
-        for i, _ in enumerate(row_labels):
-            for j, _ in enumerate(eta_values):
+        for i in range(len(row_labels)):
+            for j in range(len(eta_values)):
                 v = data[i, j]
                 if np.isnan(v):
-                    txt = "—"
-                    color = "gray"
-                else:
-                    txt = f"{v:.3f}" if v < 1.0 else f"{v:.2f}"
-                    color = "white" if v >= threshold else "#1a1a1a"
+                    continue
+                txt = f"{v:.3f}" if v < 1.0 else f"{v:.2f}"
+                color = "white" if v >= threshold else "#1a1a1a"
                 ax.text(j, i, txt, ha="center", va="center",
                         fontsize=7.5, color=color)
 
-    # Colorbar with optional asymptote tick.
+    # Colorbar carries the metric label (the title is removed in favour of
+    # the manuscript caption). The asymptote an/U is marked with a thin
+    # black tick on the colorbar and labelled to the right of the tick.
     cbar = fig.colorbar(im, ax=ax, shrink=0.85, pad=0.02)
     cbar.set_label(r"$K_{\mathrm{uniform}} - K^\star$ (nats)")
     if asymptote_anU is not None and 0 < asymptote_anU < vmax:
-        cbar.ax.axhline(asymptote_anU, color="black", linewidth=0.8)
-        cbar.ax.text(
-            1.7, asymptote_anU,
+        cbar.ax.axhline(asymptote_anU, color="black", linewidth=0.9)
+        cbar.ax.annotate(
             r"$an/U$",
+            xy=(1.05, asymptote_anU),
+            xycoords=cbar.ax.get_yaxis_transform(),
+            xytext=(6, 0), textcoords="offset points",
             va="center", ha="left",
-            transform=cbar.ax.get_yaxis_transform(),
             fontsize=8,
         )
 
