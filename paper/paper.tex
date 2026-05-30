@@ -334,16 +334,21 @@ multi-organisation industry consortia~\cite{melloddy2024}, and any
 deployment that uses hierarchical or decentralised aggregation for
 operational reasons.
 
-The closest work to our attack contribution is Feng
-et~al.~\cite{feng2025topology}, who demonstrated that the
-communication topology of a decentralised FL system can itself be
-inferred from model behaviour alone, establishing topology as a
-target of inference attacks. Our threat model is complementary but
-distinct: we assume the topology is known to the adversary and study
-how structural position and organisational membership function as
-information channels for inferring sensitive properties of client
-data, rather than treating the topology as a quantity to be
-reconstructed.
+A notable exception is the line of work on topology as a privacy
+amplification mechanism. Cyffers and
+Bellet~\cite{cyffers2022amplification} showed that in fully
+decentralised algorithms, the restricted local view of each
+participant provides stronger privacy guarantees than local
+differential privacy alone. This perspective treats topology as a privacy asset for
+honest participants. Our work takes the opposite view: we assume the
+adversary has global knowledge of the topology and study how
+structural position and organisational membership become information
+channels for inferring sensitive data properties. Feng
+et~al.~\cite{feng2025topology} occupy a third position, demonstrating
+that the topology itself can be inferred from model behaviour alone.
+Our threat model differs from both: we assume topology is known and
+treat it as a leakage surface rather than an amplification mechanism
+or a reconstruction target.
 
 \begin{figure}[t]
 \centering
@@ -431,9 +436,19 @@ p_i \;=\; \Delta_i(\mathcal{C}_s) \;\in\; [0,1],
 where $\mathcal{C}_s \subset \mathcal{C}$ is a designated sensitive
 class set. This captures either a single sensitive proportion in
 binary classification tasks, or a designated rare-class proportion in
-multiclass settings. Attack performance is measured by calibration
-loss $L_{\text{cal}} = \frac{1}{n}\sum_i (\hat{p}_i - p_i)^2$ and
-attack lift relative to the constant-mean baseline
+multiclass settings. In cross-silo deployments, $p_i$ encodes population-level attributes
+that organisations are legally and ethically obligated to
+protect~\cite{sheller2020medicine,dayan2021covid}: the melanoma rate
+per hospital site, the cardiovascular disease prevalence per clinical
+centre, or the failure rate of a proprietary assay. An adversary who
+recovers these concentrations across sites can exploit them for
+adversarial site selection, competitive intelligence, or regulatory
+disclosure inference~\cite{hu2021source}, harms that are concretely
+realised in the deployment contexts federated learning was designed
+to serve. Attack performance
+is measured by calibration loss
+$L_{\text{cal}} = \frac{1}{n}\sum_i (\hat{p}_i - p_i)^2$ and attack
+lift relative to the constant-mean baseline
 $\bar{p} = \frac{1}{n}\sum_j p_j$, which measures whether the
 adversary extracts information beyond the federation aggregate.
 
@@ -553,21 +568,6 @@ to a channel ablation.}
 \label{fig:tadi-pipeline}
 \end{figure*}
 
-Given these two input classes, the regressor is trained offline via
-the shadow-model framework~\cite{shokri2017membership}. The adversary
-simulates federations on a public proxy dataset where the ground-truth
-$p_i$ is known, harvests $(\Theta_i, x_i, p_i)$ tuples across many
-simulated clients, and fits $f_\phi$ to minimise mean squared
-calibration loss on the harvested set. At test time, $f_\phi$ is
-applied to the target federation. The test-time adversary is
-therefore a deterministic function of $(\mathcal{K}, \mathcal{O})$,
-consistent with the threat model of Section~\ref{sec:adv-model}. To
-assess robustness to the choice of model class, the regressor is
-instantiated as gradient-boosted trees (\textsc{LightGBM}, the
-default), a small multilayer perceptron, or ridge regression. All
-produce predictions clipped to $[0,1]$. Algorithm~\ref{alg:tadi}
-gives the formal specification.
-
 \begin{algorithm}[t]
 \caption{\TADI, full-channel variant ($\mathcal{A}_2^{\text{full}}$)}
 \label{alg:tadi}
@@ -597,6 +597,21 @@ gives the formal specification.
 \RETURN $\{\hat{p}_i\}_{i=1}^{n}$
 \end{algorithmic}
 \end{algorithm}
+
+Given these two input classes, the regressor is trained offline via
+the shadow-model framework~\cite{shokri2017membership}. The adversary
+simulates federations on a public proxy dataset where the ground-truth
+$p_i$ is known, harvests $(\Theta_i, x_i, p_i)$ tuples across many
+simulated clients, and fits $f_\phi$ to minimise mean squared
+calibration loss on the harvested set. At test time, $f_\phi$ is
+applied to the target federation. The test-time adversary is
+therefore a deterministic function of $(\mathcal{K}, \mathcal{O})$,
+consistent with the threat model of Section~\ref{sec:adv-model}. To
+assess robustness to the choice of model class, the regressor is
+instantiated as gradient-boosted trees (\textsc{LightGBM}, the
+default), a small multilayer perceptron, or ridge regression. All
+produce predictions clipped to $[0,1]$. Algorithm~\ref{alg:tadi}
+gives the formal specification.
 
 \begin{table*}[t]
 \centering
@@ -985,60 +1000,61 @@ dominant source of asymmetry.
 \section{Performance Evaluation}
 \label{sec:experiments}
 
-We evaluate \Fulcrum on three federated benchmarks chosen to span the
-deployment regimes of \S\ref{sec:defense-regimes}. Setting~A
-(Fed-ISIC2019) is the realism anchor, with native hospital-site
-partitioning and heterogeneous site sizes. Setting~B
-(Fed-Heart-Disease) is a small-$n$ cross-silo binary task on a ring
-topology; with four clients of equal degree, structural leverage is
-absent and all asymmetry is dataset-driven. Setting~C is a synthetic
-CIFAR-10 setup with parametric topology--data coupling, used as the
-statistical vehicle: it provides the only configuration in which AUROC
-is a meaningful metric ($n \geq 20$) and allows clean control over the
-$\eta$ coupling parameter that drives lateral leakage. Together they
-represent the canonical pattern of cross-silo FL
-benchmarks~\cite{flamby2022}: real datasets for realism, synthetic for
-statistical power.
+We evaluate both contributions on three federated benchmarks spanning the canonical cross-silo deployment regimes. \TADI is evaluated on its ability to recover sensitive-class concentrations across the four channel ablations, and \Fulcrum is evaluated on its privacy-utility trade-off relative to uniform DP-SGD. The benchmarks are chosen to
+cover different sources of structural asymmetry:  heterogeneous site sizes in a real healthcare imaging federation, heterogeneous site sizes in a real cross-silo tabular task, and parametric topology-data coupling in a controlled synthetic setting. Together they provide both
+deployment realism and the statistical power needed to validate the theoretical claims of Section~\ref{sec:defense}.
 
 \subsection{Settings and Datasets}
 \label{sec:experiments-settings}
 
-\paragraph{Setting A: Fed-ISIC2019.}
+\noindent\textbf{Setting A: Fed-ISIC2019.}
 The Fed-ISIC2019 component of FLamby~\cite{flamby2022} comprises
-\(23{,}247\) dermoscopy images from six hospital sites with eight skin
-lesion classes (melanoma is the designated sensitive class \(\Cs\)).
-The native partitioning has highly heterogeneous site sizes
-(\([9930, 3163, 2691, 1807, 655, 351]\) training samples), motivating
-the dataset-size leverage proxy of Corollary~\ref{cor:influence}. We
-arrange the six sites in a two-level hierarchy with three regional
-aggregators (two sites each) following the architectural pattern
-of~\cite{liu2020hierarchical}, and train a small convolutional network
-with GroupNorm replacing BatchNorm for DP-SGD compatibility.
+dermoscopy images from six hospital sites with eight skin lesion
+classes, where melanoma is the designated sensitive class
+$\mathcal{C}_s$. Site sizes are highly heterogeneous across the six
+centres, with the largest site contributing nearly thirty times more
+training samples than the smallest. We arrange the six sites in a
+two-level hierarchy with three regional aggregators following the
+architectural pattern of Liu et~al.~\cite{liu2020hierarchical}, and
+train a small convolutional network with GroupNorm replacing BatchNorm
+for DP-SGD compatibility. This setting combines dataset-size asymmetry
+with hierarchical topology structure, so both the dataset-size proxy
+and the organisational position of each site within the hierarchy
+contribute to the leverage profile.\medskip
 
-\paragraph{Setting B: Fed-Heart-Disease.}
+\noindent\textbf{Setting B: Fed-Heart-Disease.}
 The Fed-Heart-Disease component of FLamby~\cite{flamby2022} provides
-\(740\) records across four clinical centres (\([199, 172, 30, 85]\)
-training samples) with 13 clinical features and a binary heart-disease
-indicator. With four clients on a ring topology, all nodes share the
-same degree and the topology cannot break leverage symmetry. The
-dataset-size leverage proxy of Corollary~\ref{cor:influence} provides
-the only principled non-degenerate choice and gives a leverage ratio
-of $6.6\times$ across the four sites.
+records across four clinical centres with 13 clinical features and a
+binary heart-disease indicator. With four clients arranged on a ring
+topology, all nodes share the same degree and the topology introduces
+no structural leverage asymmetry. Dataset-size heterogeneity is
+therefore the sole source of asymmetry, with the largest centre
+contributing more than six times the training samples of the smallest,
+making this a clean test of the dataset-size proxy in isolation from
+any topological confound.\medskip
 
-\paragraph{Setting C: synthetic CIFAR-10 with parametric coupling.}
-We partition CIFAR-10 across $n=50$ synthetic clients using the
-$\eta$-coupled construction
-\(\Delta_i = (1-\eta)\,\tilde{\Delta}_i + \eta\,\Delta^*_{\phi(i)}\),
+\noindent\textbf{Setting C: Synthetic CIFAR-10 with parametric coupling.}
+To provide controlled statistical power for validating the theoretical
+claims of Section~\ref{sec:defense}, we partition
+CIFAR-10~\cite{krizhevsky2009cifar} across $n = 50$ synthetic clients
+using the $\eta$-coupled construction
+\[
+\Delta_i = (1-\eta)\,\tilde{\Delta}_i + \eta\,\Delta^*_{\phi(i)},
+\]
 where $\tilde{\Delta}_i \sim \mathrm{Dirichlet}(\alpha)$ provides
-the standard non-IID heterogeneity component~\cite{hsu2019dirichlet},
-$\Delta^*_{\phi(i)}$ is concentrated on class
-\(\phi(i)\bmod K\), and $\eta \in [0,1]$ interpolates between IID
-($\eta=0$) and fully position-determined ($\eta=1$). The construction
-is deliberately synthetic to support the
-$\eta$-sweep of \S\ref{sec:experiments-eta}; statistical-power claims
-in this section refer to Setting~C. Topology is varied across
-\{ring, line, hierarchical, star\} as an experimental axis to expose the
-full leverage-asymmetry spectrum.
+the standard non-IID heterogeneity
+component~\cite{hsu2019dirichlet}, $\Delta^*_{\phi(i)}$ is
+concentrated on class $\phi(i) \bmod K$, and $\eta \in [0,1]$
+interpolates between the IID regime ($\eta = 0$) and fully
+position-determined class distributions ($\eta = 1$). Topology is varied across ring, line, hierarchical, star,
+Erd\H{o}s-R\'{e}nyi~\cite{erdos1959random}, and
+Barab\'{a}si-Albert~\cite{barabasi1999emergence} configurations to
+expose the full leverage-asymmetry spectrum, from uniform-degree
+graphs to scale-free networks with highly non-uniform degree
+distributions. Setting~C is
+the only configuration in which AUROC is a meaningful metric
+($n \geq 20$) and provides clean control over $\eta$ as the parameter
+driving lateral leakage.
 
 \subsection{Methodology}
 \label{sec:experiments-methodology}
@@ -2028,7 +2044,7 @@ $\xi_i^{(t)} \sim \mathcal{N}(0, \sigma_i^2 C^2 I)$ & Per-round Gaussian noise f
 $C$ & Gradient clipping threshold \\
 $\mathcal{F}_{\mathcal{G}, \omega}$ & Family of priors over client distributions \\
 $\ell_i^\circ$ & Structural leverage of client $i$ \\
-$U$ & Utility budget (sum of per-client noise variances) \\
+$U$ & Total noise variance budget \\
 $K^\star$ & Optimal worst-case MI bound \\
 $K_{\mathrm{uniform}} = an/U + \max_i \ell_i^\circ$ & Worst-case MI bound under uniform allocation \\
 $a = T_{\max} C^2 / (2|B|^2)$ & Shorthand constant for allocation \\
@@ -2060,6 +2076,11 @@ $\eta$ & Topology-data coupling parameter (Setting~C) \\
 $q = |B|/|\mathcal{D}_i|$ & Poisson subsampling rate for client $i$ \\
 $D_{-i}$ & Datasets of all clients other than client $i$ \\
 $\sigma_i^{*\,2} = a/(K^\star - \ell_i^\circ)$ & Optimal per-client noise variance \\
+$\ell_i^{\mathrm{org}} \propto |G_i|$ & Group-size leverage proxy \\
+$\ell_i^{\mathrm{deg}} \propto \deg_{\mathcal{G}}(i)$ & Degree leverage proxy \\
+$\ell_i^{\mathrm{ds}} \propto |\mathcal{D}_i|/\bar{|\mathcal{D}|}$ & Dataset-size leverage proxy \\
+$H(\Phi_{\omega_i})$ & Block entropy under SBM prior \\
+$|G_i|$ & Size of organisational group containing client $i$ \\
 \bottomrule
 \end{tabular}
 \end{table}
