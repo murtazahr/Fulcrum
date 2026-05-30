@@ -42,8 +42,18 @@ from pathlib import Path
 # Settings A and B don't have a competing sweep yet — leaving their
 # entries empty applies no filter.
 PARETO_FILTER: dict[str, dict[str, object]] = {
-    "A": {},
-    "B": {},
+    "A": {
+        # Setting A Pareto sweep grid. Match Settings B/C T_max grid so
+        # the per-setting figures share a consistent panel layout.
+        "dp.observation_window": [25, 50, 100],
+    },
+    "B": {
+        # Setting B has historical runs at T_max=20 (canonical FLamby
+        # Fed-Heart-Disease default) and a partial sweep at T_max=25
+        # (n=9 instead of n=18). Restrict to the {25, 50, 100} grid so
+        # the figure and the utility table match Settings A and C.
+        "dp.observation_window": [25, 50, 100],
+    },
     "C": {
         "topology.type": "hierarchical",
         "data.eta": 0.5,
@@ -53,6 +63,33 @@ PARETO_FILTER: dict[str, dict[str, object]] = {
         "dp.observation_window": [25, 50, 100],
     },
 }
+
+
+# ---------------------------------------------------------------------------
+# Setting C η-sweep filter
+# ---------------------------------------------------------------------------
+#
+# The η × topology sweep is run at fixed U=0.5, T_max=100 across the six
+# topology families. Without this filter the heatmap would pick up
+# hierarchical runs from the Pareto sweep (at η=0.5, U/T_max varying) and
+# blend them into the η-sweep cell, producing wrong K* values at (η=0.5).
+ETA_SWEEP_FILTER: dict[str, object] = {
+    "dp.utility_budget_U": 0.5,
+    "dp.observation_window": 100,
+}
+
+
+def _apply_eta_sweep_filter(df):
+    """Restrict df to the canonical η-sweep grid (Setting C)."""
+    keep = df.copy()
+    for col, val in ETA_SWEEP_FILTER.items():
+        if col not in keep.columns:
+            continue
+        if isinstance(val, (list, tuple, set)):
+            keep = keep[keep[col].isin(list(val))]
+        else:
+            keep = keep[keep[col] == val]
+    return keep
 
 
 def _apply_pareto_filter(df, setting):
@@ -174,10 +211,63 @@ def cmd_eta_sweep(args) -> int:
     if "data.eta" not in df.columns:
         print("No 'data.eta' column found — did you run the η-sweep?", file=sys.stderr)
         return 1
+    # Restrict to the canonical η-sweep grid so hierarchical runs from the
+    # Pareto sweep do not bleed into the (η=0.5, U=0.5, T=100) cell.
+    df = _apply_eta_sweep_filter(df)
+    if df.empty:
+        print("No runs match the η-sweep grid (U=0.5, T_max=100)", file=sys.stderr)
+        return 1
 
     out_path = Path(args.out_dir) / "eta_sweep_setting_c"
     plot_eta_sweep(df, out_path)
     print(f"η-sweep figure → {out_path}.{{png,pdf}}")
+    return 0
+
+
+def cmd_eta_heatmap(args) -> int:
+    """Primary η-sweep figure: heatmap of K_uniform - K* across topologies.
+
+    Replaces the multi-panel line plot in :func:`plot_eta_sweep` for the
+    expanded topology set (ring, line, hierarchical, star, ER × 3, BA × 2).
+    Reads the same Setting C runs but renders them in a single compact
+    heatmap with cell annotations.
+    """
+    from fulcrum.analysis.figures import plot_eta_gap_heatmap
+    from fulcrum.analysis.loader import load_runs_df
+
+    df = load_runs_df(args.db_path, args.runs_root, setting="C", status="done")
+    if df.empty:
+        print("No completed Setting C runs", file=sys.stderr)
+        return 1
+    if "data.eta" not in df.columns:
+        print("No 'data.eta' column found — did you run the η-sweep?", file=sys.stderr)
+        return 1
+    df = _apply_eta_sweep_filter(df)
+    if df.empty:
+        print("No runs match the η-sweep grid (U=0.5, T_max=100)", file=sys.stderr)
+        return 1
+
+    # Compute the analytic asymptote an/U = T_max * C^2 / (2 |B|^2) * n / U.
+    # Defaults match the Setting C canonical config (C=1, |B|=64, n=50,
+    # U=0.5, T_max=100), giving an/U ≈ 1.2207. Allow CLI override for
+    # other sweep grids.
+    if args.asymptote is not None:
+        asymptote = args.asymptote
+    else:
+        T_max = float(args.T_max) if args.T_max is not None else 100.0
+        C = float(args.C)
+        B = float(args.batch_size)
+        n = float(args.n_clients)
+        U = float(args.U) if args.U is not None else 0.5
+        asymptote = T_max * (C ** 2) * n / (2.0 * (B ** 2) * U)
+
+    out_path = Path(args.out_dir) / "eta_gap_heatmap_setting_c"
+    plot_eta_gap_heatmap(
+        df, out_path,
+        sort_by=args.sort_by,
+        asymptote_anU=asymptote,
+    )
+    print(f"η-gap heatmap → {out_path}.{{png,pdf}} (asymptote an/U = {asymptote:.4f})")
     return 0
 
 
@@ -357,8 +447,31 @@ def main() -> int:
     p_pareto.add_argument("--setting", required=True, choices=["A", "B", "C"])
     p_pareto.set_defaults(func=cmd_pareto)
 
-    p_eta = sub.add_parser("eta-sweep", help="η-sweep figure for Setting C")
+    p_eta = sub.add_parser("eta-sweep", help="η-sweep figure for Setting C (line plot, legacy)")
     p_eta.set_defaults(func=cmd_eta_sweep)
+
+    p_heat = sub.add_parser(
+        "eta-heatmap",
+        help="η-sweep figure for Setting C (heatmap, primary). "
+             "Covers ring/line/hierarchical/star + ER × 3 + BA × 2.",
+    )
+    p_heat.add_argument(
+        "--sort-by", default="max_gap", choices=["max_gap", "family"],
+        help="Row ordering: data-driven by max gap, or by topology family.",
+    )
+    p_heat.add_argument("--asymptote", type=float, default=None,
+                        help="Override the analytic asymptote an/U (default: computed from grid).")
+    p_heat.add_argument("--T-max", type=float, default=100.0,
+                        help="T_max used when computing the asymptote (default 100).")
+    p_heat.add_argument("--C", type=float, default=1.0,
+                        help="Clip norm C used when computing the asymptote (default 1.0).")
+    p_heat.add_argument("--batch-size", type=float, default=64.0,
+                        help="Batch size |B| used when computing the asymptote (default 64).")
+    p_heat.add_argument("--n-clients", type=float, default=50.0,
+                        help="n used when computing the asymptote (default 50).")
+    p_heat.add_argument("--U", type=float, default=0.5,
+                        help="Utility budget U used when computing the asymptote (default 0.5).")
+    p_heat.set_defaults(func=cmd_eta_heatmap)
 
     p_export = sub.add_parser("export-table", help="Export runs DataFrame as Parquet")
     p_export.add_argument("--setting", required=True, choices=["A", "B", "C"])
