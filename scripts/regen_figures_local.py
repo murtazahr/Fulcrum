@@ -5,13 +5,13 @@ that lives on the VM.
 Usage (from project root):
     python scripts/regen_figures_local.py
 
-Produces, under analysis/ (and copies into paper/figures/):
+Produces, under analysis/ (and copies into docs/figures/):
     eta_gap_heatmap_setting_c.pdf
     pareto_setting_a.pdf
     pareto_setting_b.pdf
     pareto_setting_c.pdf
+    tadi_realisability_setting_c.pdf
     channel_ablation_cross_setting.pdf
-    attack_lift_vs_K_setting_c.pdf
     setting_a_util.{csv,md,tex}
     setting_b_util.{csv,md,tex}
     setting_c_util.{csv,md,tex}
@@ -38,7 +38,7 @@ from fulcrum.analysis.figures import (
 
 REPO = Path(__file__).resolve().parent.parent
 ANALYSIS = REPO / "analysis"
-FIGURES = REPO / "paper" / "figures"
+FIGURES = REPO / "docs" / "figures"
 
 PARETO_FILTER = {
     "A": {"dp.observation_window": [25, 50, 100]},
@@ -171,7 +171,7 @@ def main():
     regen_tadi_realisability()
     print("\n== Cross-setting channel ablation (lift + AUROC bars) ==")
     regen_cross_setting_channel_ablation()
-    print("\n== Copy to paper/figures/ ==")
+    print("\n== Copy to docs/figures/ ==")
     copy_to_paper_figures()
     print("\nDone.")
 

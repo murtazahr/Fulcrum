@@ -1,14 +1,14 @@
-# Performance Evaluation — Detailed Results Report
+# Fulcrum — Empirical Results
 
-This report provides every empirical fact needed to rewrite Section 6
-("Performance Evaluation") of the manuscript. It is organised by
-empirical claim, with full numerical detail, figure references,
-methodological notes, and pointers to the underlying parquet exports.
+The full empirical write-up for the topology-aware differential privacy
+allocation defence and the TADI attack. Organised by claim, with
+per-cell numerical detail, figure references, methodological notes, and
+pointers to the underlying parquet exports under `analysis/`.
 
-> **Scope.** Sections §1–§5 of the manuscript (introduction, related
-> work, threat model, attack architecture, defense theory) are
-> considered locked. This report covers only §6, the empirical
-> validation.
+> Companion documentation:
+>  - [`defense_design.md`](defense_design.md) — Theorem 5.2 + Theorem 5.3 statements and full proofs.
+>  - [`attack_design.md`](attack_design.md) — TADI architecture, channel ablations, regressor backends.
+>  - [`threat_model_partitioning.md`](threat_model_partitioning.md) — the formal adversary and the three experimental settings.
 
 > **Setting A is intentionally omitted from the TADI channel
 > ablation.** The channel ablation tests prior realisability, and
@@ -25,10 +25,10 @@ methodological notes, and pointers to the underlying parquet exports.
 
 ---
 
-## 1. Empirical Claims Validated by Section 6
+## 1. Empirical claims
 
 The performance evaluation validates four claims, each tied to a
-specific theoretical result and a specific sub-section of §6.
+specific theoretical result and a specific section below.
 
 | # | Claim | Tied to | Evidence |
 |---|-------|---------|----------|
@@ -66,16 +66,13 @@ specific theoretical result and a specific sub-section of §6.
   between largest and smallest.
 - **Task.** Binary heart-disease classification on 13 clinical
   features.
-- **Topology.** Ring (chosen for the empirical study). All four
-  clients share degree 2, so the graph topology introduces *no*
-  structural asymmetry. The only source of asymmetry is dataset-size
-  heterogeneity. This makes Setting B a clean ablation of the
-  dataset-size proxy from any topological confound.
-  > **Note for the writer.** FLamby's native Fed-Heart-Disease setup
-  > assumes a star aggregator. We chose ring to remove the
-  > centralized-aggregator confound and isolate the dataset-size
-  > proxy. The structural-leverage profile is uniform on the ring;
-  > only the dataset-size proxy carries asymmetry.
+- **Topology.** Ring. All four clients share degree 2, so the graph
+  topology introduces *no* structural asymmetry. The only source of
+  asymmetry is dataset-size heterogeneity. This makes Setting B a
+  clean ablation of the dataset-size proxy from any topological
+  confound. (FLamby's native Fed-Heart-Disease setup assumes a star
+  aggregator; ring was chosen to remove the centralized-aggregator
+  confound and isolate the dataset-size proxy.)
 - **Model.** Small MLP.
 - **Dominant asymmetry.** Dataset-size heterogeneity (proxy as in
   Setting A).
@@ -172,7 +169,7 @@ $K_{\mathrm{uniform}} - K^\star$ behaves exactly as Theorem 5.3 and
 Corollary 5.4 predict across nine topology configurations and five
 coupling strengths.
 
-**Primary figure.** `paper/figures/eta_gap_heatmap_setting_c.pdf`. A
+**Primary figure.** `docs/figures/eta_gap_heatmap_setting_c.pdf`. A
 single heatmap with rows = topology configurations (sorted by max
 gap, ascending) and columns = $\eta \in \{0, 0.25, 0.5, 0.75, 1\}$.
 Cell colour and annotation give the absolute gap in nats.
@@ -268,13 +265,12 @@ fractional improvement. The values are at $\eta = 1$:
    reduction). Star's $K_{\mathrm{uniform}} = 58.8$ nats is so large
    that even a 1.2 nat reduction is only 2% of the bound.
 
-This dual perspective is important for the manuscript narrative: the
-defence delivers the largest *absolute* improvement on extreme
-scale-free topologies (where uniform allocation places clients on a
-catastrophic bound), and the largest *fractional* improvement on
-moderate-variance topologies (ER, BA $m=4$).
+The dual perspective is important: the defence delivers the largest
+*absolute* improvement on extreme scale-free topologies (where uniform
+allocation places clients on a catastrophic bound), and the largest
+*fractional* improvement on moderate-variance topologies (ER, BA $m=4$).
 
-#### 4.1.4 Suggested figure caption (for the writer)
+#### 4.1.4 Suggested figure caption
 
 > **Figure (η-sweep heatmap).** Privacy-bound gap
 > $K_{\mathrm{uniform}} - K^\star$ (nats) across nine topology
@@ -306,7 +302,7 @@ $(U, T_{\max})$ cell across all three settings.
 
 #### 4.2.1 Setting A — Fed-ISIC2019
 
-**Figure.** `paper/figures/pareto_setting_a.pdf`. Three panels
+**Figure.** `docs/figures/pareto_setting_a.pdf`. Three panels
 ($T_{\max} \in \{25, 50, 100\}$), $x$-axis log $U$, $y$-axis log
 $K^\star$, gap-shading between curves.
 
@@ -350,7 +346,7 @@ leverage-spread of all three settings.
 
 #### 4.2.2 Setting B — Fed-Heart-Disease
 
-**Figure.** `paper/figures/pareto_setting_b.pdf`. Three panels as
+**Figure.** `docs/figures/pareto_setting_b.pdf`. Three panels as
 in Setting A; full coverage at every $(U, T_{\max})$ cell after the
 backfill landed.
 
@@ -394,7 +390,7 @@ Setting A's 30:1.
 
 #### 4.2.3 Setting C — Synthetic CIFAR-10, hierarchical at $\eta = 0.5$
 
-**Figure.** `paper/figures/pareto_setting_c.pdf`. Three panels as
+**Figure.** `docs/figures/pareto_setting_c.pdf`. Three panels as
 in Setting A.
 
 **Per-cell digest.**
@@ -449,7 +445,7 @@ equals its $T_{\max}=25, U=0.05$ row) is the manifestation. **This is
 a strong consistency check** — the analytic expression is invariant
 in this product, and the data confirms it numerically.
 
-#### 4.2.5 Suggested figure caption (per setting)
+#### 4.2.5 Suggested figure caption
 
 > **Figure (Setting X privacy–utility Pareto).** Privacy bound
 > $K^\star$ (nats, log scale) as a function of utility budget $U$
@@ -495,7 +491,7 @@ the full $U$ grid after the $T_{\max} = 25$ backfill landed.
 are statistically equivalent at the $\pm 0.5$ pp margin. The
 extraordinary $p$-values at $T_{\max} = 50, 100$ ($10^{-16}$ and
 $10^{-37}$) reflect that the mean $\|\Delta\|$ is essentially zero —
-this is the strongest equivalence evidence in the manuscript.
+this is the strongest equivalence evidence across all three settings.
 
 #### 4.3.3 Setting C — Synthetic CIFAR-10
 
@@ -540,7 +536,7 @@ FLamby target), no channel achieves positive lift — the bound is
 conservative in a deployment-favourable direction.
 
 **Primary figure.**
-`paper/figures/channel_ablation_cross_setting.pdf`. Two-panel
+`docs/figures/channel_ablation_cross_setting.pdf`. Two-panel
 side-by-side: panel (a) attack lift, panel (b) AUROC, both as
 grouped bars with 95% CI from seed variance. **Setting C is
 restricted to the η = 1 cells** so the comparison is the
@@ -634,7 +630,7 @@ decomposition of information sources, not a tournament of strictly
 ordered adversaries.** The realised-dominance pattern depends on the
 coupling strength and on the size of the adversary's shadow corpus.
 
-#### 4.4.4 Suggested figure caption (channel ablation)
+#### 4.4.4 Suggested figure caption
 
 > **Figure (TADI channel ablation across prior regimes).** Mean
 > attack lift (left) and AUROC (right) per channel per setting, with
@@ -653,7 +649,7 @@ coupling strength and on the size of the adversary's shadow corpus.
 
 ### 4.5 Bound realisability across $\eta$ — Setting C
 
-**Primary figure.** `paper/figures/tadi_realisability_setting_c.pdf`.
+**Primary figure.** `docs/figures/tadi_realisability_setting_c.pdf`.
 Two stacked heatmaps share the (channel, η) grid:
 
 - **Top panel** — attack lift, diverging colourmap centred at 0
@@ -720,7 +716,7 @@ $-0.071$ depending on channel) but small enough to call
 "calibration-null." The small negative bias reflects regressor
 overfitting on a finite shadow corpus and is not a meaningful signal.
 
-#### 4.5.4 Suggested figure caption (realisability dual heatmap)
+#### 4.5.4 Suggested figure caption
 
 > **Figure (TADI realisability on Setting C across coupling
 > strength).** Two stacked heatmaps over the (channel, η) grid:
@@ -757,129 +753,10 @@ overfitting on a finite shadow corpus and is not a meaningful signal.
 
 ---
 
-## 6. Housekeeping
-
-### Stale figures to remove from `paper/figures/` before submission
-
-The following are superseded and **should not be referenced** in the
-rewrite. They can be deleted after the manuscript ships:
-
-| File | Replaced by | Why |
-|---|---|---|
-| `eta_sweep_setting_c.pdf` | `eta_gap_heatmap_setting_c.pdf` | Legacy 4-panel line plot superseded by the 9 × 5 heatmap. |
-| `attack_lift_eta_setting_c.pdf` | `attack_lift_vs_K_setting_c.pdf` + §4.5 table | Redundant — same η information is now the colour axis of the K* scatter. |
-| `pareto_cross_setting.pdf` | Three per-setting Paretos | Cross-setting overlay buried per-setting U grids that aren't directly comparable. |
-| `channel_ablation_setting_c.pdf` | `channel_ablation_cross_setting.pdf` | Per-setting version superseded by the cross-setting bar chart. |
-
 ---
 
-## 7. Figure inventory for §6
 
-The rewrite should reference exactly these figures from §6. Figures
-no longer in the inventory should be deleted from `paper/figures/`
-when the rewrite lands.
-
-### 7.1 Live (publication-quality, current)
-
-| File | Purpose | Section |
-|---|---|---|
-| `eta_gap_heatmap_setting_c.pdf` | Theorem 5.3 validation across 9 topologies × 5 η | §4.1 |
-| `pareto_setting_a.pdf` | Setting A privacy-utility Pareto | §4.2.1 |
-| `pareto_setting_b.pdf` | Setting B privacy-utility Pareto | §4.2.2 |
-| `pareto_setting_c.pdf` | Setting C privacy-utility Pareto | §4.2.3 |
-| `channel_ablation_cross_setting.pdf` | Cross-setting channel ablation (lift + AUROC), Setting C at η=1 ceiling | §4.4 |
-| `tadi_realisability_setting_c.pdf` | Setting C η-sweep, lift + AUROC for each channel | §4.5 |
-
-### 7.2 Untouched (used elsewhere in the manuscript)
-
-| File | Location |
-|---|---|
-| `positioning.pdf` | §2 Related Work |
-| `tadi_pipeline.pdf` | §4 The TADI Attack |
-
----
-
-## 8. Manuscript-writing notes
-
-### 8.1 The attack is a methodological tool, not a standalone result
-
-A critical framing decision for the rewrite. The empirical results
-of §4.4 and §4.5 should be presented as **evidence that Theorem 5.2's
-additive decomposition operates as predicted**, not as a "we built a
-devastating new attack" headline. The three findings the attack
-delivers:
-
-1. **The bound is empirically tight under matched-prior conditions.**
-   Setting C at η = 1 achieves AUROC = 1.0 with attack lift +0.076
-   on the combined channel. The worst case Theorem 5.2 predicts is
-   *realisable* — without this, the theorem could be dismissed as
-   vacuous.
-2. **The bound calibrates correctly under the IID-null.** Setting C
-   at η = 0 produces zero lift across all channels. This is the
-   sanity check the theorem requires: when no topology-data
-   correlation exists, the prior-coupling term vanishes, and the
-   attack registers no advantage.
-3. **The bound is conservative under realistic public-proxy
-   adversaries.** Setting B's all-negative-lift result is *not* a
-   weakness — it demonstrates that the supremum
-   $\ell_i^\circ$ cannot be reached by an adversary whose shadow
-   corpus mismatches the deployment partition. This makes the bound
-   *deployment-favourable*: the worst case is theoretical, real
-   adversaries do strictly worse.
-
-Together these three findings are the strongest possible empirical
-support for the theory short of a closed-form realisability proof.
-**The attack's value is in characterising when the bound is tight,
-when it is calibrated, and when it has slack.** It is not in
-"breaking" DP-FL.
-
-### 8.2 Suggested §1 contributions phrasing
-
-> "We construct TADI, a shadow-trained passive attack with four
-> channel ablations operationalising the additive decomposition of
-> the per-client mutual-information bound. The attack achieves the
-> theoretical worst case under matched-prior conditions (perfect
-> AUROC, lift +0.076 at η = 1 on Setting C) and confirms the bound
-> is conservative in realistic public-proxy deployments (no positive
-> lift on Fed-Heart-Disease). TADI thereby provides the first per-channel
-> empirical characterisation of topology-conditional leakage in DP-FL,
-> establishing both the realisability and the deployment-conservatism
-> of the bound that Fulcrum tightens."
-
-### 8.3 Narrative shifts encoded by this report
-
-1. **Lead with the heatmap.** The η-sweep heatmap is the cleanest
-   single-figure validation of Theorem 5.3. Open §6's results
-   subsections with it.
-2. **Sub-claim 5 (ER non-monotone in p) is new and unique.** The
-   binomial-variance peak at $p = 0.5$ provides a clean piece of
-   evidence that the degree proxy tracks underlying leverage
-   asymmetry, not just degree mean. Worth a dedicated paragraph.
-3. **The BA + star saturation is the "scale-free generalisation"
-   story.** The star is no longer special; any topology with extreme
-   degree concentration saturates the bound. This widens the claim
-   from "star is a worst case" to "scale-free networks are a worst
-   case."
-4. **Setting B's all-negative channel ablation is not a failure.**
-   It is evidence that the bound is conservative in a
-   deployment-favourable direction when the adversary lacks
-   shadow/target prior alignment. The manuscript should frame this
-   as "the bound is honest about the worst case but the worst case
-   is not realised by the most realistic public-proxy adversary."
-5. **The channel decomposition is not a tournament.** Drop any
-   framing that asserts $\mathcal{A}_2^{\text{full}}$ strictly
-   dominates the sub-channels. Frame the four channels as a
-   decomposition of information sources whose dominance pattern
-   depends on deployment regime.
-6. **Tie §4.5 explicitly to Theorem 5.2's additive structure.** The
-   parameter channel ($\mathcal{A}_1$) is the controllable term; org
-   and full carry the prior-coupling term. The empirical η-monotonic
-   growth of the latter and the bounded behaviour of the former is
-   the *empirical instantiation* of the additive decomposition.
-
----
-
-## 9. Data provenance
+## 6. Data provenance
 
 All numbers in this report are derived from:
 

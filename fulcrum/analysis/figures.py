@@ -330,8 +330,8 @@ def utility_consistency_latex(
     Returns the LaTeX string; caller is responsible for writing it to disk
     or piping it into the manuscript.
 
-    Designed to compile under the project's existing ``\\usepackage{booktabs}``
-    (already in ``paper/main.tex``).
+    Designed to compile under the standard ``\\usepackage{booktabs}``
+    + ``\\usepackage{amsmath}`` LaTeX preamble.
     """
     label = label or f"tab:util-consistency-{setting.lower()}"
     margin = float(table_df["equivalence_margin_pp"].iloc[0]) if "equivalence_margin_pp" in table_df.columns else 0.5
