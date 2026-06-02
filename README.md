@@ -183,9 +183,3 @@ If you use this work, please cite:
 - **Murtaza Rangwala** ([@murtazahr](https://github.com/murtazahr)), University of Melbourne
 - **Richard O. Sinnott**, University of Melbourne
 - **Rajkumar Buyya**, University of Melbourne
-
-## License
-
-To be confirmed by the authors. We recommend **Apache 2.0** for permissive
-academic + commercial use; the LICENSE file will be added before any
-public release.
