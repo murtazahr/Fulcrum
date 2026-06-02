@@ -59,3 +59,7 @@ coverage.xml
 # Misc
 *.log
 *.tmp
+
+# Worktrees and local reference PDFs
+.claude/
+references/
