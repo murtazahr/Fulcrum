@@ -778,6 +778,123 @@ CHANNEL_COLOR = {
 CHANNEL_MARKER = {"A1": "o", "A2_topo": "^", "A2_org": "s", "A2_full": "D"}
 
 
+def plot_tadi_realisability_trajectory(
+    df: pd.DataFrame,
+    output_path: str | Path,
+    eta_col: str = "data.eta",
+    channel_col: str = "channel",
+) -> None:
+    """Setting C TADI realisability as channel trajectories in (AUROC, lift) space.
+
+    A single-panel "threat fingerprint": each channel is one path
+    through 2D metric space (x = AUROC, y = attack lift), with the
+    five η values plotted as connected markers. Marker size grows
+    with η so the direction of the trajectory is readable. Reference
+    lines split the panel into four quadrants annotated by their
+    interpretation:
+
+    - **Bottom-left** (AUROC ≤ 0.5, lift ≤ 0): channel bounded by
+      DP-SGD or null-calibrated. The parameter channel $\\mathcal{A}_1$
+      and structural channel $\\mathcal{A}_2^{\\mathrm{topo}}$ stay
+      here regardless of η.
+    - **Top-right** (AUROC > 0.5, lift > 0): channel realised — the
+      adversary both beats the constant-mean baseline and ranks
+      clients above chance. The organisational and combined channels
+      arrive here at high coupling.
+    - **Top-left** (AUROC ≤ 0.5, lift > 0): degenerate (rare).
+    - **Bottom-right** (AUROC > 0.5, lift ≤ 0): ranks well but
+      doesn't beat baseline (a regressor calibration artifact).
+
+    The trajectory paths visualise the additive decomposition of
+    Theorem 5.2 in operation: the mechanism-bounded $\\mathcal{A}_1$
+    barely moves, while the prior-coupling channels traverse from
+    bottom-left to top-right as η grows.
+
+    Args:
+        df: attack-eval dataframe joined with target-run config so
+            ``eta_col`` is available. Expected columns: ``channel``,
+            ``attack_lift``, ``auroc``, plus ``eta_col``.
+        output_path: figure path (without extension).
+    """
+    _set_style()
+    import matplotlib.pyplot as plt
+
+    needed = {eta_col, channel_col, "attack_lift", "auroc"}
+    missing = needed - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing columns for trajectory plot: {sorted(missing)}")
+    df = df.dropna(subset=[eta_col, channel_col, "attack_lift", "auroc"])
+
+    # Aggregate to (channel, eta) mean
+    agg = (df.groupby([channel_col, eta_col])[["attack_lift", "auroc"]]
+             .mean()
+             .reset_index())
+
+    fig, ax = plt.subplots(figsize=(6.5, 4.6))
+
+    # Reference lines split the panel into quadrants
+    ax.axhline(0.0, color="gray", linewidth=0.8, linestyle="--",
+               alpha=0.6, zorder=1)
+    ax.axvline(0.5, color="gray", linewidth=0.8, linestyle="--",
+               alpha=0.6, zorder=1)
+
+    # Plot each channel's trajectory
+    for ch in CHANNEL_ORDER:
+        sub = agg[agg[channel_col] == ch].sort_values(eta_col)
+        if sub.empty:
+            continue
+        eta_vals = sub[eta_col].to_numpy()
+        x = sub["auroc"].to_numpy()
+        y = sub["attack_lift"].to_numpy()
+        color = CHANNEL_COLOR.get(ch, "black")
+        # Connecting line — faint, just to convey trajectory order
+        ax.plot(x, y, color=color, linewidth=1.3, alpha=0.5, zorder=2)
+        # Markers — size grows with η so trajectory direction is readable
+        sizes = 40 + 80 * eta_vals  # 40 at η=0, 120 at η=1
+        ax.scatter(x, y, s=sizes, c=color, edgecolor="white",
+                   linewidth=0.6, zorder=3,
+                   label=CHANNEL_LABEL.get(ch, ch))
+        # Annotate η at first and last points
+        ax.annotate(
+            r"$\eta{=}0$",
+            xy=(x[0], y[0]), xytext=(-6, -6), textcoords="offset points",
+            fontsize=7, color=color, ha="right", va="top",
+        )
+        ax.annotate(
+            r"$\eta{=}1$",
+            xy=(x[-1], y[-1]), xytext=(6, 6), textcoords="offset points",
+            fontsize=7.5, color=color, ha="left", va="bottom",
+            fontweight="bold",
+        )
+
+    # Quadrant annotations — light, positioned in corners
+    quadrant_style = dict(
+        fontsize=8.5, color="#555555", style="italic",
+        ha="center", va="center",
+        bbox=dict(facecolor="white", edgecolor="none",
+                  alpha=0.7, boxstyle="round,pad=0.3"),
+    )
+    # Bottom-left: bounded
+    ax.text(0.42, -0.062,
+            "DP-SGD bounded\n(controllable term)",
+            **quadrant_style)
+    # Top-right: realised
+    ax.text(0.88, 0.062,
+            "Threat realised\n(prior-coupling term)",
+            **quadrant_style)
+
+    ax.set_xlabel("AUROC (binary $p_i > \\tau$)")
+    ax.set_ylabel(r"Attack lift  $L_{\mathrm{cal}}(\bar p) - L_{\mathrm{cal}}(\hat p)$")
+    ax.set_xlim(0.35, 1.05)
+    ax.set_ylim(-0.085, 0.085)
+
+    ax.legend(loc="upper left", fontsize=8.5, framealpha=0.92,
+              ncol=2, handletextpad=0.5, columnspacing=0.8)
+    fig.tight_layout()
+    _save(fig, output_path)
+    plt.close(fig)
+
+
 def plot_tadi_realisability_eta_sweep(
     df: pd.DataFrame,
     output_path: str | Path,

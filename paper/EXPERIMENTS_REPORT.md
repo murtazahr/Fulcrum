@@ -647,9 +647,23 @@ coupling strength and on the size of the adversary's shadow corpus.
 ### 4.5 Bound realisability across $\eta$ — Setting C
 
 **Primary figure.** `paper/figures/tadi_realisability_setting_c.pdf`.
-Two-panel side-by-side: panel (a) attack lift vs η, panel (b) AUROC
-vs η. All four channels overlaid in each panel with 95% CI shading,
-horizontal reference lines at lift = 0 and AUROC = 0.5 (chance).
+A single-panel "threat fingerprint" plot: each channel is one
+trajectory through 2D metric space (x-axis = AUROC, y-axis = attack
+lift), with the five η values plotted as connected markers whose
+size grows with η. The plane is split into quadrants by reference
+lines at AUROC = 0.5 (chance) and lift = 0 (calibration null):
+
+- **Bottom-left quadrant** annotated "DP-SGD bounded
+  (controllable term)" — channels here have lift ≤ 0 and AUROC ≤ 0.5.
+- **Top-right quadrant** annotated "Threat realised (prior-coupling
+  term)" — channels here have lift > 0 and AUROC > 0.5.
+
+The trajectory paths visualise the additive decomposition of
+Theorem 5.2 in operation: $\mathcal{A}_1$ stays in the bounded
+quadrant regardless of η (mechanism term suppressed by DP-SGD);
+$\mathcal{A}_2^{\mathrm{org}}$ and $\mathcal{A}_2^{\mathrm{full}}$
+traverse from the bounded quadrant at η = 0 toward "perfect
+realisation" at (AUROC = 1.0, lift > 0) at η = 1.
 
 **Headline finding.** On Setting C (matched shadow/target prior),
 attack lift grows monotonically with the coupling strength $\eta$
@@ -692,24 +706,23 @@ $-0.071$ depending on channel) but small enough to call
 "calibration-null." The small negative bias reflects regressor
 overfitting on a finite shadow corpus and is not a meaningful signal.
 
-#### 4.5.4 Suggested figure caption (realisability η-sweep)
+#### 4.5.4 Suggested figure caption (realisability trajectory)
 
-> **Figure (TADI realisability on Setting C).** Attack lift (left)
-> and AUROC (right) as a function of the coupling strength η for
-> each channel ablation, with 95% confidence intervals from seed
-> variance. The parameter channel $\mathcal{A}_1$ stays bounded by
-> DP-SGD across all η (lift ≤ 0), confirming the controllable term
-> of Theorem 5.2 is suppressed by per-client noise. The
-> organisational channel $\mathcal{A}_2^{\mathrm{org}}$ rises
-> monotonically: attack lift crosses zero near η = 0.5 and reaches
-> +0.060 at η = 1; AUROC reaches perfect ranking quality (1.00) at
-> η ≥ 0.75. The combined channel $\mathcal{A}_2^{\mathrm{full}}$
-> mirrors org with a steeper lift slope, overtaking org at η = 0.5.
-> The structural-only channel $\mathcal{A}_2^{\mathrm{topo}}$ never
-> achieves traction at this $U / T_{\max}$ budget. The η = 0 cells
-> serve as the IID-null calibration: with no topology-data
-> correlation, every channel's lift is at or below zero and AUROC
-> is at chance.
+> **Figure (TADI realisability on Setting C as channel trajectories
+> in 2D metric space).** Each channel is one trajectory through
+> (AUROC, attack lift) as the coupling strength η grows from 0 to 1;
+> marker size grows with η. The plane is split into quadrants by
+> the calibration references (AUROC = 0.5, lift = 0). The parameter
+> channel $\mathcal{A}_1$ stays in the bounded quadrant for all η,
+> confirming the controllable term of Theorem 5.2 is suppressed by
+> DP-SGD. The structural-only channel $\mathcal{A}_2^{\mathrm{topo}}$
+> stays clustered at chance. The organisational and combined channels
+> traverse from the bounded quadrant at η = 0 toward "perfect
+> realisation" at (AUROC = 1.0, lift > 0) by η = 1; the combined
+> channel achieves higher lift at the ceiling while sharing the same
+> perfect ranking quality. This visualises the additive decomposition
+> of Theorem 5.2: as the prior-coupling term grows with η, only the
+> channels carrying that coupling move through metric space.
 
 ---
 
@@ -775,8 +788,52 @@ when the rewrite lands.
 
 ## 8. Manuscript-writing notes
 
-The following narrative shifts are encoded by this report and should
-inform the rewrite:
+### 8.1 The attack is a methodological tool, not a standalone result
+
+A critical framing decision for the rewrite. The empirical results
+of §4.4 and §4.5 should be presented as **evidence that Theorem 5.2's
+additive decomposition operates as predicted**, not as a "we built a
+devastating new attack" headline. The three findings the attack
+delivers:
+
+1. **The bound is empirically tight under matched-prior conditions.**
+   Setting C at η = 1 achieves AUROC = 1.0 with attack lift +0.076
+   on the combined channel. The worst case Theorem 5.2 predicts is
+   *realisable* — without this, the theorem could be dismissed as
+   vacuous.
+2. **The bound calibrates correctly under the IID-null.** Setting C
+   at η = 0 produces zero lift across all channels. This is the
+   sanity check the theorem requires: when no topology-data
+   correlation exists, the prior-coupling term vanishes, and the
+   attack registers no advantage.
+3. **The bound is conservative under realistic public-proxy
+   adversaries.** Setting B's all-negative-lift result is *not* a
+   weakness — it demonstrates that the supremum
+   $\ell_i^\circ$ cannot be reached by an adversary whose shadow
+   corpus mismatches the deployment partition. This makes the bound
+   *deployment-favourable*: the worst case is theoretical, real
+   adversaries do strictly worse.
+
+Together these three findings are the strongest possible empirical
+support for the theory short of a closed-form realisability proof.
+**The attack's value is in characterising when the bound is tight,
+when it is calibrated, and when it has slack.** It is not in
+"breaking" DP-FL.
+
+### 8.2 Suggested §1 contributions phrasing
+
+> "We construct TADI, a shadow-trained passive attack with four
+> channel ablations operationalising the additive decomposition of
+> the per-client mutual-information bound. The attack achieves the
+> theoretical worst case under matched-prior conditions (perfect
+> AUROC, lift +0.076 at η = 1 on Setting C) and confirms the bound
+> is conservative in realistic public-proxy deployments (no positive
+> lift on Fed-Heart-Disease). TADI thereby provides the first per-channel
+> empirical characterisation of topology-conditional leakage in DP-FL,
+> establishing both the realisability and the deployment-conservatism
+> of the bound that Fulcrum tightens."
+
+### 8.3 Narrative shifts encoded by this report
 
 1. **Lead with the heatmap.** The η-sweep heatmap is the cleanest
    single-figure validation of Theorem 5.3. Open §6's results

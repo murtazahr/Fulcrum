@@ -30,7 +30,7 @@ from fulcrum.analysis.figures import (
     plot_channel_ablation_dual_metric,
     plot_eta_gap_heatmap,
     plot_pareto_setting,
-    plot_tadi_realisability_eta_sweep,
+    plot_tadi_realisability_trajectory,
     utility_consistency_latex,
     utility_consistency_table,
 )
@@ -114,8 +114,8 @@ def regen_tadi_realisability():
         on="target_run_id", how="left",
     )
     out = ANALYSIS / "tadi_realisability_setting_c"
-    plot_tadi_realisability_eta_sweep(joined, out)
-    print(f"  TADI realisability (Setting C η-sweep): {out}.{{pdf,png}}")
+    plot_tadi_realisability_trajectory(joined, out)
+    print(f"  TADI realisability trajectory (Setting C): {out}.{{pdf,png}}")
 
 
 def regen_cross_setting_channel_ablation():
