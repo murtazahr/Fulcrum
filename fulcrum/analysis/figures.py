@@ -178,7 +178,9 @@ def plot_pareto_setting(
     # One legend in the leftmost panel
     axes[0].legend(loc="upper right", fontsize=8, framealpha=0.85)
 
-    fig.suptitle(f"Setting {setting}: Privacy bound vs. utility budget", y=1.00)
+    # No figure suptitle; the LaTeX caption carries the description in the
+    # manuscript. Dropping it keeps the figure compact and consistent with
+    # the η-heatmap and the channel-ablation bar chart.
     fig.tight_layout()
     _save(fig, output_path)
     plt.close(fig)
@@ -914,10 +916,9 @@ def plot_attack_lift_vs_K(
                             shrink=0.7, pad=0.02, aspect=20)
         cbar.set_label(r"$\eta$", rotation=0, labelpad=8)
 
-    fig.suptitle(
-        f"Setting {setting}: TADI attack lift vs. theoretical bound",
-        y=1.02,
-    )
+    # No figure suptitle; the LaTeX caption carries the description in
+    # the manuscript. Kept consistent with the η-heatmap, Pareto, and
+    # channel-ablation figures.
     _save(fig, output_path)
     plt.close(fig)
 
@@ -1130,7 +1131,9 @@ def plot_attack_channel_ablation_cross_setting(
     ax.set_xticks(np.arange(len(settings)))
     ax.set_xticklabels([f"Setting {s}" for s in settings])
     ax.set_ylabel(r"Attack lift = $L_{\mathrm{cal}}(\bar p) - L_{\mathrm{cal}}(\hat p)$")
-    ax.set_title("\\TADI channel ablation across settings")
+    # No figure title; the LaTeX caption carries the description in the
+    # manuscript. The previous title rendered the macro `\TADI` literally
+    # because matplotlib does not expand LaTeX macros.
     ax.axhline(0, color="black", linewidth=0.6, linestyle="--", alpha=0.6)
     ax.legend(loc="upper left", fontsize=8, framealpha=0.85, ncol=4)
     fig.tight_layout()
