@@ -564,6 +564,7 @@ def plot_eta_gap_heatmap(
     annotate: bool = True,
     sort_by: str = "max_gap",
     asymptote_anU: float | None = None,
+    drop_iid_null: bool = True,
 ) -> None:
     """Heatmap of the topology-aware vs uniform privacy-bound gap.
 
@@ -671,6 +672,14 @@ def plot_eta_gap_heatmap(
     zero_eta = next((c for c in pivot.columns if float(c) == 0.0), None)
     if zero_eta is not None:
         pivot.loc[pivot[zero_eta].isna(), zero_eta] = 0.0
+        # Drop the IID-null column for compactness when requested. The
+        # column is analytically zero across every topology after the
+        # fill above (Corollary 5.4 reduces to equality at uniform
+        # leverage), so a column of zeros wastes visual real estate
+        # without communicating signal. The caption notes that all
+        # topologies degenerate at η = 0.
+        if drop_iid_null:
+            pivot = pivot.drop(columns=[zero_eta])
 
     # Row ordering.
     if sort_by == "max_gap":

@@ -278,13 +278,14 @@ moderate-variance topologies (ER, BA $m=4$).
 
 > **Figure (η-sweep heatmap).** Privacy-bound gap
 > $K_{\mathrm{uniform}} - K^\star$ (nats) across nine topology
-> configurations and five coupling strengths on Setting C
+> configurations and four coupling strengths on Setting C
 > ($n = 50$, $U = 0.5$, $T_{\max} = 100$). Rows are sorted by maximum
-> gap. The IID-null calibration band at $\eta = 0$ reads zero on
-> every topology, confirming the degenerate behaviour of Theorem 5.3
-> at uniform leverage. The Ring row is identically zero at every
-> $\eta$, the deterministic-symmetric degeneracy. Scale-free topologies
-> (BA, star) saturate within 2% of the analytic asymptote
+> gap. The $\eta = 0$ IID-null calibration column is omitted from the
+> figure for compactness; Corollary 5.4 reduces to equality at uniform
+> leverage and the $\eta = 0$ column is identically zero across every
+> topology. The Ring row is identically zero at every shown $\eta$,
+> the deterministic-symmetric degeneracy of Corollary 5.4. Scale-free
+> topologies (BA, star) saturate within 2% of the analytic asymptote
 > $an/U \approx 1.22$ nats, marked on the colourbar. Among Erdős-Rényi
 > configurations the gap peaks non-monotonically at $p = 0.5$, where
 > the binomial degree variance is maximised.
