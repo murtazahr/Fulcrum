@@ -778,6 +778,143 @@ CHANNEL_COLOR = {
 CHANNEL_MARKER = {"A1": "o", "A2_topo": "^", "A2_org": "s", "A2_full": "D"}
 
 
+def plot_tadi_realisability_dual_heatmap(
+    df: pd.DataFrame,
+    output_path: str | Path,
+    eta_col: str = "data.eta",
+    channel_col: str = "channel",
+) -> None:
+    """Setting C TADI realisability as two stacked heatmaps.
+
+    Two stacked panels share the (channel, η) grid:
+
+    - **Top:** attack lift, 4 channels × 5 η, diverging colourmap
+      centred at 0 (red = negative / DP-SGD-bounded, white = null,
+      blue = positive / realised).
+    - **Bottom:** AUROC, 4 channels × 5 η, diverging colourmap
+      centred at 0.5 (white = chance, dark blue = perfect ranking).
+
+    Each cell carries its numeric value. The η = 0 column reads as
+    the IID-null calibration band on both panels; the η = 1 column
+    reads as the matched-prior ceiling. The two rows for the
+    organisational and combined channels show the realisation
+    progression visually as a left-to-right colour gradient.
+
+    This is the same visual language as :func:`plot_eta_gap_heatmap`
+    (the Theorem 5.3 validation figure), giving the manuscript a
+    consistent §6 figure grammar.
+
+    Args:
+        df: attack-eval dataframe joined with target-run config so
+            ``eta_col`` is available. Expected columns: ``channel``,
+            ``attack_lift``, ``auroc``, plus ``eta_col``.
+        output_path: figure path (without extension).
+    """
+    _set_style()
+    import matplotlib.pyplot as plt
+    from matplotlib import colors as mcolors
+
+    needed = {eta_col, channel_col, "attack_lift", "auroc"}
+    missing = needed - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing columns for realisability heatmap: {sorted(missing)}")
+    df = df.dropna(subset=[eta_col, channel_col, "attack_lift", "auroc"])
+
+    # Aggregate to (channel, eta) mean
+    agg = (df.groupby([channel_col, eta_col])[["attack_lift", "auroc"]]
+             .mean()
+             .reset_index())
+
+    # Pivot into two (channel, eta) matrices.
+    eta_values = sorted(agg[eta_col].unique())
+    channels = [c for c in CHANNEL_ORDER if c in agg[channel_col].unique()]
+    lift_mat = np.full((len(channels), len(eta_values)), np.nan)
+    auroc_mat = np.full((len(channels), len(eta_values)), np.nan)
+    for i, ch in enumerate(channels):
+        for j, e in enumerate(eta_values):
+            row = agg[(agg[channel_col] == ch) & (agg[eta_col] == e)]
+            if not row.empty:
+                lift_mat[i, j] = float(row["attack_lift"].mean())
+                auroc_mat[i, j] = float(row["auroc"].mean())
+
+    fig, (ax_lift, ax_auc) = plt.subplots(
+        2, 1, figsize=(6.5, 4.2),
+        gridspec_kw={"height_ratios": [1, 1], "hspace": 0.45},
+    )
+
+    # ----- Top panel: attack lift -----
+    lift_extent = max(0.08, float(np.nanmax(np.abs(lift_mat))) * 1.1)
+    lift_norm = mcolors.TwoSlopeNorm(vmin=-lift_extent, vcenter=0.0,
+                                     vmax=lift_extent)
+    cmap_lift = plt.get_cmap("RdBu")  # red = negative, blue = positive
+    im_lift = ax_lift.imshow(lift_mat, aspect="auto",
+                             cmap=cmap_lift, norm=lift_norm)
+    _annotate_heatmap(ax_lift, lift_mat, fmt="{:+.3f}")
+
+    # ----- Bottom panel: AUROC -----
+    auroc_norm = mcolors.TwoSlopeNorm(vmin=0.0, vcenter=0.5, vmax=1.0)
+    cmap_auc = plt.get_cmap("RdBu")  # red = below chance, blue = perfect
+    im_auc = ax_auc.imshow(auroc_mat, aspect="auto",
+                           cmap=cmap_auc, norm=auroc_norm)
+    _annotate_heatmap(ax_auc, auroc_mat, fmt="{:.2f}")
+
+    # Shared ticks and labels
+    channel_labels = [CHANNEL_LABEL.get(c, c) for c in channels]
+    for ax, title in ((ax_lift, "Attack lift  "
+                       r"$L_{\mathrm{cal}}(\bar p) - L_{\mathrm{cal}}(\hat p)$"
+                       "  (red = DP-SGD bounded, blue = threat realised)"),
+                      (ax_auc, "AUROC  (red = below chance, blue = perfect ranking)")):
+        ax.set_xticks(np.arange(len(eta_values)))
+        ax.set_xticklabels([f"{e:g}" for e in eta_values])
+        ax.set_yticks(np.arange(len(channels)))
+        ax.set_yticklabels(channel_labels)
+        ax.set_xlabel("")
+        ax.set_title(title, fontsize=9, pad=4)
+        # Faint white grid between cells
+        ax.set_xticks(np.arange(len(eta_values) + 1) - 0.5, minor=True)
+        ax.set_yticks(np.arange(len(channels) + 1) - 0.5, minor=True)
+        ax.tick_params(which="minor", bottom=False, left=False)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        ax.grid(False)
+        ax.grid(which="minor", color="white", linewidth=1.0)
+
+    ax_auc.set_xlabel(r"Topology vs. data coupling $\eta$")
+
+    # Colourbars to the right of each panel
+    cb_lift = fig.colorbar(im_lift, ax=ax_lift, shrink=0.9,
+                           pad=0.02, aspect=10)
+    cb_lift.set_label("nats", fontsize=8, labelpad=2)
+    cb_auc = fig.colorbar(im_auc, ax=ax_auc, shrink=0.9,
+                          pad=0.02, aspect=10)
+    cb_auc.set_label("AUROC", fontsize=8, labelpad=2)
+
+    fig.tight_layout()
+    _save(fig, output_path)
+    plt.close(fig)
+
+
+def _annotate_heatmap(ax, mat: np.ndarray, fmt: str = "{:.3f}") -> None:
+    """Annotate each cell of a heatmap with its numeric value.
+
+    Black text on light cells (|value| below midrange), white on dark.
+    """
+    import matplotlib.pyplot as plt  # noqa: F401  (already imported by caller)
+    n_rows, n_cols = mat.shape
+    # Compute midpoint of |values| range to pick text colour
+    abs_mat = np.abs(mat - np.nanmean(mat))
+    threshold = float(np.nanmax(abs_mat)) * 0.55 if abs_mat.size else 0.0
+    for i in range(n_rows):
+        for j in range(n_cols):
+            v = mat[i, j]
+            if np.isnan(v):
+                continue
+            text = fmt.format(v)
+            color = "white" if abs(v - np.nanmean(mat)) > threshold else "#1a1a1a"
+            ax.text(j, i, text, ha="center", va="center",
+                    fontsize=8, color=color)
+
+
 def plot_tadi_realisability_trajectory(
     df: pd.DataFrame,
     output_path: str | Path,

@@ -647,23 +647,30 @@ coupling strength and on the size of the adversary's shadow corpus.
 ### 4.5 Bound realisability across $\eta$ — Setting C
 
 **Primary figure.** `paper/figures/tadi_realisability_setting_c.pdf`.
-A single-panel "threat fingerprint" plot: each channel is one
-trajectory through 2D metric space (x-axis = AUROC, y-axis = attack
-lift), with the five η values plotted as connected markers whose
-size grows with η. The plane is split into quadrants by reference
-lines at AUROC = 0.5 (chance) and lift = 0 (calibration null):
+Two stacked heatmaps share the (channel, η) grid:
 
-- **Bottom-left quadrant** annotated "DP-SGD bounded
-  (controllable term)" — channels here have lift ≤ 0 and AUROC ≤ 0.5.
-- **Top-right quadrant** annotated "Threat realised (prior-coupling
-  term)" — channels here have lift > 0 and AUROC > 0.5.
+- **Top panel** — attack lift, diverging colourmap centred at 0
+  (red = negative / DP-SGD-bounded, white = calibration null, blue
+  = positive / realised). Each cell carries the numeric lift value.
+- **Bottom panel** — AUROC, diverging colourmap centred at 0.5
+  (red = below chance, white = chance, blue = perfect ranking). Each
+  cell carries the numeric AUROC.
 
-The trajectory paths visualise the additive decomposition of
-Theorem 5.2 in operation: $\mathcal{A}_1$ stays in the bounded
-quadrant regardless of η (mechanism term suppressed by DP-SGD);
-$\mathcal{A}_2^{\mathrm{org}}$ and $\mathcal{A}_2^{\mathrm{full}}$
-traverse from the bounded quadrant at η = 0 toward "perfect
-realisation" at (AUROC = 1.0, lift > 0) at η = 1.
+This is the same visual language as `eta_gap_heatmap_setting_c.pdf`
+(the Theorem 5.3 validation figure), giving §6 a consistent figure
+grammar. Reading the grid:
+
+- The $\mathcal{A}_1$ row is uniformly red in the lift panel — the
+  parameter channel is bounded by DP-SGD at every η.
+- The $\mathcal{A}_2^{\mathrm{topo}}$ row is uniformly white — the
+  structural-only channel never gains traction.
+- The $\mathcal{A}_2^{\mathrm{org}}$ and $\mathcal{A}_2^{\mathrm{full}}$
+  rows progress red → white → blue as η grows, with the η = 1
+  ceiling cells (+0.060 and +0.076) the deepest blue in the figure.
+- The AUROC panel reaches deep blue 1.00 cells for the org and full
+  channels at η ≥ 0.75 — perfect ranking recovery is unmistakable.
+- The η = 0 column reads as the IID-null calibration band on both
+  panels.
 
 **Headline finding.** On Setting C (matched shadow/target prior),
 attack lift grows monotonically with the coupling strength $\eta$
@@ -706,23 +713,22 @@ $-0.071$ depending on channel) but small enough to call
 "calibration-null." The small negative bias reflects regressor
 overfitting on a finite shadow corpus and is not a meaningful signal.
 
-#### 4.5.4 Suggested figure caption (realisability trajectory)
+#### 4.5.4 Suggested figure caption (realisability dual heatmap)
 
-> **Figure (TADI realisability on Setting C as channel trajectories
-> in 2D metric space).** Each channel is one trajectory through
-> (AUROC, attack lift) as the coupling strength η grows from 0 to 1;
-> marker size grows with η. The plane is split into quadrants by
-> the calibration references (AUROC = 0.5, lift = 0). The parameter
-> channel $\mathcal{A}_1$ stays in the bounded quadrant for all η,
-> confirming the controllable term of Theorem 5.2 is suppressed by
-> DP-SGD. The structural-only channel $\mathcal{A}_2^{\mathrm{topo}}$
-> stays clustered at chance. The organisational and combined channels
-> traverse from the bounded quadrant at η = 0 toward "perfect
-> realisation" at (AUROC = 1.0, lift > 0) by η = 1; the combined
-> channel achieves higher lift at the ceiling while sharing the same
-> perfect ranking quality. This visualises the additive decomposition
-> of Theorem 5.2: as the prior-coupling term grows with η, only the
-> channels carrying that coupling move through metric space.
+> **Figure (TADI realisability on Setting C across coupling
+> strength).** Two stacked heatmaps over the (channel, η) grid:
+> top panel shows attack lift (red = DP-SGD bounded, blue = threat
+> realised); bottom panel shows AUROC (red = below chance, blue =
+> perfect ranking). The parameter channel $\mathcal{A}_1$ stays
+> uniformly red in the lift panel — DP-SGD bounds the controllable
+> term of Theorem 5.2 at every η. The organisational and combined
+> channels progress red → white → blue as η grows, with η = 1 cells
+> reaching +0.060 and +0.076 in the lift panel and 1.00 in the
+> AUROC panel — the threat is fully realised at the matched-prior
+> ceiling. The η = 0 column on both panels is the IID-null
+> calibration band; the structural-only channel
+> $\mathcal{A}_2^{\mathrm{topo}}$ row is uniformly white in both
+> panels, contributing no marginal signal.
 
 ---
 
