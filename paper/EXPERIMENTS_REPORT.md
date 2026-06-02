@@ -279,16 +279,22 @@ moderate-variance topologies (ER, BA $m=4$).
 > **Figure (η-sweep heatmap).** Privacy-bound gap
 > $K_{\mathrm{uniform}} - K^\star$ (nats) across nine topology
 > configurations and four coupling strengths on Setting C
-> ($n = 50$, $U = 0.5$, $T_{\max} = 100$). Rows are sorted by maximum
-> gap. The $\eta = 0$ IID-null calibration column is omitted from the
-> figure for compactness; Corollary 5.4 reduces to equality at uniform
-> leverage and the $\eta = 0$ column is identically zero across every
-> topology. The Ring row is identically zero at every shown $\eta$,
-> the deterministic-symmetric degeneracy of Corollary 5.4. Scale-free
-> topologies (BA, star) saturate within 2% of the analytic asymptote
-> $an/U \approx 1.22$ nats, marked on the colourbar. Among Erdős-Rényi
-> configurations the gap peaks non-monotonically at $p = 0.5$, where
-> the binomial degree variance is maximised.
+> ($n = 50$, $U = 0.5$, $T_{\max} = 100$, $C = 1.0$, $|B| = 64$).
+> Rows are sorted by maximum gap. The $\eta = 0$ IID-null calibration
+> column is omitted from the figure for compactness; Corollary 5.4
+> reduces to equality at uniform leverage and the $\eta = 0$ column
+> is identically zero across every topology. The Ring row is
+> identically zero at every shown $\eta$, the deterministic-symmetric
+> degeneracy of Corollary 5.4. The colourbar's $an/U$ tick marks the
+> **maximum possible gap** Fulcrum can deliver on this setting:
+> Corollary 5.4 gives
+> $K_{\mathrm{uniform}} - K^\star \leq an/U$ where
+> $a = T_{\max} C^2 / (2|B|^2)$, so for the parameters above
+> $an/U \approx 1.22$ nats. Scale-free topologies (BA, Star) saturate
+> within 2% of this analytic ceiling, confirming that the theorem's
+> asymptote is tight in the limit of extreme degree concentration.
+> Among Erdős-Rényi configurations the gap peaks non-monotonically
+> at $p = 0.5$, where the binomial degree variance is maximised.
 
 ---
 
