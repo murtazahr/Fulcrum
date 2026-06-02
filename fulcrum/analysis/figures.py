@@ -519,9 +519,10 @@ def _topology_row_label(row: pd.Series) -> str:
     if topo == "star":
         return "Star"
     if topo == "hierarchical":
-        sizes = row.get("topology.params.region_sizes")
-        if isinstance(sizes, (list, tuple, np.ndarray)) and len(sizes) > 0:
-            return "Hier. [" + ",".join(str(int(s)) for s in sizes) + "]"
+        # Don't inline the region sizes in the row label — they're long
+        # and the figure typically shows only one hierarchical config,
+        # so the caption can spell out the specific sizes. Plain
+        # "Hierarchical" keeps the y-axis tick labels uniform in length.
         return "Hierarchical"
     if topo == "erdos":
         p = row.get("topology.params.p")
@@ -698,7 +699,7 @@ def plot_eta_gap_heatmap(
     # Linear color scale anchored at 0; vmax slightly above asymptote so
     # the saturation row doesn't peg to pure black/white.
     vmax_data = float(np.nanmax(data)) if data.size else 1.0
-    vmax = max(vmax_data, asymptote_anU or 0.0) * 1.05 if vmax_data > 0 else 1.0
+    vmax = max(vmax_data * 1.05, (asymptote_anU or 0.0) * 1.03) if vmax_data > 0 else 1.0
     cmap = plt.get_cmap("rocket_r") if "rocket_r" in plt.colormaps() else plt.get_cmap("magma_r")
     norm = mcolors.Normalize(vmin=0.0, vmax=vmax)
 
@@ -748,15 +749,32 @@ def plot_eta_gap_heatmap(
     cbar = fig.colorbar(im, ax=ax, shrink=0.85, pad=0.02)
     cbar.set_label(r"$K_{\mathrm{uniform}} - K^\star$ (nats)")
     if asymptote_anU is not None and 0 < asymptote_anU < vmax:
-        cbar.ax.axhline(asymptote_anU, color="black", linewidth=0.9)
-        cbar.ax.annotate(
-            r"$an/U$",
-            xy=(1.05, asymptote_anU),
-            xycoords=cbar.ax.get_yaxis_transform(),
-            xytext=(6, 0), textcoords="offset points",
-            va="center", ha="left",
-            fontsize=8,
+        # Explicit ticks at clean round values, then the asymptote as
+        # the topmost labelled tick. Cap intermediate ticks at 78% of
+        # the asymptote so the "$an/U$" label has clear vertical space
+        # — a 22% gap between the last numeric tick and the asymptote
+        # reads as a distinct boundary, not a near-collision.
+        cutoff = 0.78 * asymptote_anU
+        # Pick a clean round step that yields 3–5 intermediate ticks.
+        # 0.3 is preferred (yields ~3 ticks for an asymptote near 1.2);
+        # the loop falls through to denser/sparser steps if 0.3 does
+        # not land in [3, 5].
+        for step in (0.3, 0.25, 0.2, 0.5, 0.1):
+            candidate = [round(step * k, 3) for k in range(20)
+                         if step * k <= cutoff]
+            if 3 <= len(candidate) <= 6:
+                ticks = candidate
+                break
+        else:
+            ticks = [0.0]
+        cbar.set_ticks(ticks + [asymptote_anU])
+        cbar.set_ticklabels(
+            [f"{t:g}" for t in ticks] + [r"$an/U$"]
         )
+        # Make the asymptote tick label visually prominent (bold).
+        cbar.ax.get_yticklabels()[-1].set_fontweight("bold")
+        # Thin black line at the asymptote to visually anchor it.
+        cbar.ax.axhline(asymptote_anU, color="black", linewidth=0.9)
 
     fig.tight_layout()
     _save(fig, output_path)
