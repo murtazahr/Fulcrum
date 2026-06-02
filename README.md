@@ -56,15 +56,9 @@ find equilibrium under structural leverage.
 
 ```
 Fulcrum/
-├── docs/                        research design + empirical write-up
+├── docs/                        public documentation
 │   ├── EMPIRICAL_RESULTS.md     full empirical write-up by claim
 │   ├── DEPLOYMENT.md            step-by-step VM deployment guide
-│   ├── research_framing.md      what the paper claims and what it does not
-│   ├── threat_model_partitioning.md
-│   ├── attack_design.md         TADI architecture, features, regressors
-│   ├── defense_design.md        Theorem 5.2 + Theorem 5.3 with full proofs
-│   ├── references.md            primary-source verified citations
-│   ├── decisions_log.md         chronological record of design commitments
 │   └── figures/                 publication-grade PDF + PNG renders
 ├── fulcrum/                     the Python package
 │   ├── data/                    Setting A/B/C data adapters
@@ -145,23 +139,6 @@ detail and figure references. Headline takeaways:
 | Improvement transfers across deployment regimes at every tested $(U, T_{\max})$ | Strict dominance at every Pareto cell on Settings A, B, C (relative gap up to **26.6%** on Fed-ISIC2019) | §4.2 |
 | Privacy gain comes at no measurable utility cost | TOST equivalence ($p < 0.05$ at $\pm 0.5$ pp margin) on all three settings, all $T_{\max}$ values | §4.3 |
 | The additive MI bound is empirically operational | Parameter channel bounded by DP-SGD on all settings; prior-coupling channels realise +0.076 lift and perfect AUROC at η=1 on Setting C; conservative under realistic public-proxy adversaries on Setting B | §4.4–§4.5 |
-
-## Design references
-
-Every design decision is documented in `docs/`. Notable entries:
-
-- [`docs/research_framing.md`](docs/research_framing.md) — what the paper
-  claims and what it deliberately does not.
-- [`docs/threat_model_partitioning.md`](docs/threat_model_partitioning.md)
-  — the formal adversary $\mathcal{A} = (\mathcal{K}, \mathcal{O}, \mathcal{I}, \mathcal{R})$,
-  the three experimental settings, and the IID-null calibration.
-- [`docs/defense_design.md`](docs/defense_design.md) — Theorem 5.2 +
-  Theorem 5.3 statements and full proofs, plus the SBM-derived leverage
-  corollary and the heuristic degree-based proxy.
-- [`docs/decisions_log.md`](docs/decisions_log.md) — chronological record
-  of every commitment, including two real math errors caught by
-  adversarial self-review (multiplicative→additive bound correction; MI
-  subadditivity misuse in the bounded-degree corollary).
 
 ## Citation
 

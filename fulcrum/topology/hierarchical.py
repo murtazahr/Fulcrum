@@ -11,8 +11,6 @@ This split lets us:
 - Apply :func:`fulcrum.dp.leverage.leverage_group_size` directly to ``omega``.
 - Implement hierarchical aggregation in the experiment runner as: average
   within each region, then average across regions to produce the global update.
-
-Design ref: Redesign/02_threat_model_partitioning.md §2.6 Setting A
 """
 
 from __future__ import annotations

@@ -15,8 +15,6 @@ The structural gap that this module fills:
 
 Output: a long-format Parquet table with one row per (target_run_id, channel)
 pair, ready to be joined with the runs DataFrame for plotting.
-
-Design ref: docs/attack_design.md §3.4–3.7
 """
 
 from __future__ import annotations

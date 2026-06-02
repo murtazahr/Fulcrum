@@ -10,9 +10,6 @@ triple with the correct $\\sigma_i$ for each client.
 It also handles the standard Opacus model-validity step
 (:class:`~opacus.validators.ModuleValidator.fix`) which replaces incompatible
 modules (BatchNorm, LayerNorm in some forms, etc.) with DP-friendly variants.
-
-See:
-    Redesign/04_defense_design.md  §4.6.5 (Theorem 1 proof, Lemma 2)
 """
 
 from __future__ import annotations

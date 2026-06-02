@@ -5,11 +5,6 @@ allocation defence and the TADI attack. Organised by claim, with
 per-cell numerical detail, figure references, methodological notes, and
 pointers to the underlying parquet exports under `analysis/`.
 
-> Companion documentation:
->  - [`defense_design.md`](defense_design.md) — Theorem 5.2 + Theorem 5.3 statements and full proofs.
->  - [`attack_design.md`](attack_design.md) — TADI architecture, channel ablations, regressor backends.
->  - [`threat_model_partitioning.md`](threat_model_partitioning.md) — the formal adversary and the three experimental settings.
-
 > **Setting A is intentionally omitted from the TADI channel
 > ablation.** The channel ablation tests prior realisability, and
 > Settings B and C span the two regimes of that axis: C is the

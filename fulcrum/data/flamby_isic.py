@@ -16,8 +16,6 @@ ISIC-2019 class encoding (from FLamby):
     5: DF   (dermatofibroma)
     6: VASC (vascular lesion)
     7: SCC  (squamous cell carcinoma)
-
-Design ref: Redesign/02_threat_model_partitioning.md §2.6 Setting A
 """
 
 from __future__ import annotations

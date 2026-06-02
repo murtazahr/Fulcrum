@@ -486,8 +486,7 @@ Positive area = topology-aware allocation dominates uniform on the Pareto front
 either:
 
 - Leverage scores were near-uniform in this setting (expected for some configs).
-- The defense's marginal value is small in this regime (deployment caveat — see
-  `docs/defense_design.md` §4.7).
+- The defense's marginal value is small in this regime (deployment caveat).
 
 ---
 

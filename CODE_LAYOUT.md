@@ -5,7 +5,9 @@ learning). Extends Murmura (https://github.com/Cloudslab/murmura) with
 DP-SGD, topology-aware noise allocation, FLamby + CIFAR-η data adapters,
 and the TADI attack.
 
-Design specification lives in [docs/overview.md](docs/overview.md).
+For the experimental write-up and headline results, see
+[docs/EMPIRICAL_RESULTS.md](docs/EMPIRICAL_RESULTS.md). For VM deployment
+instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Layout
 
@@ -48,7 +50,3 @@ python scripts/download_data.py     # fetches Fed-ISIC2019, Fed-Heart-Disease, C
 fulcrum run configs/setting_a_canonical.yaml
 ```
 
-## Stage status
-
-This is Stage 5 (experimental design) → Stage 6 (implementation) work. See
-[../decisions_log.md](../decisions_log.md) for the chronological commitments.

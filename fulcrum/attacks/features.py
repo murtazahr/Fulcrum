@@ -13,8 +13,6 @@ Two layers:
 
 The two-layer split is what keeps the per-run storage to ~10 KB even for
 ResNet-18: we never persist full parameter tensors, only norm summaries.
-
-Design ref: Redesign/03_attack_design.md §3.2
 """
 
 from __future__ import annotations

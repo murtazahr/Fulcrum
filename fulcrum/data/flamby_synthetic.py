@@ -14,11 +14,6 @@ the same Dirichlet($\\alpha$) + position-coupling construction as
 instances, identical in interface to the native FLamby adapters, so the
 experiment runner doesn't need to know whether a run is using native or
 synthetic partitioning.
-
-Design ref:
-    Redesign/03_attack_design.md  §3.4 ("public proxy dataset")
-    decisions_log: 2026-05-13 (synthetic-repartitioning commitment)
-
 Caching note: extracting per-sample labels from FLamby's datasets via
 iteration is slow (one full augmentation pass per image). Labels are
 cached to disk under ``data/_synthetic_cache/`` on first call.

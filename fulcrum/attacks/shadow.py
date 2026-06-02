@@ -18,8 +18,6 @@ Shadow runs are first-class experiments (just regular runs with
 ``mode: shadow`` flagged in the config). The experiment runner sees them
 as ordinary FL trainings; the only difference is that we record their
 ``p_i`` ground truth alongside the features for later regressor training.
-
-Design ref: Redesign/03_attack_design.md §3.4
 """
 
 from __future__ import annotations

@@ -11,10 +11,6 @@ where $K^\\star > \\max_i \\ell_i$ is the unique solution of the budget equation
 $g$ is strictly decreasing on $K > \\max_i \\ell_i$ with $g \\to +\\infty$ at
 the boundary and $g \\to 0$ at infinity, so 1D bisection converges in
 $O(\\log(1/\\text{tol}))$ iterations.
-
-See:
-    Redesign/04_defense_design.md  §4.6.7 (Theorem 2 proof)
-    Redesign/decisions_log.md      Stage 4 step 4.6 entry
 """
 
 from __future__ import annotations

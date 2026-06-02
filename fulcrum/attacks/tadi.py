@@ -18,8 +18,6 @@ Metrics computed by :func:`TADI.metrics`:
 - **AUROC** — only meaningful at $n \\geq 20$, used in Setting C
 - **Attack lift** — $L_{\\text{cal}}(\\bar p) - L_{\\text{cal}}(\\hat p)$ where
   $\\bar p$ is the constant-mean baseline. Positive lift = client-level signal.
-
-Design ref: Redesign/03_attack_design.md §3
 """
 
 from __future__ import annotations

@@ -1,8 +1,6 @@
 """CIFAR-10 partitioning with Dirichlet heterogeneity + topology coupling η.
 
 This is Setting C from the experimental design. See:
-    Redesign/02_threat_model_partitioning.md  §2.6 Setting C
-    Redesign/04_defense_design.md             §4.4 leverage definition
 
 Per-client class distribution Δ_i is constructed as:
 

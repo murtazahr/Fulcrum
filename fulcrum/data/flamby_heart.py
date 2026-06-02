@@ -6,8 +6,6 @@ into the unified :class:`~fulcrum.data.ClientDataset` interface.
 Setting B is binary, so the inference target reduces to per-site positive-rate
 prediction (Stage 2 design adjustment). The "sensitive class" is positive heart
 disease (label 1).
-
-Design ref: Redesign/02_threat_model_partitioning.md §2.6 Setting B
 """
 
 from __future__ import annotations
