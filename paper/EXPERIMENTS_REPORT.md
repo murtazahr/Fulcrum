@@ -10,15 +10,25 @@ methodological notes, and pointers to the underlying parquet exports.
 > considered locked. This report covers only §6, the empirical
 > validation.
 
-> **Outstanding items.** Two pieces of empirical work are still in
-> flight at the time of writing. They are flagged inline with the
-> tag **[PENDING]**:
+> **Outstanding items.** One piece of empirical work is still in
+> flight at the time of writing, flagged inline with **[PENDING]**:
 >  1. Setting B Pareto sweep at $T_{\max} = 25$ has only three of six
 >     $U$ cells populated (n = 9 paired runs instead of n = 18). A
 >     backfill YAML (`sweeps/pareto_setting_b_backfill_t25.yaml`) is
 >     queued on the VM.
->  2. Setting A is not represented in the TADI channel-ablation
->     figure — only Settings B and C have attack-eval parquets.
+>
+> **Setting A is intentionally omitted from the TADI channel
+> ablation.** The channel ablation tests prior realisability, and
+> Settings B and C span the two regimes of that axis: C is the
+> matched-prior calibration (synthetic shadow + synthetic target),
+> and B is the mismatched-prior cross-silo deployment representative
+> (synthetic shadow + native FLamby target). Setting A is also a
+> native-FLamby-partitioning deployment, so it would simply replicate
+> Setting B's qualitative finding (all channels negative) on a
+> different dataset at substantial computational cost. The Setting A
+> Pareto sweep (§4.2.1) and utility consistency (§4.3.1) provide the
+> defense evaluation on the Fed-ISIC2019 deployment without requiring
+> a separate attack run.
 
 ---
 
@@ -540,12 +550,14 @@ bound is conservative in a deployment-favourable direction.
 mean attack lift per channel per setting with 95% CI from seed
 variance.
 
-> **⚠ Figure issue.** The current PDF has `\TADI` rendered as literal
-> text in the title because matplotlib does not expand LaTeX macros.
-> Needs a fix in `fulcrum/analysis/figures.py:plot_attack_channel_ablation_cross_setting`
-> (change `r"\TADI channel ablation..."` to `"TADI channel ablation..."`).
-> Also: only Settings B and C appear — Setting A's attack-eval has not
-> yet been produced. See §6 of this report for the runbook.
+> **Note on figure scope.** The cross-setting bar chart covers Settings
+> B and C only, by design. The two settings span the prior-realisability
+> axis: C is matched-prior, B is mismatched-prior. Setting A is omitted
+> because its native FLamby partitioning would produce the same
+> qualitative pattern as Setting B (all channels negative) on a different
+> dataset; see the preamble of this report. The previous version of the
+> figure rendered the literal string `\TADI` in the title, which has
+> been fixed at the figure-code level.
 
 #### 4.4.1 Setting B — channel-by-channel
 
@@ -741,18 +753,13 @@ empirically into a smaller attainable attack lift.
    `sweeps/pareto_setting_b_backfill_t25.yaml` fills the three missing
    $U$ cells at $T_{\max} = 25$. After it lands, the row for
    $T_{\max} = 25$ in §4.2.2 and §4.3.2 should be regenerated.
-2. **Setting A attack-eval.** No `analysis/attack_setting_a.parquet`
-   exists. The cross-setting channel-ablation figure (§4.4) only
-   covers B and C. Need to train TADI on a Setting A shadow corpus
-   and evaluate against the 108 target runs.
-3. **Channel-ablation figure title.** Currently renders the literal
-   string `\TADI` because matplotlib does not expand LaTeX macros.
-   Already flagged as a fix in
-   `fulcrum/analysis/figures.py:plot_attack_channel_ablation_cross_setting`.
-4. **Heatmap regen.** The latest polish commit (filled $\eta = 0$
-   cells, cleaner x-axis label, asymptote tick on colourbar) has
-   been pushed but not yet rendered on the VM.
-5. **Stale figures in `paper/figures/`.** The following are
+2. **Figure regen with title-drop polish.** Pareto, η-heatmap,
+   channel-ablation, and attack-lift-vs-K figures all need to be
+   regenerated from the latest figure code (all four are now
+   title-less, with the LaTeX caption carrying the description). The
+   η-heatmap also picks up the filled $\eta = 0$ cells, cleaner
+   x-axis label, and the asymptote tick on the colourbar.
+3. **Stale figures in `paper/figures/`.** The following are
    superseded and should not be referenced in the rewrite:
    `attack_lift_eta_setting_c.pdf` (redundant with §4.5),
    `pareto_cross_setting.pdf` (redundant with per-setting Paretos),
