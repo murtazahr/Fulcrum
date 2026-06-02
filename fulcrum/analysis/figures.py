@@ -763,6 +763,12 @@ def plot_eta_gap_heatmap(
 # ---------------------------------------------------------------------------
 
 CHANNEL_ORDER = ["A1", "A2_topo", "A2_org", "A2_full"]
+CHANNEL_LABEL = {
+    "A1":      r"$\mathcal{A}_1$ (parameter)",
+    "A2_topo": r"$\mathcal{A}_2^{\mathrm{topo}}$ (structural)",
+    "A2_org":  r"$\mathcal{A}_2^{\mathrm{org}}$ (organisational)",
+    "A2_full": r"$\mathcal{A}_2^{\mathrm{full}}$ (combined)",
+}
 CHANNEL_COLOR = {
     "A1":      "#888888",   # parameter-only — neutral grey
     "A2_topo": "#2ca02c",   # structural — green
@@ -770,6 +776,211 @@ CHANNEL_COLOR = {
     "A2_full": "#1f77b4",   # combined — blue
 }
 CHANNEL_MARKER = {"A1": "o", "A2_topo": "^", "A2_org": "s", "A2_full": "D"}
+
+
+def plot_tadi_realisability_eta_sweep(
+    df: pd.DataFrame,
+    output_path: str | Path,
+    eta_col: str = "data.eta",
+    channel_col: str = "channel",
+) -> None:
+    """Setting C TADI realisability: attack lift and AUROC vs η, per channel.
+
+    The primary attack-evaluation figure. Two side-by-side panels share
+    the x-axis (coupling strength $\\eta$) and overlay all four channel
+    ablations. Reference lines mark the calibration nulls (lift = 0 in
+    the left panel; AUROC = 0.5, chance, in the right panel).
+
+    Args:
+        df: attack-eval dataframe joined with target-run config so
+            ``eta_col`` is available. Expected columns: ``channel``,
+            ``attack_lift``, ``auroc``, plus ``eta_col``.
+        output_path: figure path (without extension).
+
+    The figure makes three claims readable at a glance:
+
+    - **DP-SGD bounds the parameter channel.** $\\mathcal{A}_1$'s lift
+      sits at or below zero across all η values, confirming the
+      controllable term of Theorem 5.2 is suppressed by DP-SGD noise.
+    - **Prior coupling realised through the organisational channel.**
+      $\\mathcal{A}_2^{\\mathrm{org}}$'s lift and AUROC both rise
+      monotonically with η and reach perfect AUROC = 1.0 at η ≥ 0.75.
+    - **Channel non-dominance.** $\\mathcal{A}_2^{\\mathrm{full}}$ does
+      not strictly dominate $\\mathcal{A}_2^{\\mathrm{org}}$ on lift;
+      the combined adversary's additional features add noise that the
+      finite shadow corpus cannot disambiguate.
+    """
+    _set_style()
+    import matplotlib.pyplot as plt
+
+    needed = {eta_col, channel_col, "attack_lift", "auroc"}
+    missing = needed - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing columns for realisability plot: {sorted(missing)}")
+    df = df.dropna(subset=[eta_col, channel_col, "attack_lift", "auroc"])
+
+    fig, (ax_lift, ax_auc) = plt.subplots(1, 2, figsize=(8.5, 3.4))
+
+    for ch in CHANNEL_ORDER:
+        sub = df[df[channel_col] == ch]
+        if sub.empty:
+            continue
+        for ax, col, zero_line in (
+            (ax_lift, "attack_lift", 0.0),
+            (ax_auc, "auroc", 0.5),
+        ):
+            agg = (sub.groupby(eta_col)[col]
+                      .agg(["mean", "std", "count"])
+                      .reset_index()
+                      .sort_values(eta_col))
+            ci = 1.96 * agg["std"].fillna(0.0) / np.sqrt(agg["count"].clip(lower=1))
+            ax.plot(
+                agg[eta_col], agg["mean"],
+                marker=CHANNEL_MARKER.get(ch, "o"),
+                color=CHANNEL_COLOR.get(ch, "black"),
+                linewidth=1.8, markersize=6,
+                label=CHANNEL_LABEL.get(ch, ch),
+                zorder=3,
+            )
+            ax.fill_between(
+                agg[eta_col],
+                agg["mean"] - ci,
+                agg["mean"] + ci,
+                color=CHANNEL_COLOR.get(ch, "black"),
+                alpha=0.15, zorder=2,
+            )
+
+    # Reference lines and panel-specific styling
+    ax_lift.axhline(0.0, color="black", linewidth=0.7,
+                    linestyle="--", alpha=0.6, zorder=1)
+    ax_lift.set_xlabel(r"Topology vs. data coupling $\eta$")
+    ax_lift.set_ylabel(r"Attack lift  $L_{\mathrm{cal}}(\bar p) - L_{\mathrm{cal}}(\hat p)$")
+    ax_lift.text(
+        0.02, 0.05, "DP-SGD\nbound", transform=ax_lift.transAxes,
+        ha="left", va="bottom", fontsize=8,
+        color="#444444", style="italic",
+    )
+
+    ax_auc.axhline(0.5, color="black", linewidth=0.7,
+                   linestyle="--", alpha=0.6, zorder=1)
+    ax_auc.set_xlabel(r"Topology vs. data coupling $\eta$")
+    ax_auc.set_ylabel(r"AUROC (binary $p_i > \tau$)")
+    ax_auc.set_ylim(0.35, 1.05)
+    ax_auc.text(
+        0.02, 0.05, "chance\n(0.5)", transform=ax_auc.transAxes,
+        ha="left", va="bottom", fontsize=8,
+        color="#444444", style="italic",
+    )
+
+    # Shared legend at top
+    handles, labels = ax_lift.get_legend_handles_labels()
+    fig.legend(
+        handles, labels,
+        loc="upper center", bbox_to_anchor=(0.5, 1.02),
+        ncol=4, fontsize=8.5, frameon=False,
+    )
+    # No figure title; the LaTeX caption carries the description.
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    _save(fig, output_path)
+    plt.close(fig)
+
+
+def plot_channel_ablation_dual_metric(
+    setting_attack_dfs: dict,
+    output_path: str | Path,
+    metric_cols: tuple[str, str] = ("attack_lift", "auroc"),
+    metric_labels: tuple[str, str] = (
+        r"Attack lift  $L_{\mathrm{cal}}(\bar p) - L_{\mathrm{cal}}(\hat p)$",
+        r"AUROC (binary $p_i > \tau$)",
+    ),
+    metric_refs: tuple[float, float] = (0.0, 0.5),
+    channel_col: str = "channel",
+) -> None:
+    """Cross-setting channel ablation, two metrics side by side.
+
+    Two grouped bar charts: panel (a) attack lift, panel (b) AUROC,
+    with 95% CI from seed variance. Channels are colour-coded
+    consistently with :func:`plot_tadi_realisability_eta_sweep`.
+
+    Args:
+        setting_attack_dfs: mapping setting label → attack-eval
+            DataFrame, possibly pre-filtered (e.g. Setting C limited
+            to η=1 cells before being passed in).
+        output_path: figure path (without extension).
+        metric_cols: column names for the two metrics (default
+            ``("attack_lift", "auroc")``).
+        metric_labels: y-axis labels for the two panels.
+        metric_refs: horizontal reference line value per panel
+            (lift = 0 for the calibration null; AUROC = 0.5 for chance).
+        channel_col: column name carrying the channel ablation label.
+
+    The figure makes one claim:
+
+    - DP-SGD bounds the parameter channel ($\\mathcal{A}_1$) on every
+      setting; under matched prior (Setting C at η=1), the org and
+      full channels realise positive lift and AUROC ≫ 0.5; under
+      mismatched prior (Setting B), no channel achieves positive lift
+      and AUROC stays near chance.
+    """
+    _set_style()
+    import matplotlib.pyplot as plt
+
+    settings = [s for s in ("A", "B", "C") if s in setting_attack_dfs]
+    if not settings:
+        raise ValueError("No attack-eval data provided")
+
+    n_channels = len(CHANNEL_ORDER)
+    n_settings = len(settings)
+    bar_width = 0.8 / n_channels
+    x_pos = np.arange(n_settings)
+
+    fig, axes = plt.subplots(1, 2, figsize=(8.5, 3.6))
+
+    for panel_idx, (ax, metric_col, ylabel, ref) in enumerate(
+        zip(axes, metric_cols, metric_labels, metric_refs)
+    ):
+        for ci_idx, ch in enumerate(CHANNEL_ORDER):
+            means, errs = [], []
+            for s in settings:
+                df = setting_attack_dfs[s]
+                sub = df[df[channel_col] == ch]
+                if sub.empty:
+                    means.append(np.nan)
+                    errs.append(0.0)
+                else:
+                    m = float(sub[metric_col].mean())
+                    std = float(sub[metric_col].std() or 0.0)
+                    n = max(len(sub), 1)
+                    means.append(m)
+                    errs.append(1.96 * std / np.sqrt(n))
+            offset = (ci_idx - (n_channels - 1) / 2) * bar_width
+            ax.bar(
+                x_pos + offset, means, bar_width,
+                yerr=errs,
+                label=CHANNEL_LABEL.get(ch, ch) if panel_idx == 0 else None,
+                color=CHANNEL_COLOR.get(ch, "gray"),
+                edgecolor="black", linewidth=0.4,
+                capsize=2, error_kw={"linewidth": 0.7},
+                zorder=2,
+            )
+
+        ax.axhline(ref, color="black", linewidth=0.7,
+                   linestyle="--", alpha=0.6, zorder=1)
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels([f"Setting {s}" for s in settings])
+        ax.set_ylabel(ylabel)
+
+    # Shared legend at top
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(
+        handles, labels,
+        loc="upper center", bbox_to_anchor=(0.5, 1.02),
+        ncol=4, fontsize=8.5, frameon=False,
+    )
+    # No figure title; the LaTeX caption carries the description.
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    _save(fig, output_path)
+    plt.close(fig)
 
 
 def plot_attack_lift_eta(

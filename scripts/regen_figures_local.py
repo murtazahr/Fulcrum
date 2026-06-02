@@ -27,10 +27,10 @@ from pathlib import Path
 import pandas as pd
 
 from fulcrum.analysis.figures import (
-    plot_attack_channel_ablation_cross_setting,
-    plot_attack_lift_vs_K,
+    plot_channel_ablation_dual_metric,
     plot_eta_gap_heatmap,
     plot_pareto_setting,
+    plot_tadi_realisability_eta_sweep,
     utility_consistency_latex,
     utility_consistency_table,
 )
@@ -105,32 +105,45 @@ def regen_eta_heatmap():
     print(f"  η-heatmap: {out}.{{pdf,png}}  (asymptote an/U = {asym:.4f})")
 
 
-def regen_channel_ablation():
-    setting_attack = {}
-    for s in ("A", "B", "C"):
-        p = ANALYSIS / f"attack_setting_{s.lower()}.parquet"
-        if p.exists():
-            setting_attack[s] = pd.read_parquet(p)
-    if not setting_attack:
-        print("  Channel ablation: NO attack parquets, skipping")
-        return
-    out = ANALYSIS / "channel_ablation_cross_setting"
-    plot_attack_channel_ablation_cross_setting(setting_attack, out)
-    print(f"  Channel ablation cross-setting: {out}.{{pdf,png}}  (settings={list(setting_attack)})")
-
-
-def regen_attack_lift_vs_K():
-    # Setting C only — the others don't have meaningful K* dynamics here
+def regen_tadi_realisability():
+    """Setting C η-sweep: attack lift + AUROC vs η for the four channels."""
     attack = pd.read_parquet(ANALYSIS / "attack_setting_c.parquet")
     runs = pd.read_parquet(ANALYSIS / "setting_c_all.parquet")
-    keep = ["run_id", "data.eta", "K_star"]
     joined = attack.merge(
-        runs[keep].rename(columns={"run_id": "target_run_id"}),
+        runs[["run_id", "data.eta"]].rename(columns={"run_id": "target_run_id"}),
         on="target_run_id", how="left",
     )
-    out = ANALYSIS / "attack_lift_vs_K_setting_c"
-    plot_attack_lift_vs_K(joined, "C", out)
-    print(f"  Attack lift vs K* (Setting C): {out}.{{pdf,png}}")
+    out = ANALYSIS / "tadi_realisability_setting_c"
+    plot_tadi_realisability_eta_sweep(joined, out)
+    print(f"  TADI realisability (Setting C η-sweep): {out}.{{pdf,png}}")
+
+
+def regen_cross_setting_channel_ablation():
+    """Cross-setting bars: Setting C restricted to η=1 cells (matched-prior
+    ceiling), Setting B left as-is (mismatched-prior native partitioning)."""
+    setting_attack: dict[str, pd.DataFrame] = {}
+
+    # Setting C — restrict to η=1 cells
+    if (ANALYSIS / "attack_setting_c.parquet").exists():
+        attack_c = pd.read_parquet(ANALYSIS / "attack_setting_c.parquet")
+        runs_c = pd.read_parquet(ANALYSIS / "setting_c_all.parquet")
+        joined_c = attack_c.merge(
+            runs_c[["run_id", "data.eta"]].rename(columns={"run_id": "target_run_id"}),
+            on="target_run_id", how="left",
+        )
+        setting_attack["C"] = joined_c[joined_c["data.eta"] == 1.0]
+
+    # Setting B — all runs (no η dependence in the native partitioning)
+    if (ANALYSIS / "attack_setting_b.parquet").exists():
+        setting_attack["B"] = pd.read_parquet(ANALYSIS / "attack_setting_b.parquet")
+
+    if not setting_attack:
+        print("  Cross-setting channel ablation: NO attack parquets, skipping")
+        return
+    out = ANALYSIS / "channel_ablation_cross_setting"
+    plot_channel_ablation_dual_metric(setting_attack, out)
+    print(f"  Cross-setting channel ablation (lift + AUROC): {out}.{{pdf,png}}  "
+          f"(settings={sorted(setting_attack)}, C restricted to η=1)")
 
 
 def copy_to_paper_figures():
@@ -139,8 +152,8 @@ def copy_to_paper_figures():
         "pareto_setting_a.pdf",
         "pareto_setting_b.pdf",
         "pareto_setting_c.pdf",
+        "tadi_realisability_setting_c.pdf",
         "channel_ablation_cross_setting.pdf",
-        "attack_lift_vs_K_setting_c.pdf",
     ):
         src = ANALYSIS / name
         dst = FIGURES / name
@@ -154,10 +167,10 @@ def main():
     regen_pareto_and_util()
     print("\n== η-heatmap ==")
     regen_eta_heatmap()
-    print("\n== Channel ablation (cross-setting) ==")
-    regen_channel_ablation()
-    print("\n== Attack lift vs K* (Setting C) ==")
-    regen_attack_lift_vs_K()
+    print("\n== TADI realisability (Setting C η-sweep) ==")
+    regen_tadi_realisability()
+    print("\n== Cross-setting channel ablation (lift + AUROC bars) ==")
+    regen_cross_setting_channel_ablation()
     print("\n== Copy to paper/figures/ ==")
     copy_to_paper_figures()
     print("\nDone.")

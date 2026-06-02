@@ -526,25 +526,27 @@ from §4.2 is therefore not "bought" at the price of accuracy.
 **Headline finding.** DP-SGD bounds the parameter channel across
 all settings (negative or near-zero attack lift on $\mathcal{A}_1$).
 The prior-coupling channels (org, full) realise positive attack lift
-when the adversary's shadow prior matches the target's deployment
-prior (Setting C, synthetic-shadow + synthetic-target). When the
-prior is mismatched (Settings A/B with synthetic-shadow + native
-FLamby-partition target), no channel achieves positive lift — the
-bound is conservative in a deployment-favourable direction.
+*and perfect AUROC = 1.0* on Setting C when the adversary's shadow
+prior matches the target's deployment prior (η = 1 ceiling). When
+the prior is mismatched (Setting B with synthetic-shadow + native
+FLamby target), no channel achieves positive lift — the bound is
+conservative in a deployment-favourable direction.
 
-**Primary cross-setting figure.**
-`paper/figures/channel_ablation_cross_setting.pdf`. Bar chart of
-mean attack lift per channel per setting with 95% CI from seed
-variance.
+**Primary figure.**
+`paper/figures/channel_ablation_cross_setting.pdf`. Two-panel
+side-by-side: panel (a) attack lift, panel (b) AUROC, both as
+grouped bars with 95% CI from seed variance. **Setting C is
+restricted to the η = 1 cells** so the comparison is the
+matched-prior ceiling on C against the realistic-deployment
+floor on B. The per-η evolution on C is shown separately in §4.5
+(Figure `tadi_realisability_setting_c.pdf`).
 
-> **Note on figure scope.** The cross-setting bar chart covers Settings
-> B and C only, by design. The two settings span the prior-realisability
-> axis: C is matched-prior, B is mismatched-prior. Setting A is omitted
-> because its native FLamby partitioning would produce the same
-> qualitative pattern as Setting B (all channels negative) on a different
-> dataset; see the preamble of this report. The previous version of the
-> figure rendered the literal string `\TADI` in the title, which has
-> been fixed at the figure-code level.
+> **Note on figure scope.** Settings B and C only, by design. The two
+> settings span the prior-realisability axis: C at η=1 is matched-prior,
+> B is mismatched-prior. Setting A is omitted because its native FLamby
+> partitioning would produce the same qualitative pattern as Setting B
+> (all channels negative) on a different dataset; see the preamble of
+> this report.
 
 #### 4.4.1 Setting B — channel-by-channel
 
@@ -574,67 +576,80 @@ defines structural leverage is the *worst-case* coupling over the
 prior family; the adversary, with a mismatched shadow prior, cannot
 realise that worst case.
 
-#### 4.4.2 Setting C — channel-by-channel
+#### 4.4.2 Setting C — channel-by-channel at the η = 1 matched-prior ceiling
 
-Aggregated over 228 target runs × 4 regressor backends.
+These are the bars shown in `channel_ablation_cross_setting.pdf`.
 
-| Channel | Attack lift (mean) | 95% CI | Calibration loss | AUROC | Top-K |
+| Channel | Attack lift | 95% CI | AUROC | 95% CI | Top-K |
 |---|---|---|---|---|---|
-| $\mathcal{A}_1$ (param-only) | $-0.027$ | $\pm 0.002$ | 0.056 | 0.57 | 0.31 |
-| $\mathcal{A}_2^{\text{topo}}$ | $-0.001$ | $\pm 0.000$ | 0.030 | 0.52 | 0.39 |
-| $\mathcal{A}_2^{\text{org}}$ | $+0.018$ | $\pm 0.003$ | 0.011 | 0.78 | 0.49 |
-| $\mathcal{A}_2^{\text{full}}$ | $+0.003$ | $\pm 0.005$ | 0.026 | 0.80 | 0.46 |
+| $\mathcal{A}_1$ (param-only) | $-0.021$ | $\pm 0.002$ | 0.67 | $\pm 0.09$ | 0.31 |
+| $\mathcal{A}_2^{\text{topo}}$ | $-0.001$ | $\pm 0.001$ | 0.52 | $\pm 0.03$ | 0.39 |
+| $\mathcal{A}_2^{\text{org}}$ | $+0.060$ | $\pm 0.000$ | **1.00** | $\pm 0.00$ | 0.49 |
+| $\mathcal{A}_2^{\text{full}}$ | $+0.076$ | $\pm 0.000$ | **1.00** | $\pm 0.00$ | 0.46 |
 
 **Reading.**
 
-- $\mathcal{A}_1$ (param-only): negative lift — DP-SGD bounds the
-  parameter channel as expected.
+- $\mathcal{A}_1$ (param-only): negative lift confirming DP-SGD
+  bounds the parameter channel even at the matched-prior ceiling.
+  AUROC noisy (0.67 ± 0.09) — the regressor occasionally ranks
+  clients better than chance from parameter trajectories alone, but
+  not in a reliable lift-positive way.
 - $\mathcal{A}_2^{\text{topo}}$ (param + structural): near-zero lift,
-  AUROC essentially chance (0.52). The hierarchical depth + degree
-  features carry no marginal information in Setting C at this U/T
-  budget.
+  AUROC at chance (0.52). The hierarchical depth + degree features
+  carry no marginal information in Setting C at this U/T budget.
 - $\mathcal{A}_2^{\text{org}}$ (param + organisational label):
-  **positive lift +0.018** and AUROC 0.78. The organisational label
-  is the channel through which prior coupling is realised. Top-K
-  recovery is 0.49 — the adversary correctly identifies roughly half
-  the top-concentration clients.
-- $\mathcal{A}_2^{\text{full}}$ (all channels): positive lift +0.003
-  (smaller than org alone), AUROC 0.80 (slightly higher than org
-  alone), Top-K 0.46 (slightly lower than org alone).
+  **lift +0.060 and perfect AUROC = 1.0**. The organisational label
+  is the channel through which prior coupling is realised. The
+  adversary can perfectly rank clients by sensitive-class
+  concentration.
+- $\mathcal{A}_2^{\text{full}}$ (all channels): **lift +0.076,
+  perfect AUROC = 1.0**. The combined adversary marginally exceeds
+  org on lift at the matched-prior ceiling, with the same perfect
+  ranking quality.
 
-#### 4.4.3 The non-dominance finding worth highlighting
+#### 4.4.3 Channel non-dominance is a finding about coupling strength
 
-**$\mathcal{A}_2^{\text{full}}$ does *not* strictly dominate
-$\mathcal{A}_2^{\text{org}}$.** On Setting C the org channel achieves
-higher lift (+0.018 vs +0.003) and competitive AUROC. The combined
-adversary sees more features but receives them with finite-shadow
-overhead that the additional channels do not pay back in signal.
+A subtlety worth highlighting: at η = 1 (the ceiling), the combined
+channel $\mathcal{A}_2^{\text{full}}$ exceeds $\mathcal{A}_2^{\text{org}}$
+on lift (+0.076 vs +0.060). But averaged across all η values, the
+ordering flips: org averages to +0.018, full averages to +0.003. The
+crossover is around η = 0.5, visible in
+`tadi_realisability_setting_c.pdf` (§4.5).
 
-This is significant for the manuscript narrative: the four channels
-should be presented as a *decomposition of information sources*, not
-a tournament of strictly-ordered adversaries. The empirical pattern
-of which channel dominates depends on the deployment regime and the
-adversary's shadow-corpus design.
+The mechanism: $\mathcal{A}_2^{\text{full}}$ receives more features
+than $\mathcal{A}_2^{\text{org}}$, but on a finite shadow corpus the
+extra dimensions act as noise when the coupling is weak. As coupling
+grows, those dimensions resolve to genuine signal and the combined
+channel pulls ahead.
+
+This is an important narrative point: **the four channels are a
+decomposition of information sources, not a tournament of strictly
+ordered adversaries.** The realised-dominance pattern depends on the
+coupling strength and on the size of the adversary's shadow corpus.
 
 #### 4.4.4 Suggested figure caption (channel ablation)
 
-> **Figure (TADI channel ablation across settings).** Mean attack
-> lift $L_{\mathrm{cal}}(\bar p) - L_{\mathrm{cal}}(\hat p)$ per
-> channel per setting, with 95% confidence intervals from seed
-> variance. Positive lift means the adversary beats the
-> constant-mean baseline. DP-SGD bounds the parameter channel
-> $\mathcal{A}_1$ across all settings (lift $\leq 0$). The
-> organisational and combined channels realise positive lift on
-> Setting C, where the adversary's shadow prior matches the target
-> prior. On Setting B, where the shadow corpus is synthetic
-> re-partitioning of the same FLamby dataset but the target uses
-> native partitioning, no channel achieves positive lift — the
-> prior gap places the supremum $\ell_i^\circ$ out of empirical
-> reach.
+> **Figure (TADI channel ablation across prior regimes).** Mean
+> attack lift (left) and AUROC (right) per channel per setting, with
+> 95% confidence intervals from seed variance. Setting C bars are
+> restricted to the η = 1 matched-prior ceiling for an
+> apples-to-apples comparison with Setting B's native FLamby
+> partitioning (no η dial). DP-SGD bounds the parameter channel
+> $\mathcal{A}_1$ across both settings (lift ≤ 0). Under matched
+> prior, the organisational and combined channels realise positive
+> lift and perfect AUROC = 1.0; under mismatched prior, no channel
+> achieves positive lift and AUROC stays near chance. The prior gap
+> places the supremum $\ell_i^\circ$ out of the public-proxy
+> adversary's reach on real cross-silo deployments.
 
 ---
 
 ### 4.5 Bound realisability across $\eta$ — Setting C
+
+**Primary figure.** `paper/figures/tadi_realisability_setting_c.pdf`.
+Two-panel side-by-side: panel (a) attack lift vs η, panel (b) AUROC
+vs η. All four channels overlaid in each panel with 95% CI shading,
+horizontal reference lines at lift = 0 and AUROC = 0.5 (chance).
 
 **Headline finding.** On Setting C (matched shadow/target prior),
 attack lift grows monotonically with the coupling strength $\eta$
@@ -677,40 +692,24 @@ $-0.071$ depending on channel) but small enough to call
 "calibration-null." The small negative bias reflects regressor
 overfitting on a finite shadow corpus and is not a meaningful signal.
 
-#### 4.5.4 Bound realisability as K* grows
+#### 4.5.4 Suggested figure caption (realisability η-sweep)
 
-`paper/figures/attack_lift_vs_K_setting_c.pdf`. Scatter of attack
-lift vs predicted bound $K^\star$ (log $x$-axis), faceted by channel,
-coloured by $\eta$.
-
-| $K^\star$ bin (nats) | Attack lift (full channel mean) | AUROC | $n$ |
-|---|---|---|---|
-| $(1.16, 12.73]$ | $+0.001$ | 0.79 | 198 |
-| $(12.73, 24.25]$ | $-0.016$ | 0.66 | 12 |
-| $(24.25, 35.76]$ | $+0.003$ | 0.82 | 6 |
-| $(35.76, 47.27]$ | $+0.041$ | 1.00 | 6 |
-| $(47.27, 58.79]$ | $+0.076$ | 1.00 | 6 |
-
-**Reading.** At low $K^\star$ (the typical TA-allocation regime, $\leq
-13$ nats), attack lift is near zero. At very high $K^\star$ (the
-star-uniform regime, 47-59 nats), attack lift reaches +0.076 with
-perfect AUROC. **The bound becomes practically realisable as it
-grows.** A smaller $K^\star$ (which Fulcrum delivers) translates
-empirically into a smaller attainable attack lift.
-
-#### 4.5.5 Suggested figure caption (lift vs K*)
-
-> **Figure (Attack lift vs theoretical bound, Setting C).** Per-run
-> attack lift against the predicted privacy bound $K^\star$ (nats,
-> log scale), faceted by channel, coloured by coupling strength
-> $\eta$. The org and full channels show a clear positive trend
-> (Pearson $r = +0.351$): as the bound grows, the adversary realises
-> more of it. The parameter channel $\mathcal{A}_1$ stays bounded by
-> DP-SGD ($r = +0.123$, weak) and the structural channel
-> $\mathcal{A}_2^{\text{topo}}$ stays at chance ($r = -0.155$). The
-> bound becoming practically realisable at large $K^\star$ is the
-> empirical justification for Fulcrum's allocation, which reduces
-> $K^\star$ at every $(U, T_{\max})$ cell across all three settings.
+> **Figure (TADI realisability on Setting C).** Attack lift (left)
+> and AUROC (right) as a function of the coupling strength η for
+> each channel ablation, with 95% confidence intervals from seed
+> variance. The parameter channel $\mathcal{A}_1$ stays bounded by
+> DP-SGD across all η (lift ≤ 0), confirming the controllable term
+> of Theorem 5.2 is suppressed by per-client noise. The
+> organisational channel $\mathcal{A}_2^{\mathrm{org}}$ rises
+> monotonically: attack lift crosses zero near η = 0.5 and reaches
+> +0.060 at η = 1; AUROC reaches perfect ranking quality (1.00) at
+> η ≥ 0.75. The combined channel $\mathcal{A}_2^{\mathrm{full}}$
+> mirrors org with a steeper lift slope, overtaking org at η = 0.5.
+> The structural-only channel $\mathcal{A}_2^{\mathrm{topo}}$ never
+> achieves traction at this $U / T_{\max}$ budget. The η = 0 cells
+> serve as the IID-null calibration: with no topology-data
+> correlation, every channel's lift is at or below zero and AUROC
+> is at chance.
 
 ---
 
@@ -762,8 +761,8 @@ when the rewrite lands.
 | `pareto_setting_a.pdf` | Setting A privacy-utility Pareto | §4.2.1 |
 | `pareto_setting_b.pdf` | Setting B privacy-utility Pareto | §4.2.2 |
 | `pareto_setting_c.pdf` | Setting C privacy-utility Pareto | §4.2.3 |
-| `channel_ablation_cross_setting.pdf` | TADI channel ablation across settings | §4.4 |
-| `attack_lift_vs_K_setting_c.pdf` | Bound realisability across η, K* | §4.5 |
+| `channel_ablation_cross_setting.pdf` | Cross-setting channel ablation (lift + AUROC), Setting C at η=1 ceiling | §4.4 |
+| `tadi_realisability_setting_c.pdf` | Setting C η-sweep, lift + AUROC for each channel | §4.5 |
 
 ### 7.2 Untouched (used elsewhere in the manuscript)
 
