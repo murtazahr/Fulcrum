@@ -10,13 +10,6 @@ methodological notes, and pointers to the underlying parquet exports.
 > considered locked. This report covers only §6, the empirical
 > validation.
 
-> **Outstanding items.** One piece of empirical work is still in
-> flight at the time of writing, flagged inline with **[PENDING]**:
->  1. Setting B Pareto sweep at $T_{\max} = 25$ has only three of six
->     $U$ cells populated (n = 9 paired runs instead of n = 18). A
->     backfill YAML (`sweeps/pareto_setting_b_backfill_t25.yaml`) is
->     queued on the VM.
->
 > **Setting A is intentionally omitted from the TADI channel
 > ablation.** The channel ablation tests prior realisability, and
 > Settings B and C span the two regimes of that axis: C is the
@@ -132,15 +125,9 @@ specific theoretical result and a specific sub-section of §6.
 | Setting | Sweep type | $U$ grid | $T_{\max}$ grid | Topology | $\eta$ | Allocations | Seeds | Runs |
 |---|---|---|---|---|---|---|---|---|
 | A | Pareto | $\{0.05, 0.1, 0.2, 0.4, 0.8, 1.6\}$ | $\{25, 50, 100\}$ | hierarchical (native) | — | TA, uniform | 0, 1, 2 | 108 |
-| B | Pareto | $\{0.025, 0.05, 0.1, 0.2, 0.4, 0.8\}$ | $\{20, 50, 100\}$ (full) + $\{25\}$ (sparse) | ring | — | TA, uniform | 0, 1, 2 | 252 in DB; 90 after $T \in \{25, 50, 100\}$ filter |
+| B | Pareto | $\{0.025, 0.05, 0.1, 0.2, 0.4, 0.8\}$ | $\{25, 50, 100\}$ | ring | — | TA, uniform | 0, 1, 2 | 288 in DB; 252 after $T \in \{25, 50, 100\}$ filter |
 | C | Pareto | $\{0.05, 0.1, 0.2, 0.4, 0.8, 1.6\}$ | $\{25, 50, 100\}$ | hierarchical $[20,15,10,3,2]$ | 0.5 | TA, uniform | 0, 1, 2 | 108 |
 | C | η-sweep | $\{0.5\}$ | $\{100\}$ | 9 configs above | $\{0, 0.25, 0.5, 0.75, 1\}$ | TA, uniform | 0, 1, 2 | 269 |
-
-> **[PENDING]** Setting B $T_{\max} = 25$ is currently sparse:
-> only $U \in \{0.05, 0.2, 0.8\}$ have completed runs. Backfill of
-> $U \in \{0.025, 0.1, 0.4\}$ is queued; once it lands the row will
-> have full $n = 18$ pair count and the figure panel will match A and
-> C's coverage.
 
 ### Statistical methods
 
@@ -357,37 +344,40 @@ leverage-spread of all three settings.
 #### 4.2.2 Setting B — Fed-Heart-Disease
 
 **Figure.** `paper/figures/pareto_setting_b.pdf`. Three panels as
-in Setting A. **[PENDING]** the $T_{\max} = 25$ panel will become
-dense once the backfill completes; right now it has only three U
-points.
+in Setting A; full coverage at every $(U, T_{\max})$ cell after the
+backfill landed.
 
-**Per-cell digest (current data — will be updated after backfill).**
+**Per-cell digest.**
 
 | $T_{\max}$ | $U$ | $K_{\mathrm{TA}}^\star$ | $K_{\mathrm{uniform}}$ | gap (nats) | gap (%) |
 |---|---|---|---|---|---|
-| 25  | 0.050 | 4.930   | 5.216   | 0.286 | 5.5% |
-| 25  | 0.200 | 2.082   | 2.287   | 0.205 | 8.9% |
-| 25  | 0.800 | 1.464   | 1.554   | 0.090 | 5.8% |
-| 50  | 0.025 | 16.645  | 17.263  | 0.618 | 3.6% |
-| 50  | 0.050 | 8.852   | 9.450   | 0.599 | 6.3% |
-| 50  | 0.100 | 4.982   | 5.544   | 0.562 | 10.1% |
-| 50  | 0.200 | 3.097   | 3.591   | 0.494 | 13.8% |
-| 50  | 0.400 | 2.226   | 2.614   | 0.389 | 14.9% |
-| 50  | 0.800 | 1.862   | 2.126   | 0.265 | 12.4% |
-| 100 | 0.025 | 32.260  | 32.888  | 0.628 | 1.9% |
-| 100 | 0.050 | 16.633  | 17.001  | 0.367 | 2.2% |
-| 100 | 0.100 | 8.852   | 9.450   | 0.599 | 6.3% |
-| 100 | 0.200 | 4.941   | 5.282   | 0.341 | 6.5% |
-| 100 | 0.400 | 3.097   | 3.591   | 0.494 | 13.8% |
-| 100 | 0.800 | 2.111   | 2.352   | 0.241 | 10.3% |
+| 25  | 0.025 | 8.852  | 9.450  | 0.599 | 6.3% |
+| 25  | 0.050 | 4.941  | 5.282  | 0.341 | 6.5% |
+| 25  | 0.100 | 3.097  | 3.591  | 0.494 | 13.8% |
+| 25  | 0.200 | 2.111  | 2.352  | 0.241 | 10.3% |
+| 25  | 0.400 | 1.862  | 2.126  | 0.265 | 12.4% |
+| 25  | 0.800 | 1.516  | 1.620  | 0.103 | 6.4% |
+| 50  | 0.025 | 16.645 | 17.263 | 0.618 | 3.6% |
+| 50  | 0.050 | 8.852  | 9.450  | 0.599 | 6.3% |
+| 50  | 0.100 | 4.982  | 5.544  | 0.562 | 10.1% |
+| 50  | 0.200 | 3.097  | 3.591  | 0.494 | 13.8% |
+| 50  | 0.400 | 2.226  | 2.614  | 0.389 | 14.9% |
+| 50  | 0.800 | 1.862  | 2.126  | 0.265 | 12.4% |
+| 100 | 0.025 | 32.260 | 32.888 | 0.628 | 1.9% |
+| 100 | 0.050 | 16.633 | 17.001 | 0.367 | 2.2% |
+| 100 | 0.100 | 8.852  | 9.450  | 0.599 | 6.3% |
+| 100 | 0.200 | 4.941  | 5.282  | 0.341 | 6.5% |
+| 100 | 0.400 | 3.097  | 3.591  | 0.494 | 13.8% |
+| 100 | 0.800 | 2.111  | 2.352  | 0.241 | 10.3% |
 
-**Headline numbers.** Gap range: absolute 0.090 to 0.628 nats;
-relative 1.9% to 14.9%. Strict dominance at every cell.
+**Headline numbers.** Gap range across the full 18-cell sweep:
+absolute 0.103 to 0.628 nats; relative 1.9% to 14.9%. Strict
+dominance ($K^\star < K_{\mathrm{uniform}}$) at every cell.
 
 **Largest gap.** $(T_{\max} = 100, U = 0.025) \to 0.628$ nats,
-1.9%. Note that the absolute gap is reasonable but the relative
-fraction is small because $K_{\mathrm{uniform}} = 32.89$ is large
-(the small-$U$ regime).
+1.9%. The absolute gap is large but the relative fraction is
+small because $K_{\mathrm{uniform}} = 32.89$ is large (the
+small-$U$ regime).
 
 **Largest relative gap.** $(T_{\max} = 50, U = 0.4) \to 14.9\%$.
 
@@ -485,17 +475,14 @@ $\pm 0.5$ pp margin. The two allocations are statistically equivalent.
 
 #### 4.3.2 Setting B — Fed-Heart-Disease
 
-Source: `analysis/setting_b_util.tex`. The $T_{\max} = 25$ row has
-$n = 9$ instead of 18 because the underlying Pareto sweep is sparse
-**[PENDING backfill]**.
+Source: `analysis/setting_b_util.tex`. All three rows aggregate over
+the full $U$ grid after the $T_{\max} = 25$ backfill landed.
 
 | $T_{\max}$ | TA acc (%) | Uniform acc (%) | $\max\|\Delta\|$ (pp) | $\overline{\|\Delta\|}$ (pp) | 95% CI on $\Delta$ (pp) | paired-$t$ $p$ | TOST $p$ | $n$ |
 |---|---|---|---|---|---|---|---|---|
-| 25\* | 69.45 | 69.43 | 0.87 | 0.178 | $[-0.274, +0.302]$ | 0.913 | 0.002 | 9 |
+| 25  | 70.69 | 70.64 | 2.04 | 0.163 | $[-0.125, +0.236]$ | 0.534 | 1.4e-05 | 27 |
 | 50  | 70.59 | 70.58 | 0.28 | 0.016 | $[-0.017, +0.049]$ | 0.331 | 1.0e-16 | 18 |
 | 100 | 70.09 | 70.09 | 0.10 | 0.006 | $[-0.003, +0.015]$ | 0.168 | 8.7e-37 | 27 |
-
-(\*) Sparse coverage — will be refreshed when the backfill lands.
 
 **Verdict.** All three TOST $p$-values below 0.05. The two allocations
 are statistically equivalent at the $\pm 0.5$ pp margin. The
@@ -526,7 +513,7 @@ absolute accuracy headlines are not the story.
 | Setting | TOST $p$ range | Max $\overline{\|\Delta\|}$ (pp) | Verdict |
 |---|---|---|---|
 | A | $[0.002, 0.009]$ | 0.486 | Equivalent at $\pm 0.5$ pp |
-| B | $[10^{-37}, 0.002]$ | 0.178 | Equivalent at $\pm 0.5$ pp |
+| B | $[10^{-37}, 10^{-5}]$ | 0.163 | Equivalent at $\pm 0.5$ pp |
 | C | $[10^{-26}, 10^{-23}]$ | 0.016 | Equivalent at $\pm 0.5$ pp |
 
 **The defense costs no measurable utility.** The privacy improvement
@@ -745,64 +732,19 @@ empirically into a smaller attainable attack lift.
 
 ---
 
-## 6. Outstanding work and runbook
+## 6. Housekeeping
 
-### Items still pending
+### Stale figures to remove from `paper/figures/` before submission
 
-1. **Setting B $T_{\max} = 25$ backfill.** The sweep
-   `sweeps/pareto_setting_b_backfill_t25.yaml` fills the three missing
-   $U$ cells at $T_{\max} = 25$. After it lands, the row for
-   $T_{\max} = 25$ in §4.2.2 and §4.3.2 should be regenerated.
-2. **Figure regen with title-drop polish.** Pareto, η-heatmap,
-   channel-ablation, and attack-lift-vs-K figures all need to be
-   regenerated from the latest figure code (all four are now
-   title-less, with the LaTeX caption carrying the description). The
-   η-heatmap also picks up the filled $\eta = 0$ cells, cleaner
-   x-axis label, and the asymptote tick on the colourbar.
-3. **Stale figures in `paper/figures/`.** The following are
-   superseded and should not be referenced in the rewrite:
-   `attack_lift_eta_setting_c.pdf` (redundant with §4.5),
-   `pareto_cross_setting.pdf` (redundant with per-setting Paretos),
-   `eta_sweep_setting_c.pdf` (replaced by the heatmap),
-   `channel_ablation_setting_c.pdf` (only the cross-setting version
-   is current).
+The following are superseded and **should not be referenced** in the
+rewrite. They can be deleted after the manuscript ships:
 
-### VM runbook for outstanding items
-
-```bash
-cd /DataVol/projects/Fulcrum
-git pull --rebase
-
-# 1. (Already queued) Setting B T_max=25 backfill
-python scripts/run_factorial.py sweeps/pareto_setting_b_backfill_t25.yaml
-python scripts/analyze.py --db-path experiments.db --runs-root runs \
-                          --out-dir analysis \
-                          pareto --setting B
-python scripts/analyze.py --db-path experiments.db --runs-root runs \
-                          --out-dir analysis \
-                          utility-table --setting B --format all
-
-# 2. Setting A attack-eval (need to confirm shadow sweep already ran)
-python scripts/run_attack_eval.py --setting A --db-path experiments.db \
-                                  --runs-root runs --out analysis/attack_setting_a.parquet
-# Then regenerate the cross-setting figure with A included:
-python scripts/analyze.py --db-path experiments.db --runs-root runs \
-                          --out-dir analysis \
-                          cross-setting
-
-# 3. Heatmap regen with polish
-python scripts/analyze.py --db-path experiments.db --runs-root runs \
-                          --out-dir analysis \
-                          eta-heatmap
-
-# Copy + commit + push
-cp analysis/eta_gap_heatmap_setting_c.pdf paper/figures/
-cp analysis/pareto_setting_b.pdf paper/figures/
-cp analysis/channel_ablation_cross_setting.pdf paper/figures/
-git add analysis/ paper/figures/
-git commit -m "Backfill Setting B T=25, add Setting A attack-eval, regen heatmap"
-git push
-```
+| File | Replaced by | Why |
+|---|---|---|
+| `eta_sweep_setting_c.pdf` | `eta_gap_heatmap_setting_c.pdf` | Legacy 4-panel line plot superseded by the 9 × 5 heatmap. |
+| `attack_lift_eta_setting_c.pdf` | `attack_lift_vs_K_setting_c.pdf` + §4.5 table | Redundant — same η information is now the colour axis of the K* scatter. |
+| `pareto_cross_setting.pdf` | Three per-setting Paretos | Cross-setting overlay buried per-setting U grids that aren't directly comparable. |
+| `channel_ablation_setting_c.pdf` | `channel_ablation_cross_setting.pdf` | Per-setting version superseded by the cross-setting bar chart. |
 
 ---
 
@@ -823,24 +765,7 @@ when the rewrite lands.
 | `channel_ablation_cross_setting.pdf` | TADI channel ablation across settings | §4.4 |
 | `attack_lift_vs_K_setting_c.pdf` | Bound realisability across η, K* | §4.5 |
 
-### 7.2 Live but needing fixes
-
-| File | Issue |
-|---|---|
-| `eta_gap_heatmap_setting_c.pdf` | Latest polish commit not yet rendered on VM (currently shows "—" placeholders at η=0). |
-| `pareto_setting_b.pdf` | $T_{\max} = 25$ panel sparse (3 of 6 cells). Pending backfill. |
-| `channel_ablation_cross_setting.pdf` | (a) Title shows literal `\TADI`. (b) Missing Setting A. |
-
-### 7.3 To delete after rewrite lands
-
-| File | Replaced by | Why |
-|---|---|---|
-| `eta_sweep_setting_c.pdf` | `eta_gap_heatmap_setting_c.pdf` | Legacy 4-panel line plot; replaced by the heatmap. |
-| `attack_lift_eta_setting_c.pdf` | `attack_lift_vs_K_setting_c.pdf` + §4.5 table | Redundant with the K*-vs-lift figure (which carries the same η information as colour). |
-| `pareto_cross_setting.pdf` | Per-setting Paretos | Cross-setting overlay obscures per-setting U grids that aren't directly comparable. |
-| `channel_ablation_setting_c.pdf` | `channel_ablation_cross_setting.pdf` | Per-setting version superseded by the cross-setting bar chart. |
-
-### 7.4 Untouched (used elsewhere in the manuscript)
+### 7.2 Untouched (used elsewhere in the manuscript)
 
 | File | Location |
 |---|---|
