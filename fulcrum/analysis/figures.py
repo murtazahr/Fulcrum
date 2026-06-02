@@ -33,14 +33,19 @@ import pandas as pd
 def _set_style():
     import matplotlib as mpl
     import matplotlib.pyplot as plt
+    # Font sizes are tuned for IEEE TIFS column figures. The previous
+    # defaults (10pt base) shrank too small once the figures were sized
+    # for a journal column; bumped to a 13pt base so axis labels, tick
+    # labels, and legend text remain readable at the final printed
+    # column width without enlarging the figure itself.
     mpl.rcParams.update({
         "font.family": "serif",
-        "font.size": 10,
-        "axes.titlesize": 11,
-        "axes.labelsize": 10,
-        "legend.fontsize": 9,
-        "xtick.labelsize": 9,
-        "ytick.labelsize": 9,
+        "font.size": 13,
+        "axes.titlesize": 14,
+        "axes.labelsize": 13,
+        "legend.fontsize": 12,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
         "axes.grid": True,
         "grid.alpha": 0.3,
         "axes.spines.top": False,
@@ -176,7 +181,7 @@ def plot_pareto_setting(
             ax.tick_params(axis="x", labelsize=8)
 
     # One legend in the leftmost panel
-    axes[0].legend(loc="upper right", fontsize=8, framealpha=0.85)
+    axes[0].legend(loc="upper right", fontsize=10, framealpha=0.85)
 
     # No figure suptitle; the LaTeX caption carries the description in the
     # manuscript. Dropping it keeps the figure compact and consistent with
@@ -480,7 +485,7 @@ def plot_eta_sweep(
                 )
                 ax.text(
                     0.98, 0.02, gap_text, transform=ax.transAxes,
-                    ha="right", va="bottom", fontsize=7,
+                    ha="right", va="bottom", fontsize=9,
                     bbox=dict(facecolor="white", alpha=0.7, edgecolor="none", pad=2),
                 )
         except Exception:
@@ -488,7 +493,7 @@ def plot_eta_sweep(
 
         ax.set_title(panel_title)
         ax.set_xlabel(r"Topology-data coupling $\eta$")
-        ax.legend(loc="upper left", fontsize=8)
+        ax.legend(loc="upper left", fontsize=10)
 
     axes[0].set_ylabel(r"Worst-case privacy bound $K^\star$ (nats)")
     fig.suptitle(
@@ -741,7 +746,7 @@ def plot_eta_gap_heatmap(
                 txt = f"{v:.3f}" if v < 1.0 else f"{v:.2f}"
                 color = "white" if v >= threshold else "#1a1a1a"
                 ax.text(j, i, txt, ha="center", va="center",
-                        fontsize=7.5, color=color)
+                        fontsize=10, color=color)
 
     # Colorbar carries the metric label (the title is removed in favour of
     # the manuscript caption). The asymptote an/U is marked with a thin
@@ -896,7 +901,7 @@ def plot_tadi_realisability_dual_heatmap(
         ax.set_yticks(np.arange(len(channels)))
         ax.set_yticklabels(channel_labels)
         ax.set_xlabel("")
-        ax.set_title(title, fontsize=9, pad=4)
+        ax.set_title(title, fontsize=12, pad=4)
         # Faint white grid between cells
         ax.set_xticks(np.arange(len(eta_values) + 1) - 0.5, minor=True)
         ax.set_yticks(np.arange(len(channels) + 1) - 0.5, minor=True)
@@ -911,10 +916,10 @@ def plot_tadi_realisability_dual_heatmap(
     # Colourbars to the right of each panel
     cb_lift = fig.colorbar(im_lift, ax=ax_lift, shrink=0.9,
                            pad=0.02, aspect=10)
-    cb_lift.set_label("nats", fontsize=8, labelpad=2)
+    cb_lift.set_label("nats", fontsize=10, labelpad=2)
     cb_auc = fig.colorbar(im_auc, ax=ax_auc, shrink=0.9,
                           pad=0.02, aspect=10)
-    cb_auc.set_label("AUROC", fontsize=8, labelpad=2)
+    cb_auc.set_label("AUROC", fontsize=10, labelpad=2)
 
     fig.tight_layout()
     _save(fig, output_path)
@@ -939,7 +944,7 @@ def _annotate_heatmap(ax, mat: np.ndarray, fmt: str = "{:.3f}") -> None:
             text = fmt.format(v)
             color = "white" if abs(v - np.nanmean(mat)) > threshold else "#1a1a1a"
             ax.text(j, i, text, ha="center", va="center",
-                    fontsize=8, color=color)
+                    fontsize=10, color=color)
 
 
 def plot_tadi_realisability_trajectory(
@@ -1022,18 +1027,18 @@ def plot_tadi_realisability_trajectory(
         ax.annotate(
             r"$\eta{=}0$",
             xy=(x[0], y[0]), xytext=(-6, -6), textcoords="offset points",
-            fontsize=7, color=color, ha="right", va="top",
+            fontsize=9, color=color, ha="right", va="top",
         )
         ax.annotate(
             r"$\eta{=}1$",
             xy=(x[-1], y[-1]), xytext=(6, 6), textcoords="offset points",
-            fontsize=7.5, color=color, ha="left", va="bottom",
+            fontsize=10, color=color, ha="left", va="bottom",
             fontweight="bold",
         )
 
     # Quadrant annotations — light, positioned in corners
     quadrant_style = dict(
-        fontsize=8.5, color="#555555", style="italic",
+        fontsize=11, color="#555555", style="italic",
         ha="center", va="center",
         bbox=dict(facecolor="white", edgecolor="none",
                   alpha=0.7, boxstyle="round,pad=0.3"),
@@ -1052,7 +1057,7 @@ def plot_tadi_realisability_trajectory(
     ax.set_xlim(0.35, 1.05)
     ax.set_ylim(-0.085, 0.085)
 
-    ax.legend(loc="upper left", fontsize=8.5, framealpha=0.92,
+    ax.legend(loc="upper left", fontsize=11, framealpha=0.92,
               ncol=2, handletextpad=0.5, columnspacing=0.8)
     fig.tight_layout()
     _save(fig, output_path)
@@ -1138,7 +1143,7 @@ def plot_tadi_realisability_eta_sweep(
     ax_lift.set_ylabel(r"Attack lift  $L_{\mathrm{cal}}(\bar p) - L_{\mathrm{cal}}(\hat p)$")
     ax_lift.text(
         0.02, 0.05, "DP-SGD\nbound", transform=ax_lift.transAxes,
-        ha="left", va="bottom", fontsize=8,
+        ha="left", va="bottom", fontsize=10,
         color="#444444", style="italic",
     )
 
@@ -1149,7 +1154,7 @@ def plot_tadi_realisability_eta_sweep(
     ax_auc.set_ylim(0.35, 1.05)
     ax_auc.text(
         0.02, 0.05, "chance\n(0.5)", transform=ax_auc.transAxes,
-        ha="left", va="bottom", fontsize=8,
+        ha="left", va="bottom", fontsize=10,
         color="#444444", style="italic",
     )
 
@@ -1158,7 +1163,7 @@ def plot_tadi_realisability_eta_sweep(
     fig.legend(
         handles, labels,
         loc="upper center", bbox_to_anchor=(0.5, 1.02),
-        ncol=4, fontsize=8.5, frameon=False,
+        ncol=4, fontsize=11, frameon=False,
     )
     # No figure title; the LaTeX caption carries the description.
     fig.tight_layout(rect=(0, 0, 1, 0.94))
@@ -1256,7 +1261,7 @@ def plot_channel_ablation_dual_metric(
     fig.legend(
         handles, labels,
         loc="upper center", bbox_to_anchor=(0.5, 1.02),
-        ncol=4, fontsize=8.5, frameon=False,
+        ncol=4, fontsize=11, frameon=False,
     )
     # No figure title; the LaTeX caption carries the description.
     fig.tight_layout(rect=(0, 0, 1, 0.94))
@@ -1318,7 +1323,7 @@ def plot_attack_lift_eta(
     ax.set_xlabel(r"Topology-data coupling $\eta$")
     ax.set_ylabel("Attack lift (constant-mean baseline − calibration loss)")
     ax.set_title(f"Setting {setting}: TADI attack lift across channel ablations")
-    ax.legend(loc="best", fontsize=8, framealpha=0.85)
+    ax.legend(loc="best", fontsize=10, framealpha=0.85)
     fig.tight_layout()
     _save(fig, output_path)
     plt.close(fig)
@@ -1395,7 +1400,7 @@ def plot_attack_lift_vs_K(
 
         ax.axhline(0.0, color="gray", linewidth=0.6, linestyle=":", zorder=1)
         ax.set_xscale("log")
-        ax.set_title(title, fontsize=9)
+        ax.set_title(title, fontsize=12)
         ax.set_xlabel(r"Predicted bound $K^\star$ (nats)")
 
     axes[0].set_ylabel("Attack lift")
@@ -1509,7 +1514,7 @@ def plot_pareto_cross_setting(
         if df.empty:
             ax.text(0.5, 0.5, f"Setting {setting}\n(no data yet)",
                     ha="center", va="center", transform=ax.transAxes,
-                    fontsize=11, color="gray")
+                    fontsize=14, color="gray")
             ax.set_xticks([])
             ax.set_yticks([])
             ax.set_title(f"Setting {setting}")
@@ -1560,7 +1565,7 @@ def plot_pareto_cross_setting(
         ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _pos: f"{y:g}"))
         ax.yaxis.set_minor_locator(NullLocator())
 
-    axes[0].legend(loc="upper right", fontsize=7, framealpha=0.85)
+    axes[0].legend(loc="upper right", fontsize=9, framealpha=0.85)
     fig.suptitle("Privacy-bound dominance across settings", y=1.02)
     fig.tight_layout()
     _save(fig, output_path)
@@ -1627,7 +1632,7 @@ def plot_attack_channel_ablation_cross_setting(
     # manuscript. The previous title rendered the macro `\TADI` literally
     # because matplotlib does not expand LaTeX macros.
     ax.axhline(0, color="black", linewidth=0.6, linestyle="--", alpha=0.6)
-    ax.legend(loc="upper left", fontsize=8, framealpha=0.85, ncol=4)
+    ax.legend(loc="upper left", fontsize=10, framealpha=0.85, ncol=4)
     fig.tight_layout()
     _save(fig, output_path)
     plt.close(fig)
