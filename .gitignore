@@ -63,3 +63,5 @@ coverage.xml
 # Worktrees and local reference PDFs
 .claude/
 references/
+manuscript/main.pdf
+fulcrum/lev.log
