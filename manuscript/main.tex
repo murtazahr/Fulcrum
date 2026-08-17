@@ -536,6 +536,7 @@ additively across rounds.
 Three properties of \eqref{eq:bound} warrant emphasis.
 
 \begin{remark}[Concealment is regional]
+\label{rem:regional}
 The mechanism term depends on the total noise present in the region rather than on
 silo $i$'s noise in isolation. This is the formal counterpart of the observation
 that a participant is concealed by its neighbours. For $m$ equally weighted silos
@@ -738,10 +739,11 @@ with the baseline. Three predictions are stated in advance.
 
 The first prediction is that the budget saved at a matched privacy target equals
 $\delta$. The second is that the accuracy gain at matched privacy increases with
-$\delta$ and reaches zero when $\delta$ does. The third is that an allocation
-preserving the dispersion of noise while assigning it to the wrong regions
-withholds the gain, which distinguishes our claim from the weaker proposition that
-any non-uniform allocation suffices.
+$\delta$ and reaches zero when $\delta$ does. The third is that the gain depends on
+allocating according to exposure rather than on being non-uniform at all, which we
+test in two ways: against an allocation preserving the dispersion of noise while
+assigning it to the wrong regions, and against size-based heuristics of the kind a
+practitioner would reach for without the analysis.
 
 Every arm holds each silo at the same worst-case bound $K$, so the comparison fixes
 the guarantee received by the least protected silo and the arms differ only in the
@@ -900,6 +902,69 @@ Mild, $6/6/6/3/3$ & $0.375$
 Severe, $15/5/2/1/1$ & $0.792$
 & $0.840$ & $0.690$ & $\mathbf{+14.97}$ & $-9.33$
 & $0.770$ & $0.637$ & $\mathbf{+13.25}$ & $-8.24$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Comparison against size-based heuristics}
+
+Uniform allocation is the incumbent, but it is not the most informed comparator. A
+practitioner who understands that a silo is concealed by its region, without
+deriving how much, would scale noise by region size. Two exponents are natural.
+Trusted-aggregator schemes inject one noise draw on behalf of a zone and therefore
+require $\sigma \propto 1/m$; ported directly to local injection this gives the
+first heuristic. The second, $\sigma \propto 1/\sqrt{m}$, is the exponent implied
+by Remark~\ref{rem:regional} when each silo injects its own noise. We rescale both
+to meet the same target $K$ and evaluate them alongside the allocation.
+
+One identity governs the comparison. When all silos carry equal aggregation
+weight, $\rho_r = W_r/V_r = 1/m_r$ exactly, so \eqref{eq:alloc} reduces to
+$\sigma_i \propto 1/\sqrt{m_r}$ and the second heuristic \emph{is} the optimum.
+Table~\ref{tab:baselines} confirms this in training: the two agree to four decimal
+places on every profile, at $+4.25$ and $+14.97$ points. In a federation of
+equally sized silos the optimisation contributes nothing the heuristic does not
+already capture, and a practitioner should use the heuristic.
+
+Silo sizes in real federations are not equal, and the identity fails as soon as
+they differ. The lower half of Table~\ref{tab:baselines} draws silo sizes
+log-normally, giving roughly an order of magnitude between largest and smallest.
+The two balanced profiles isolate the effect: their regions are equally sized, so
+a size-based rule is by construction indistinguishable from uniform and returns
+exactly zero, while the allocation gains between $1.18$ and $3.08$ points by
+responding to weight concentration that region size does not express. On the
+severe profile the allocation roughly doubles the heuristic on both tasks.
+
+The naive $1/m$ port behaves worse than uniform in most heterogeneous
+configurations, reaching $-8.08$ points. This is the practical consequence of the
+distinction drawn in Section~\ref{sec:related}: an exponent calibrated for a
+trusted aggregator injecting once per zone is not the exponent for silos injecting
+independently, and transferring it costs more than making no adjustment at all.
+
+\begin{table*}[t]
+\caption{Accuracy gain over uniform allocation (percentage points, paired over ten seeds) for the allocation and three alternatives, at a matched worst-case per-client guarantee. Upper half: equally sized silos, where $\rho_r = 1/m_r$ and the $1/\sqrt{m}$ heuristic coincides with the optimum. Lower half: log-normal silo sizes, where the two separate. The balanced profiles in the lower half have equally sized regions, so any size-based rule is identical to uniform there.}
+\label{tab:baselines}
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}llc cccc cccc@{}}
+\toprule
+& & & \multicolumn{4}{c}{CIFAR-10, frozen ResNet-18} & \multicolumn{4}{c}{AG News, frozen MiniLM} \\
+\cmidrule(lr){4-7}\cmidrule(lr){8-11}
+Silo sizes & Region profile & $\delta$
+& \Fulcrum & $\sigma\!\propto\!\tfrac{1}{\sqrt{m}}$ & $\sigma\!\propto\!\tfrac{1}{m}$ & Misalloc.
+& \Fulcrum & $\sigma\!\propto\!\tfrac{1}{\sqrt{m}}$ & $\sigma\!\propto\!\tfrac{1}{m}$ & Misalloc. \\
+\midrule
+\multirow{4}{*}{Equal}
+ & Balanced, 4 regions & $0.000$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ \\
+ & Balanced, 6 regions & $0.000$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ \\
+ & Mild, $6/6/6/3/3$   & $0.375$ & $+4.25$ & $+4.25$ & $+0.84$ & $-3.56$ & $+3.88$ & $+3.88$ & $+1.06$ & $-3.24$ \\
+ & Severe, $15/5/2/1/1$& $0.792$ & $\mathbf{+14.97}$ & $\mathbf{+14.97}$ & $-2.29$ & $-9.33$ & $\mathbf{+13.25}$ & $\mathbf{+13.25}$ & $-1.55$ & $-8.24$ \\
+\midrule
+\multirow{4}{*}{Log-normal}
+ & Balanced, 4 regions & $\sim\!0.28$ & $\mathbf{+2.56}$ & $+0.00$ & $+0.00$ & $-1.00$ & $\mathbf{+1.22}$ & $+0.00$ & $+0.00$ & $+0.52$ \\
+ & Balanced, 6 regions & $\sim\!0.31$ & $\mathbf{+3.08}$ & $+0.00$ & $+0.00$ & $-3.07$ & $\mathbf{+1.18}$ & $+0.00$ & $+0.00$ & $-0.88$ \\
+ & Mild, $6/6/6/3/3$   & $\sim\!0.32$ & $\mathbf{+1.76}$ & $-0.75$ & $-2.97$ & $-1.89$ & $\mathbf{+2.04}$ & $+0.36$ & $-0.63$ & $-1.33$ \\
+ & Severe, $15/5/2/1/1$& $\sim\!0.63$ & $\mathbf{+5.87}$ & $+1.79$ & $-8.08$ & $-2.67$ & $\mathbf{+6.20}$ & $+2.87$ & $-4.77$ & $-3.49$ \\
 \bottomrule
 \end{tabular}
 \end{table*}
