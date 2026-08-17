@@ -1,0 +1,380 @@
+% References for Fulcrum.
+% Every entry below has been verified against primary sources by web search;
+% see ../docs/references.md for verification provenance.
+
+@IEEEtranBSTCTL{IEEEexample:BSTcontrol,
+  CTLuse_forced_etal       = "yes",
+  CTLmax_names_forced_etal = "3",
+  CTLnames_show_etal       = "2" 
+}
+
+% ===== Datasets and benchmarks =====
+
+@article{flamby2022,
+  title={Flamby: Datasets and benchmarks for cross-silo federated learning in realistic healthcare settings},
+  author={Ogier du Terrail, Jean and Ayed, Samy-Safwan and Cyffers, Edwige and Grimberg, Felix and He, Chaoyang and Loeb, Regis and Mangold, Paul and Marchand, Tanguy and Marfoq, Othmane and Mushtaq, Erum and others},
+  journal={Advances in Neural Information Processing Systems},
+  volume={35},
+  pages={5315--5334},
+  year={2022}
+}
+
+@article{leaf2018,
+  title={Leaf: A benchmark for federated settings},
+  author={Caldas, Sebastian and Duddu, Sai Meher Karthik and Wu, Peter and Li, Tian and Kone{\v{c}}n{\`y}, Jakub and McMahan, H Brendan and Smith, Virginia and Talwalkar, Ameet},
+  journal={arXiv preprint arXiv:1812.01097},
+  year={2018}
+}
+
+@article{hsu2019dirichlet,
+  title={Measuring the effects of non-identical data distribution for federated visual classification},
+  author={Hsu, Tzu-Ming Harry and Qi, Hang and Brown, Matthew},
+  journal={arXiv preprint arXiv:1909.06335},
+  year={2019}
+}
+
+@inproceedings{nasr2019comprehensive,
+  title={Comprehensive privacy analysis of deep learning: Passive and active white-box inference attacks against centralized and federated learning},
+  author={Nasr, Milad and Shokri, Reza and Houmansadr, Amir},
+  booktitle={2019 IEEE symposium on security and privacy (SP)},
+  pages={739--753},
+  year={2019},
+  organization={IEEE}
+}
+
+@inproceedings{yin2021gradinversion,
+  title={See through gradients: Image batch recovery via gradinversion},
+  author={Yin, Hongxu and Mallya, Arun and Vahdat, Arash and Alvarez, Jose M and Kautz, Jan and Molchanov, Pavlo},
+  booktitle={Proceedings of the IEEE/CVF conference on computer vision and pattern recognition},
+  pages={16337--16346},
+  year={2021}
+}
+
+@article{zhao2020idlg,
+  title={idlg: Improved deep leakage from gradients},
+  author={Zhao, Bo and Mopuri, Konda Reddy and Bilen, Hakan},
+  journal={arXiv preprint arXiv:2001.02610},
+  year={2020}
+}
+
+@article{krizhevsky2009cifar,
+  title={Learning multiple layers of features from tiny images},
+  author={Krizhevsky, Alex and Hinton, Geoffrey and others},
+  year={2009},
+  journal={Technical Report},
+  publisher={Toronto, ON, Canada}
+}
+
+% ===== Real-world FL deployments =====
+
+@article{sheller2020medicine,
+  author = {Sheller, Micah J. and Edwards, Brandon and Reina, G. Anthony and Martin, Jason and Pati, Sarthak and Kotrotsou, Aikaterini and Milchenko, Mikhail and Xu, Weilin and Marcus, Daniel and Colen, Rivka R. and Bakas, Spyridon},
+  title = {Federated learning in medicine: facilitating multi-institutional collaborations without sharing patient data},
+  journal = {Scientific Reports},
+  volume = {10},
+  number = {1},
+  pages = {12598},
+  year = {2020},
+  month = {July},
+  doi = {10.1038/s41598-020-69250-1},
+  issn = {2045-2322}
+}
+
+@article{dayan2021covid,
+  title={Federated learning for predicting clinical outcomes in patients with COVID-19},
+  author={Dayan, Ittai and Roth, Holger R and Zhong, Aoxiao and Harouni, Ahmed and Gentili, Amilcare and Abidin, Anas Z and Liu, Andrew and Costa, Anthony Beardsworth and Wood, Bradford J and Tsai, Chien-Sung and others},
+  journal={Nature medicine},
+  volume={27},
+  number={10},
+  pages={1735--1743},
+  year={2021},
+  publisher={Nature Publishing Group US New York}
+}
+
+@article{melloddy2023,
+  title={MELLODDY: cross-pharma federated learning at unprecedented scale unlocks benefits in QSAR without compromising proprietary information},
+  author={Heyndrickx, Wouter and Mervin, Lewis and Morawietz, Tobias and Sturm, No{\'e} and Friedrich, Lukas and Zalewski, Adam and Pentina, Anastasia and Humbeck, Lina and Oldenhof, Martijn and Niwayama, Ritsuya and others},
+  journal={Journal of chemical information and modeling},
+  volume={64},
+  number={7},
+  pages={2331--2344},
+  year={2023},
+  publisher={ACS Publications}
+}
+
+% ===== Federated learning architectures =====
+@article{bonawitz2019sysml,
+  title={Towards federated learning at scale: System design},
+  author={Bonawitz, Keith and Eichner, Hubert and Grieskamp, Wolfgang and Huba, Dzmitry and Ingerman, Alex and Ivanov, Vladimir and Kiddon, Chloe and Kone{\v{c}}n{\`y}, Jakub and Mazzocchi, Stefano and McMahan, Brendan and others},
+  journal={Proceedings of machine learning and systems},
+  volume={1},
+  pages={374--388},
+  year={2019}
+}
+
+@inproceedings{fowl2022robbing,
+title={Robbing the Fed:  Directly Obtaining Private Data in Federated Learning with Modified Models},
+author={Liam H Fowl and Jonas Geiping and Wojciech Czaja and Micah Goldblum and Tom Goldstein},
+booktitle={International Conference on Learning Representations},
+year={2022}
+}
+
+@article{erdos1959random,
+  title={On random graphs},
+  author={Erd\H{o}s, Paul and R\'{e}nyi, Alfr\'{e}d},
+  journal={Publicationes Mathematicae Debrecen},
+  volume={6},
+  pages={290--297},
+  year={1959}
+}
+
+@INPROCEEDINGS{rangwala2026murmura,
+  author={Rangwala, Murtaza and Sinnott, Richard O and Buyya, Rajkumar},
+  booktitle={2026 IEEE 26th International Symposium on Cluster, Cloud and Internet Computing (CCGrid)}, 
+  title={Evidential Trust-Aware Model Personalization in Decentralized Federated Learning for Wearable IoT},
+  year={2026},
+  publisher = {IEEE},
+  pages = {510-519},
+  doi={10.1109/CCGrid68966.2026.00061}}
+
+
+@article{barabasi1999emergence,
+  title={Emergence of scaling in random networks},
+  author={Barab{\'a}si, Albert-L{\'a}szl{\'o} and Albert, R{\'e}ka},
+  journal={science},
+  volume={286},
+  number={5439},
+  pages={509--512},
+  year={1999},
+  publisher={American Association for the Advancement of Science}
+}
+
+@article{lakens2017equivalence,
+  title={Equivalence tests: A practical primer for t tests, correlations, and meta-analyses},
+  author={Lakens, Dani{\"e}l},
+  journal={Social psychological and personality science},
+  volume={8},
+  number={4},
+  pages={355--362},
+  year={2017},
+  publisher={Sage Publications Sage CA: Los Angeles, CA}
+}
+
+@inproceedings{cyffers2022amplification,
+  title={Privacy amplification by decentralization},
+  author={Cyffers, Edwige and Bellet, Aur{\'e}lien},
+  booktitle={International conference on artificial intelligence and statistics},
+  pages={5334--5353},
+  year={2022},
+  organization={PMLR}
+}
+
+@inproceedings{hu2021source,
+  title={Source inference attacks in federated learning},
+  author={Hu, Hongsheng and Salcic, Zoran and Sun, Lichao and Dobbie, Gillian and Zhang, Xuyun},
+  booktitle={2021 IEEE International Conference on Data Mining (ICDM)},
+  pages={1102--1107},
+  year={2021},
+  organization={IEEE}
+}
+
+@inproceedings{
+yousefpour2021opacus,
+title={Opacus: User-Friendly Differential Privacy Library in PyTorch},
+author={Ashkan Yousefpour and Igor Shilov and Alexandre Sablayrolles and Davide Testuggine and Karthik Prasad and Mani Malek and John Nguyen and Sayan Ghosh and Akash Bharadwaj and Jessica Zhao and Graham Cormode and Ilya Mironov},
+booktitle={NeurIPS 2021 Workshop Privacy in Machine Learning},
+year={2021}
+}
+
+@inproceedings{liu2020hierarchical,
+  title={Client-edge-cloud hierarchical federated learning},
+  author={Liu, Lumin and Zhang, Jun and Song, SH and Letaief, Khaled B},
+  booktitle={ICC 2020-2020 IEEE international conference on communications (ICC)},
+  pages={1--6},
+  year={2020},
+  organization={IEEE}
+}
+
+@inproceedings{abad2020icassp,
+  title={Hierarchical federated learning across heterogeneous cellular networks},
+  author={Abad, Mehdi Salehi Heydar and Ozfatura, Emre and Gunduz, Deniz and Ercetin, Ozgur},
+  booktitle={ICASSP 2020-2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  pages={8866--8870},
+  year={2020},
+  organization={IEEE}
+}
+
+@article{roy2019braintorrent,
+  title={BrainTorrent: A Peer-to-Peer Environment for Decentralized Federated Learning},
+  author={Abhijit Guha Roy and Shayan Siddiqui and Sebastian P{\"o}lsterl and Nassir Navab and Christian Wachinger},
+  journal={ArXiv},
+  year={2019},
+  volume={abs/1905.06731},
+}
+
+@article{hegedus2021decentralized,
+  title={Decentralized learning works: An empirical comparison of gossip learning and federated learning},
+  author={Heged{\H{u}}s, Istv{\'a}n and Danner, G{\'a}bor and Jelasity, M{\'a}rk},
+  journal={Journal of Parallel and Distributed Computing},
+  volume={148},
+  pages={109--124},
+  year={2021},
+  publisher={Elsevier}
+}
+
+@inproceedings{briggs2020hierarchical,
+  title={Federated learning with hierarchical clustering of local updates to improve training on non-IID data},
+  author={Briggs, Christopher and Fan, Zhong and others},
+  booktitle={2020 international joint conference on neural networks},
+  pages={1--9},
+  year={2020},
+  organization={IEEE}
+}
+
+@inproceedings{beilharz2021dag,
+  title={Implicit model specialization through dag-based decentralized federated learning},
+  author={Beilharz, Jossekin and Pfitzner, Bjarne and Schmid, Robert and Geppert, Paul and Arnrich, Bert and Polze, Andreas},
+  booktitle={Proceedings of the 22nd International Middleware Conference},
+  pages={310--322},
+  year={2021}
+}
+
+@article{wang2021fieldguide,
+  title={A field guide to federated optimization},
+  author={Wang, Jianyu and Charles, Zachary and Xu, Zheng and Joshi, Gauri and McMahan, H Brendan and Al-Shedivat, Maruan and Andrew, Galen and Avestimehr, Salman and Daly, Katharine and Data, Deepesh and others},
+  journal={arXiv preprint arXiv:2107.06917},
+  year={2021}
+}
+
+% ===== Privacy attacks =====
+
+@inproceedings{shokri2017membership,
+  title={Membership inference attacks against machine learning models},
+  author={Shokri, Reza and Stronati, Marco and Song, Congzheng and Shmatikov, Vitaly},
+  booktitle={2017 IEEE symposium on security and privacy (SP)},
+  pages={3--18},
+  year={2017},
+  organization={IEEE}
+}
+
+@inproceedings{melis2019exploiting,
+  title={Exploiting unintended feature leakage in collaborative learning},
+  author={Melis, Luca and Song, Congzheng and De Cristofaro, Emiliano and Shmatikov, Vitaly},
+  booktitle={2019 IEEE symposium on security and privacy (SP)},
+  pages={691--706},
+  year={2019},
+  organization={IEEE}
+}
+
+@article{zhu2019dlg,
+  title={Deep leakage from gradients},
+  author={Zhu, Ligeng and Liu, Zhijian and Han, Song},
+  journal={Advances in neural information processing systems},
+  volume={32},
+  year={2019}
+}
+
+@article{geiping2020inverting,
+  title={Inverting gradients-how easy is it to break privacy in federated learning?},
+  author={Geiping, Jonas and Bauermeister, Hartmut and Dr{\"o}ge, Hannah and Moeller, Michael},
+  journal={Advances in neural information processing systems},
+  volume={33},
+  pages={16937--16947},
+  year={2020}
+}
+
+@article{feng2025topology,
+  title={From models to network topologies: A topology inference attack in decentralized federated learning},
+  author={Feng, Chao and Gao, Yuanzhe and Celdran, Alberto Huertas and Bovet, Gerome and Stiller, Burkhard},
+  journal={arXiv preprint arXiv:2501.03119},
+  year={2025}
+}
+
+% ===== Theoretical machinery =====
+
+@INPROCEEDINGS{mironov2017rdp,
+  author={Mironov, Ilya},
+  booktitle={2017 IEEE 30th Computer Security Foundations Symposium (CSF)}, 
+  title={Rényi Differential Privacy}, 
+  year={2017},
+  pages={263-275},
+  doi={10.1109/CSF.2017.11}}
+
+@inproceedings{wang2019subsampled,
+  title={Subsampled r{\'e}nyi differential privacy and analytical moments accountant},
+  author={Wang, Yu-Xiang and Balle, Borja and Kasiviswanathan, Shiva Prasad},
+  booktitle={The 22nd international conference on artificial intelligence and statistics},
+  pages={1226--1235},
+  year={2019},
+  organization={PMLR}
+}
+
+@inproceedings{cuff2016mi,
+  title={Differential privacy as a mutual information constraint},
+  author={Cuff, Paul and Yu, Lanqing},
+  booktitle={2016 ACM SIGSAC Conference on Computer and Communications Security},
+  pages={43--54},
+  year={2016}
+}
+
+@article{asoodeh2021variants,
+  title={Three variants of differential privacy: Lossless conversion and applications},
+  author={Asoodeh, Shahab and Liao, Jiachun and Calmon, Flavio P and Kosut, Oliver and Sankar, Lalitha},
+  journal={IEEE Journal on Selected Areas in Information Theory},
+  volume={2},
+  number={1},
+  pages={208--222},
+  year={2021},
+  publisher={IEEE}
+}
+
+@inproceedings{bonawitz2017secagg,
+  title={Practical secure aggregation for privacy-preserving machine learning},
+  author={Bonawitz, Keith and Ivanov, Vladimir and Kreuter, Ben and Marcedone, Antonio and McMahan, H Brendan and Patel, Sarvar and Ramage, Daniel and Segal, Aaron and Seth, Karn},
+  booktitle={2017 ACM SIGSAC Conference on Computer and Communications Security},
+  pages={1175--1191},
+  year={2017}
+}
+
+@inproceedings{abadi2016dpsgd,
+  title={Deep learning with differential privacy},
+  author={Abadi, Martin and Chu, Andy and Goodfellow, Ian and McMahan, H Brendan and Mironov, Ilya and Talwar, Kunal and Zhang, Li},
+  booktitle={Proceedings of the 2016 ACM SIGSAC conference on computer and communications security},
+  pages={308--318},
+  year={2016}
+}
+
+@inproceedings{
+mcmahan2018dpfedavg,
+title={Learning Differentially Private Recurrent Language Models},
+author={H. Brendan McMahan and Daniel Ramage and Kunal Talwar and Li Zhang},
+booktitle={International Conference on Learning Representations},
+year={2018},
+}
+
+@article{wei2020nbafl,
+  title={Federated learning with differential privacy: Algorithms and performance analysis},
+  author={Wei, Kang and Li, Jun and Ding, Ming and Ma, Chuan and Yang, Howard H and Farokhi, Farhad and Jin, Shi and Quek, Tony QS and Poor, H Vincent},
+  journal={IEEE transactions on information forensics and security},
+  volume={15},
+  pages={3454--3469},
+  year={2020},
+  publisher={IEEE}
+}
+
+@inproceedings{li2020fedavg,
+  title     = {On the Convergence of {FedAvg} on Non-{IID} Data},
+  author    = {Li, Xiang and Huang, Kaixuan and Yang, Wenhao and Wang, Shusen and
+               Zhang, Zhihua},
+  booktitle = {International Conference on Learning Representations ({ICLR})},
+  year      = {2020},
+}
+
+@inproceedings{jorgensen2015personalized,
+  title={Conservative or liberal? Personalized differential privacy},
+  author={Jorgensen, Zach and Yu, Ting and Cormode, Graham},
+  booktitle={2015 IEEE 31St international conference on data engineering},
+  pages={1023--1034},
+  year={2015},
+  organization={IEEE}
+}
