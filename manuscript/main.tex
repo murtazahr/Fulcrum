@@ -69,7 +69,8 @@ Deriving a per-client bound on the mutual information between a participant's
 local class distribution and any estimate an observer forms of it, we take care
 that the adjacency notion used by the mechanism matches the quantity being
 protected, then solve for the allocation that minimises the worst-case value of
-this bound under a fixed utility budget and show that it is min-max optimal. The
+this bound under a fixed utility budget, show that it is min-max optimal, and call
+the resulting mechanism \Fulcrum. The
 improvement over uniform allocation is exactly $\delta = 1 - \langle \rho
 \rangle_V / \rho_{\max}$, where $\rho_r$ is the inverse participation ratio of
 region $r$. Because this quantity depends solely on the deployment's
@@ -78,7 +79,7 @@ vanishes precisely when all regions share the same effective size. Measured
 across operational structures, $\delta$ reaches $88\%$ for consortia organised
 by country and $83$ to $88\%$ for cellular edge deployments. Experiments on
 image and text classification confirm the prediction at $\varepsilon = 0.99$:
-accuracy at matched per-client privacy improves by up to $13.75$ percentage
+accuracy at matched per-client privacy improves by up to $14.97$ percentage
 points where $\delta$ is large, matches the uniform baseline exactly in two
 balanced control deployments for which the theory predicts parity, and falls
 below it for a control that preserves the noise dispersion while assigning it
@@ -99,9 +100,10 @@ movement. Hospitals hold patient records, banks hold transaction histories, and
 telecommunications operators hold subscriber behaviour, each subject to
 regulation that limits transfer to a central repository. Federated learning
 \cite{mcmahan2017fedavg} addresses this by keeping data in place and exchanging
-model updates instead, and it has been deployed at scale in mobile keyboards,
-clinical research consortia \cite{sheller2020federated,dayan2021federated}, and
-cross-pharmaceutical collaborations \cite{heyndrickx2023melloddy}.
+model updates instead, and it has been deployed at scale in mobile keyboard
+prediction \cite{hard2018keyboard}, clinical research consortia
+\cite{sheller2020federated,dayan2021federated}, and cross-pharmaceutical
+collaborations \cite{heyndrickx2023melloddy}.
 
 Retaining data locally offers a weaker privacy guarantee than it first appears
 to. Model updates carry information about the data that produced them, and a
@@ -153,7 +155,9 @@ raises the question this paper addresses: given a deployment's region structure,
 how should noise be distributed across regions, and how much is gained by
 distributing it well?
 
-We show the question has a closed-form answer. Our contributions are as follows.
+We show the question has a closed-form answer, and we call the resulting mechanism
+\Fulcrum, since it balances the federation's privacy burden about the point where
+every region carries an equal share of it. Our contributions are as follows.
 
 First, we derive a per-client bound on the information an observer can recover
 about a participant's local class distribution (Theorem~\ref{thm:bound}). The
@@ -435,7 +439,7 @@ mechanism invocations equals $T$. Record-level DP-SGD behaves differently in thi
 respect, since there every local step constitutes a separate release.
 
 \begin{algorithm}[t]
-\caption{Federated training with optimal regional allocation}
+\caption{\Fulcrum: federated training with min-max optimal regional allocation}
 \label{alg:main}
 \begin{algorithmic}[1]
 \STATE \textbf{Input:} regions $\Reg$, weights $\{w_i\}$, budget $U$, rounds $T$, clip $C$
@@ -675,23 +679,20 @@ within the scope of this paper.
 \subsection{Exposure in operational deployments}
 
 Since $\delta$ is a property of a deployment rather than of an experiment, it can
-be measured directly for real federations. Figure~\ref{fig:deltareal} reports it
-for several structures. Cellular deployments sit high on the scale because base
+be measured directly for real federations, without reference to any model or
+dataset. Cellular edge deployments over sixty base stations give $\delta$ between
+$82.8\%$ and $87.6\%$ across sampled load distributions; a consortium grouped by
+country, with sites distributed $30/10/5/3/1/1$, gives $88.0\%$; and clinical sites
+grouped by their parent hospital, in the $3/1/1/1$ arrangement of a public
+federated benchmark, give $14.4\%$. Federations whose regions are equally sized
+give exactly zero, as do flat federations with no aggregation tier. These values
+are marked on the horizontal axis of Figure~\ref{fig:gain}, so a practitioner can
+locate a deployment and read off the improvement it admits. Cellular deployments sit high on the scale because base
 station loads are long tailed, with dense cells serving many devices and sparse
 cells very few. Consortia organised by country behave similarly, since site counts
 per country are uneven. Federations whose sites are grouped into equally sized
 regions sit at zero, as does flat cross-silo training.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/fig_delta_real.pdf}
-\caption{Exposure dispersion $\delta$ for operational deployment structures, which
-upper-bounds the fraction of the noise budget that reallocation recovers. The error
-bar for the cellular case spans three sampled load distributions. Two further
-structures sit at $\delta = 0$ and are omitted from the chart: federations whose
-regions are equally sized, and flat federations lacking an aggregation tier.}
-\label{fig:deltareal}
-\end{figure}
 
 \section{Experimental Evaluation}
 \label{sec:eval}
@@ -746,7 +747,7 @@ silo-level privacy.
 
 We use $n = 96$ silos partitioned into regions according to the profile under
 test, $T = 10$ rounds, $\delta_{\mathrm{DP}} = 10^{-5}$, clipping at $C = 1$, ten
-local optimisation steps per round, batch size $64$, and three independent seeds
+local optimisation steps per round, batch size $64$, and ten independent seeds
 per configuration. Local class distributions are generated by a coupled
 partitioning scheme in which a region-determined component is mixed with a random
 component, so that concentrations vary across silos in a controlled manner while
@@ -775,9 +776,10 @@ Table~\ref{tab:main} reports the outcome and Figure~\ref{fig:gain} plots it.
 Budget savings match $\delta$ to three decimal places in every configuration,
 confirming the first prediction and Corollary~\ref{cor:delta}.
 
-The accuracy gain increases with $\delta$, reaching $13.75$ points on images and
-$13.55$ points on text in the most heterogeneous deployment, which confirms the
-second prediction. In the two balanced deployments the gain equals zero to the
+The accuracy gain increases with $\delta$, reaching $14.97 \pm 2.51$ points on
+images and $13.25 \pm 1.72$ points on text in the most heterogeneous deployment,
+quoted as means over ten seeds with the standard error of the paired difference,
+which confirms the second prediction. In the two balanced deployments the gain equals zero to the
 precision of the measurement on both tasks. This is the outcome the theory
 requires, and we regard it as the most informative row in the table, since a
 method acting on some quantity other than the one we claim would be unlikely to
@@ -785,13 +787,13 @@ produce exactly zero here.
 
 The third prediction is likewise confirmed. Given the same dispersion of noise
 but assigned to the wrong regions, and rescaled to meet the same target, the
-misallocation control performs below uniform allocation by between two and three
-points in every heterogeneous configuration. Non-uniformity alone is therefore
+misallocation control performs below uniform allocation, by three to four points
+in the mild configuration and by eight to nine points in the severe one. Non-uniformity alone is therefore
 insufficient, and the gain depends on allocating according to the exposure
 profile.
 
-Agreement between the two modalities is close, at $4.33$ against $4.02$ points and
-$13.75$ against $13.55$ points. We had anticipated that the magnitudes would
+Agreement between the two modalities is close, at $4.25$ against $3.88$ points in
+the mild configuration and $14.97$ against $13.25$ points in the severe one. We had anticipated that the magnitudes would
 differ, since the gain depends on the local slope of accuracy against noise, which
 is a property of the task. The close agreement is most plausibly a consequence of
 having matched the head dimension and privacy target across the two tasks, and we
@@ -811,7 +813,7 @@ error of the paired difference.}
 \end{figure*}
 
 \begin{table*}[t]
-\caption{Accuracy at matched per-client privacy ($\varepsilon = 0.99$, $n = 96$, $T = 10$, three seeds). Gains are percentage points relative to uniform allocation, and the budget saved equals $\delta$ in every row. Non-private references are $0.970$ for CIFAR-10 and $0.930$ for AG News.}
+\caption{Accuracy at matched per-client privacy ($\varepsilon = 0.99$, $n = 96$, $T = 10$, ten seeds). Gains are percentage points relative to uniform allocation, and the budget saved equals $\delta$ in every row. Non-private references are $0.970$ for CIFAR-10 and $0.930$ for AG News.}
 \label{tab:main}
 \centering
 \small
@@ -825,17 +827,17 @@ Region profile & $\delta$
 & \Fulcrum & Uniform & Gain & Misalloc. \\
 \midrule
 Balanced, 4 regions (control) & $0.000$
-& $0.868$ & $0.868$ & $+0.00$ & $+0.00$
-& $0.767$ & $0.767$ & $+0.00$ & $+0.00$ \\
+& $0.860$ & $0.860$ & $+0.00$ & $+0.00$
+& $0.784$ & $0.784$ & $+0.00$ & $+0.00$ \\
 Balanced, 6 regions (control) & $0.000$
-& $0.832$ & $0.832$ & $+0.00$ & $+0.00$
-& $0.734$ & $0.734$ & $+0.00$ & $+0.00$ \\
+& $0.823$ & $0.823$ & $+0.00$ & $+0.00$
+& $0.751$ & $0.751$ & $+0.00$ & $+0.00$ \\
 Mild, $6/6/6/3/3$ & $0.375$
-& $0.851$ & $0.808$ & $+4.33$ & $-3.12$
-& $0.748$ & $0.708$ & $+4.02$ & $-2.55$ \\
+& $0.836$ & $0.794$ & $+4.25$ & $-3.56$
+& $0.765$ & $0.726$ & $+3.88$ & $-3.24$ \\
 Severe, $15/5/2/1/1$ & $0.792$
-& $0.845$ & $0.708$ & $\mathbf{+13.75}$ & $-2.33$
-& $0.759$ & $0.623$ & $\mathbf{+13.55}$ & $-3.25$ \\
+& $0.840$ & $0.690$ & $\mathbf{+14.97}$ & $-9.33$
+& $0.770$ & $0.637$ & $\mathbf{+13.25}$ & $-8.24$ \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -869,11 +871,11 @@ The workflow the result suggests is brief. A practitioner computes $\rho_r$ for
 each region from the deployment description, forms $\delta$, and reads off the
 budget that reallocation recovers. Where $\delta$ is small the uniform multiplier
 already sits close to optimal and the existing pipeline may be retained. Where
-$\delta$ is large, Algorithm~\ref{alg:main} yields the allocation at negligible
+$\delta$ is large, \Fulcrum (Algorithm~\ref{alg:main}) yields the allocation at negligible
 computational cost, since $K^\star$ is obtained by one-dimensional bisection
 performed once before training.
 
-Figure~\ref{fig:deltareal}'s measurements suggest that many operational
+The deployment measurements of Section~\ref{sec:allocation} suggest that many operational
 deployments fall into the second category. A federation seeking to reduce its
 exposure to this effect altogether has a complementary option, which is to balance
 its regions when the structure is under its control, since equally sized regions
@@ -941,8 +943,8 @@ aggregated with, and regions in operational deployments differ substantially in
 effective size. A single shared noise multiplier must be calibrated for the most
 exposed region and therefore leaves the remainder carrying surplus noise. We derived a
 per-client information bound whose adjacency matches the property being protected,
-solved the resulting allocation problem in closed form, and established that the
-saving relative to uniform allocation is exactly $\delta = 1 - \langle \rho
+solved the resulting allocation problem in closed form to obtain \Fulcrum, and
+established that its saving relative to uniform allocation is exactly $\delta = 1 - \langle \rho
 \rangle_V / \rho_{\max}$, a quantity computable from the deployment in advance of
 training and equal to zero precisely when regions share the same effective size.
 Measured across operational structures, $\delta$ reaches $88\%$. Experiments on
@@ -959,11 +961,13 @@ the aggregator while preserving the structure of the result.
 
 \section*{Data and Code Availability}
 
-Source code and the analysis artefacts underlying every table and figure are
-available at \url{https://doi.org/10.5281/zenodo.20507155}.
+The \Fulcrum reference implementation, together with the analysis artefacts
+underlying every table and figure, is available at
+\url{https://doi.org/10.5281/zenodo.20507155}.
 
 \begin{thebibliography}{99}
 \bibitem{mcmahan2017fedavg} H. B. McMahan, E. Moore, D. Ramage, S. Hampson, and B. A. y Arcas, ``Communication-efficient learning of deep networks from decentralized data,'' in \textit{AISTATS}, 2017, pp. 1273--1282.
+\bibitem{hard2018keyboard} A. Hard \textit{et al.}, ``Federated learning for mobile keyboard prediction,'' \textit{arXiv:1811.03604}, 2018.
 \bibitem{sheller2020federated} M. J. Sheller \textit{et al.}, ``Federated learning in medicine: facilitating multi-institutional collaborations without sharing patient data,'' \textit{Scientific Reports}, vol. 10, no. 1, p. 12598, 2020.
 \bibitem{dayan2021federated} I. Dayan \textit{et al.}, ``Federated learning for predicting clinical outcomes in patients with COVID-19,'' \textit{Nature Medicine}, vol. 27, no. 10, pp. 1735--1743, 2021.
 \bibitem{heyndrickx2023melloddy} W. Heyndrickx \textit{et al.}, ``MELLODDY: cross-pharma federated learning at unprecedented scale unlocks benefits in QSAR without compromising proprietary information,'' \textit{J. Chem. Inf. Model.}, vol. 64, no. 7, pp. 2331--2344, 2023.
@@ -1006,7 +1010,19 @@ available at \url{https://doi.org/10.5281/zenodo.20507155}.
 \section{Proof of Theorem~\ref{thm:bound}}
 \label{app:bound}
 
-We first record two standard facts \cite{cover2006elements}.
+The argument proceeds in four movements. We first reduce the adversary's estimate
+to the observations it was formed from, so that nothing depends on how clever the
+adversary is. We then split the observations into the part explained by the other
+silos' data, which is the lateral floor, and the part that remains, which is what
+the mechanism must control. We next isolate a single silo's contribution within a
+single round, which is where conditioning on the past does the essential work. The
+per-round contribution is finally bounded by the largest divergence the Gaussian
+mechanism can produce between two silo-adjacent inputs, and these bounds
+accumulate across rounds.
+
+Two standard facts are used repeatedly \cite{cover2006elements}. The first lets us
+trade a marginal dependence for a conditional one, and the second converts a
+worst-case divergence into a bound on mutual information.
 
 \begin{lemma}[Chain rule bound]
 \label{lem:chain}
@@ -1029,8 +1045,12 @@ x} \| P_Y) \le \mathbb{E}_{X'} \KL(P_{Y \mid x} \| P_{Y \mid X'}) \le \kappa$.
 \end{proof}
 
 \begin{proof}[Proof of Theorem~\ref{thm:bound}]
+\emph{Step 1: reduce the estimate to the observations.}
 Since $\hat{p}_i$ is a deterministic function of $Y$, the data processing
-inequality gives $I(p_i ; \hat{p}_i) \le I(p_i ; Y)$. Applying
+inequality gives $I(p_i ; \hat{p}_i) \le I(p_i ; Y)$. Every subsequent step
+therefore bounds a quantity that no choice of adversary strategy can exceed.
+
+\emph{Step 2: separate the lateral floor.} Applying
 Lemma~\ref{lem:chain} with $Z = D_{-i}$,
 \begin{equation}
 I(p_i ; Y) \le I(p_i ; D_{-i}) + I(p_i ; Y \mid D_{-i})
@@ -1039,7 +1059,10 @@ I(p_i ; Y) \le I(p_i ; D_{-i}) + I(p_i ; Y \mid D_{-i})
 Because $p_i$ is a function of $D_i$, a further application of the data processing
 inequality gives $I(p_i ; Y \mid D_{-i}) \le I(D_i ; Y \mid D_{-i})$.
 
-Expanding over rounds by the chain rule,
+The first term is the lateral floor, which the mechanism leaves untouched. The
+second is the quantity the noise must control, and the rest of the proof bounds it.
+
+\emph{Step 3: isolate silo $i$ within a round.} Expanding over rounds by the chain rule,
 \begin{equation}
 I(D_i ; Y \mid D_{-i}) = \sum_{t=1}^{T} I\big(D_i ; Y^{(t)} \,\big|\, Y^{(<t)}, D_{-i}\big).
 \end{equation}
@@ -1061,6 +1084,7 @@ unconditional independence between $D_i$ and the updates of other silos. Across
 rounds those updates do depend on $D_i$ through the shared global model, and
 conditioning on $Y^{(<t)}$ is what makes the step valid.
 
+\emph{Step 4: bound one round, then compose.}
 The conditional channel from $D_i$ to $Y_{A(i)}^{(t)}$ is therefore Gaussian with
 covariance $\big(\sum_{j \in A(i)} w_j^2 \sigma_j^2\big) C^2 I$ and mean shifted by
 $w_i \,\mathrm{clip}(\Delta_i^{(t)}, C)$. Replacing $D_i$ by any other dataset
@@ -1084,6 +1108,13 @@ bound is established at silo granularity directly.
 \section{Proof of Theorem~\ref{thm:allocation}}
 \label{app:alloc}
 
+The obstacle is that the objective in \eqref{eq:opt} is a maximum over regions and
+therefore non-smooth. The standard remedy is to name that maximum and constrain it,
+which turns the problem into a smooth convex program whose optimality conditions can
+be read off directly. The solution then follows in three steps: verify that strong
+duality applies, show that no region's constraint is slack at the optimum, and
+confirm that the resulting budget equation has a unique root.
+
 Introduce a slack variable $K$ and rewrite \eqref{eq:opt} as
 \begin{equation}
 \min_{K, \{S_r > 0\}} K
@@ -1098,7 +1129,7 @@ strictly feasible for $K$ sufficiently large, so Slater's condition holds and th
 Karush-Kuhn-Tucker conditions are necessary and sufficient
 \cite{boyd2004convex}.
 
-The Lagrangian is
+\emph{Optimality conditions.} The Lagrangian is
 \begin{equation}
 \mathcal{L} = K + \sum_r \mu_r \left( \frac{a W_r}{S_r} + \ell_r - K \right)
 + \lambda \left( \sum_r S_r - U \right),
@@ -1107,13 +1138,13 @@ with $\mu_r \ge 0$ and $\lambda \ge 0$. Stationarity in $K$ gives $\sum_r \mu_r 
 1$. Stationarity in $S_r$ gives $-\mu_r a W_r / S_r^2 + \lambda = 0$, hence $S_r =
 \sqrt{\mu_r a W_r / \lambda}$.
 
-Every per-region constraint is active at the optimum. Suppose one were inactive
+\emph{Every constraint binds.} Every per-region constraint is active at the optimum. Suppose one were inactive
 for some $r$. Complementary slackness then forces $\mu_r = 0$, and stationarity in
 $S_r$ forces $\lambda = 0$, which in turn forces $\mu_{r'} = 0$ for all $r'$ and
 contradicts $\sum_r \mu_r = 1$. Activity of every constraint gives $a W_r / S_r +
 \ell_r = K^{\star}$ for all $r$, which rearranges to \eqref{eq:alloc}.
 
-For uniqueness, define $g(K) = \sum_r a W_r / (K - \ell_r)$ on $(\max_r \ell_r,
+\emph{Uniqueness.} Define $g(K) = \sum_r a W_r / (K - \ell_r)$ on $(\max_r \ell_r,
 \infty)$. It is continuous and strictly decreasing there, tends to $+\infty$ as
 $K$ approaches the left endpoint, and tends to $0$ as $K \to \infty$. By the
 intermediate value theorem there is exactly one $K^{\star}$ with $g(K^{\star}) =
@@ -1122,6 +1153,11 @@ obtained to tolerance $\epsilon$ in $O(|\Reg| \log(1/\epsilon))$ operations.
 
 \section{Proof of Corollary~\ref{cor:delta}}
 \label{app:delta}
+
+The comparison is between two budgets required to reach the same privacy target.
+The optimal allocation gives each region exactly what that region needs, whereas
+uniform allocation gives every region what the most exposed one needs. The ratio of
+the two budgets is what \eqref{eq:delta} names.
 
 Assume $\ell_r = \ell$ for all $r$ and write $c = a / (K - \ell)$ for a target $K
 > \ell$. By \eqref{eq:alloc} the optimal allocation requires $U_{\mathrm{opt}} = c

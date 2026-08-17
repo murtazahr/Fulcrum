@@ -44,6 +44,14 @@ plt.rcParams.update({
 })
 C_F, C_U, C_R = "#1b4f72", "#a93226", "#7f8c8d"
 
+# Exposure dispersion of real deployment structures (see fulcrum/real_delta.py).
+# These are marked on the same axis along which the gain is measured, so a reader can
+# locate their own deployment and read off the improvement it implies. This replaces a
+# standalone bar chart, which conveyed three numbers and little else.
+# The cellular and consortium structures sit at 0.856 and 0.880, too close to label
+# separately at this scale, so they share one marker spanning the pair.
+DEPLOY = [(0.144, "clinical sites"), (0.868, "cellular edge,\nconsortium")]
+
 
 def _load(fn):
     with open(os.path.join(DATA, fn)) as f:
@@ -77,7 +85,7 @@ def _pick(base):
 
 def fig_gain_vs_delta():
     """Key result. Authored at full text width and placed in a figure* environment."""
-    fig, axes = plt.subplots(1, 2, figsize=(TEXT, 2.45), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(TEXT, 2.55), sharey=True)
     panels = [(_pick("probe_K0.88.json"), "(a) CIFAR-10, frozen ResNet-18"),
               (_pick("agnews_K0.88.json"), "(b) AG News, frozen MiniLM")]
     for ax, (fn, title) in zip(axes, panels):
@@ -94,8 +102,15 @@ def fig_gain_vs_delta():
         ax.scatter(d[nul], g[nul], s=78, facecolors="none", edgecolors=C_F, lw=1.2, zorder=4)
         ax.set_xlabel(r"exposure dispersion $\delta$")
         ax.set_title(title, pad=3)
-        ax.set_xlim(-0.06, 0.87)
+        ax.set_xlim(-0.06, 0.96)
         ax.set_xticks([0.0, 0.2, 0.4, 0.6, 0.8])
+        for x, lbl in DEPLOY:                      # real deployments on the same axis
+            ax.axvline(x, color="0.6", lw=0.5, ls=(0, (2.5, 2.5)), zorder=0)
+            if ax is axes[1]:                      # label once, in the emptier panel
+                ax.annotate(lbl, xy=(x, 0.02), xycoords=("data", "axes fraction"),
+                            xytext=(3, 0), textcoords="offset points",
+                            fontsize=5.8, ha="left", va="bottom", color="0.4",
+                            rotation=90)
     axes[0].set_ylabel("accuracy gain over\nuniform allocation (pp)")
     axes[0].annotate("balanced controls,\n" r"$\delta=0$", xy=(0.01, 0.0), xytext=(0.12, -6.0),
                      fontsize=6.6, ha="left", va="center",
@@ -109,16 +124,17 @@ def fig_gain_vs_delta():
 
 
 def fig_privacy_utility():
-    from fedsim import eps_silo
-    cifar = [(0.4, 0.9695), (0.83, 0.970), (1.5, 0.9565), (2, 0.942),
-             (4, 0.869), (8, 0.6795), (16, 0.4725), (32, 0.376), (64, 0.3365)]
-    ag = [(0.83, 0.9265), (4.0, 0.7640), (16.0, 0.4730)]
-    ref = {"CIFAR-10": 0.970, "AG News": 0.9295}
+    """Both modalities on a COMMON sigma grid, so the two series are sampled identically.
+    The earlier version sampled CIFAR-10 at nine noise levels and AG News at three, which
+    made the two curves look arbitrarily different where they were merely measured differently."""
+    grid = _load("pu_grid.json")
     fig, ax = plt.subplots(figsize=(COL, 2.35))
-    for pts, lbl, col, mk in [(cifar, "CIFAR-10", C_F, "o"), (ag, "AG News", C_U, "s")]:
-        p = sorted((eps_silo(10, s), a) for s, a in pts)
-        ax.plot([x[0] for x in p], [x[1] for x in p], marker=mk, ms=3.6, color=col, label=lbl)
-        ax.axhline(ref[lbl], color=col, lw=0.7, ls=":", alpha=0.8)
+    for key, lbl, col, mk in [("cifar", "CIFAR-10", C_F, "o"), ("agnews", "AG News", C_U, "s")]:
+        pts = grid[key]
+        ref = [p["acc"] for p in pts if p["sigma"] == 0][0]
+        xy = sorted((p["eps"], p["acc"]) for p in pts if p["eps"] is not None)
+        ax.plot([x for x, _ in xy], [y for _, y in xy], marker=mk, ms=3.4, color=col, label=lbl)
+        ax.axhline(ref, color=col, lw=0.7, ls=":", alpha=0.8)
     ax.axvline(0.99, color="0.35", lw=0.8, ls="--")
     ax.annotate(r"$\varepsilon=0.99$", xy=(0.99, 0.40), xytext=(1.9, 0.365),
                 fontsize=6.8, arrowprops=dict(arrowstyle="->", lw=0.6, color="0.4"))
@@ -151,32 +167,9 @@ def fig_leverage():
     print("wrote fig_leverage.pdf")
 
 
-def fig_delta_real():
-    """Structures that admit reallocation. The two structures with delta = 0 are stated
-    in the caption rather than drawn, since zero-length bars carry no visual information."""
-    labels = ["Clinical sites grouped\nby hospital, $3/1/1/1$",
-              "Cellular edge,\n60 base stations",
-              "Consortium grouped\nby country"]
-    vals, err = [14.4, 85.6, 88.0], [0.0, 2.4, 0.0]
-    fig, ax = plt.subplots(figsize=(COL, 1.95))
-    y = np.arange(len(vals))
-    ax.barh(y, vals, xerr=err, height=0.58, color=[C_U, C_F, C_F],
-            error_kw=dict(lw=0.8, capsize=2.2, ecolor="0.25"))
-    ax.set_yticks(y); ax.set_yticklabels(labels, fontsize=6.8)
-    ax.set_xlabel(r"exposure dispersion $\delta$ (\% of budget recoverable)")
-    ax.set_xlim(0, 104)
-    ax.grid(axis="y", visible=False)
-    for i, (v, e) in enumerate(zip(vals, err)):
-        ax.text(v + e + 2.0, i, f"{v:.1f}\\%", va="center", fontsize=6.8)
-    fig.savefig(os.path.join(OUT, "fig_delta_real.pdf"))
-    plt.close(fig)
-    print("wrote fig_delta_real.pdf  (zero-delta structures moved to caption)")
-
-
 if __name__ == "__main__":
     sys.path.insert(0, HERE)
-    which = sys.argv[1:] or ["gain", "pu", "lev", "real"]
+    which = sys.argv[1:] or ["gain", "pu", "lev"]
     if "gain" in which: fig_gain_vs_delta()
     if "pu" in which: fig_privacy_utility()
     if "lev" in which: fig_leverage()
-    if "real" in which: fig_delta_real()
