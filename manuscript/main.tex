@@ -105,7 +105,7 @@ prediction \cite{hard2018keyboard}, clinical research consortia
 \cite{sheller2020federated,dayan2021federated}, and cross-pharmaceutical
 collaborations \cite{heyndrickx2023melloddy}.
 
-Retaining data locally offers a weaker privacy guarantee than it first appears
+This arrangement keeps raw data in place, yet retaining it locally offers a weaker privacy guarantee than it first appears
 to. Model updates carry information about the data that produced them, and a
 substantial literature demonstrates how much of it can be recovered. Gradient
 inversion reconstructs training images from observed updates
@@ -118,7 +118,7 @@ of an organisation rather than of an individual: the prevalence of a diagnosis a
 a clinical site, or the default rate in a lender's portfolio, is commercially and
 legally sensitive in its own right.
 
-Differential privacy \cite{dwork2006calibrating,dwork2014algorithmic} provides the
+Against this family of threats, differential privacy \cite{dwork2006calibrating,dwork2014algorithmic} provides the
 standard defence. Differentially private stochastic gradient descent
 \cite{abadi2016dpsgd} bounds the influence any single contribution exerts on a
 released update by clipping and then adding calibrated noise, and its federated
@@ -127,7 +127,7 @@ updates. Accounting across training rounds is performed with Rényi differential
 privacy \cite{mironov2017rdp} or the moments accountant, and mature tooling makes
 the mechanism straightforward to deploy \cite{yousefpour2021opacus}.
 
-Deployments at realistic scale are seldom organised as a single server serving all
+These techniques are typically presented for a flat topology, yet deployments at realistic scale are seldom organised as a single server serving all
 participants. Bandwidth, latency, and administrative boundaries favour an
 intermediate tier, in which participants report to a regional aggregator that
 combines the updates it receives and forwards only the combination
@@ -147,7 +147,7 @@ devices and rural cells serving very few. Multinational consortia contribute
 uneven numbers of sites per country, and clinical federations frequently pair one
 large tertiary centre with several small clinics.
 
-Prevailing practice applies a single noise multiplier across the federation. That
+Current practice smooths over this heterogeneity: it applies a single noise multiplier across the federation. That
 multiplier must satisfy the participant with the least structural concealment, so
 every participant in a larger region carries more noise than its own requirement
 calls for. The entire federation pays for that surplus in model accuracy, which
@@ -231,7 +231,7 @@ shared by all participants, which is precisely the assumption we revisit.
 
 \subsection{Heterogeneous and personalised privacy budgets}
 
-A separate line assigns differing budgets to differing participants. Jorgensen et
+One way to depart from a shared multiplier is to differentiate budgets deliberately rather than structurally, and a separate line of work does exactly this. Jorgensen et
 al.~\cite{jorgensen2015personalized} introduced personalised differential privacy,
 in which each individual declares a privacy requirement and the mechanism honours
 it, and subsequent work extended the construction to federated training and to
@@ -243,7 +243,7 @@ structural exposure is a natural extension that lies outside our present scope.
 
 \subsection{Hierarchical and clustered private training}
 
-Hierarchical federated learning introduces intermediate aggregators for
+A different source of differentiation arises not from declared preference but from position within the topology. Hierarchical federated learning introduces intermediate aggregators for
 communication efficiency and scalability \cite{liu2020clientedgecloud,
 abad2020hierarchical}, and clustering methods group participants by distributional
 similarity to train specialised models \cite{briggs2020federated}.
@@ -270,7 +270,7 @@ $\sqrt{m}$ separating these regimes measures what a deployment pays for operatin
 with an untrusted aggregator, and we state the assumption explicitly rather than
 leaving it implicit in the mechanism.
 
-Guo et al.~\cite{guo2025fedcdp} study clustered federated learning with
+Other recent work in this space likewise treats structure as given and asks how to allocate against it, without characterising the achievable gain. Guo et al.~\cite{guo2025fedcdp} study clustered federated learning with
 heterogeneous differential privacy. Their clusters group clients of similar
 distribution in order to train personalised models, and their intra-cluster
 weighting adjusts aggregation weights as a logarithmic function of a client's
@@ -284,7 +284,7 @@ uncharacterised.
 
 \subsection{Amplification by aggregation and by topology}
 
-Secure aggregation \cite{bonawitz2017secagg} conceals individual updates from the
+A different strand of work asks not how to allocate noise across a given structure, but how much amplification the structure itself already provides. Secure aggregation \cite{bonawitz2017secagg} conceals individual updates from the
 server using cryptographic masking, and shuffling arguments quantify the resulting
 amplification, which improves with the number of contributions combined. Cyffers
 and Bellet \cite{cyffers2022amplification} and Cyffers et
@@ -298,7 +298,8 @@ This body of work computes the amplification enjoyed by a fixed and uniform
 mechanism. We treat the amplification profile as the object to allocate against.
 Where regions differ in effective size the amplification is unequal, and uniform
 noise is then wasteful by a quantity we compute exactly.
-Table~\ref{tab:related} summarises the comparison.
+Table~\ref{tab:related} summarises the comparison. Making this comparison precise
+requires the system and threat model we set out next.
 
 \begin{table}[t]
 \caption{Placement relative to the closest lines of work.}
@@ -324,6 +325,9 @@ Muffliato \cite{cyffers2022muffliato}  & no  & shared multiplier   & no \\
 
 \section{System and Threat Model}
 \label{sec:model}
+
+We now make precise the structure sketched above: the federation, the mechanism
+each silo runs, and the observer whose knowledge the rest of the paper bounds.
 
 \subsection{Federation and aggregation structure}
 
@@ -409,7 +413,7 @@ carrying surplus noise.}
 
 \subsection{Mechanism}
 
-At round $t$, silo $i$ trains locally on $D_i$ starting from the current global
+Given this structure, the mechanism proceeds round by round. At round $t$, silo $i$ trains locally on $D_i$ starting from the current global
 model $\theta^{(t-1)}$, forms its update $\Delta_i^{(t)}$, clips the update so
 that $\|\Delta_i^{(t)}\| \le C$, and adds Gaussian noise:
 \begin{equation}
@@ -461,7 +465,7 @@ respect, since there every local step constitutes a separate release.
 
 \subsection{Adversary}
 
-We consider a passive observer that follows the protocol while examining what it
+What can an observer positioned above the aggregation tier do with what it sees? We consider a passive observer that follows the protocol while examining what it
 can see. It knows the region structure, the aggregation weights, and the noise
 scales $\{\sigma_j\}$, and it observes the per-region sums $Y_r^{(t)}$ across all
 rounds. Individual silo updates remain hidden from it, which is the property the
@@ -483,6 +487,10 @@ dataset rather than of any individual record.
 \section{Privacy Analysis}
 \label{sec:theory}
 
+The observer just described has two sources of information about $p_i$: what
+neighbouring silos already reveal about it, and what the mechanism itself
+leaks. We bound each in turn, beginning with the former.
+
 \subsection{The lateral floor}
 
 Part of what an observer knows about $p_i$ is available without reference to any
@@ -502,7 +510,7 @@ prior making $p_i$ a deterministic function of a neighbour's data, giving $\ell_
 constant across silos and any allocation derived from it would coincide with the
 uniform one.
 
-Under a hierarchical model in which a group-level parameter $\Phi_g$ is drawn
+To see that $\ell_i$ can be computed rather than merely defined, consider a hierarchical model in which a group-level parameter $\Phi_g$ is drawn
 first and each member's concentration is drawn conditionally on it, $\ell_i$ is
 computable and depends on the number of other members of $i$'s group. It increases
 with that number and saturates at $I(p_i ; \Phi_g)$, which lies strictly below
@@ -523,6 +531,9 @@ remains well below the entropy of the target.}
 \end{figure}
 
 \subsection{The per-client bound}
+
+With the lateral floor characterised, we can state the full bound on what an
+observer learns, combining that floor with what the mechanism itself controls.
 
 \begin{theorem}[Per-client information bound]
 \label{thm:bound}
@@ -571,7 +582,7 @@ from flat federated learning, where each silo is observed individually.
 \end{remark}
 
 \begin{remark}[Informativeness is checkable]
-The cap at $H(p_i)$ gives a test of whether a guarantee conveys anything. The
+A further property concerns not what the bound says about structure but whether it says anything at all. The cap at $H(p_i)$ gives a test of whether a guarantee conveys anything. The
 bound is informative when $T \cdot m_i(\sigma) < H(p_i) - \ell_i$. We refer to the
 right-hand side as the margin, since it measures the information about $p_i$ that
 the deployment structure leaves undetermined and for which the mechanism is
@@ -580,8 +591,16 @@ conveys nothing about it, and we verify this condition at every operating point 
 evaluate.
 \end{remark}
 
+The bound in \eqref{eq:bound} is stated for whatever noise scales $\{\sigma_j\}$
+the deployment happens to use, and nothing in its derivation requires those
+scales to be equal across silos. This freedom is exactly what
+Section~\ref{sec:allocation} optimises.
+
 \section{Optimal Allocation}
 \label{sec:allocation}
+
+What remains is to determine the noise scales themselves, first posing the
+problem precisely and then deriving its solution in closed form.
 
 \subsection{Formulating the problem}
 
@@ -609,6 +628,8 @@ The allocation problem is therefore
 
 \subsection{Closed-form solution}
 
+The problem in \eqref{eq:opt} turns out to admit an exact solution.
+
 \begin{theorem}[Min-max optimal allocation]
 \label{thm:allocation}
 For any budget $U > 0$, the solution of \eqref{eq:opt} is
@@ -633,7 +654,7 @@ and is performed once, before training begins.
 
 \subsection{The achievable improvement}
 
-Uniform allocation applies one scale $\sigma$ to every silo, giving $S_r = \sigma^2
+The optimal allocation gives each region exactly what it needs; the size of the gain is best seen against the uniform baseline it replaces. Uniform allocation applies one scale $\sigma$ to every silo, giving $S_r = \sigma^2
 V_r$ with $V_r = \sum_{j \in r} w_j^2$. Reaching a target $K$ requires satisfying
 the most demanding region, which fixes $\sigma^2$ and hence the total budget.
 Comparing the budgets the two schemes require to reach the same target gives the
@@ -687,11 +708,14 @@ grouped by their parent hospital, in the $3/1/1/1$ arrangement of a public
 federated benchmark, give $14.4\%$. Federations whose regions are equally sized
 give exactly zero, as do flat federations with no aggregation tier. These values
 are marked on the horizontal axis of Figure~\ref{fig:gain}, so a practitioner can
-locate a deployment and read off the improvement it admits. Cellular deployments sit high on the scale because base
-station loads are long tailed, with dense cells serving many devices and sparse
-cells very few. Consortia organised by country behave similarly, since site counts
-per country are uneven. Federations whose sites are grouped into equally sized
-regions sit at zero, as does flat cross-silo training.
+locate a deployment and read off the improvement it admits.
+
+These figures follow directly from how each deployment is organised. Cellular
+deployments sit high on the scale because base station loads are long tailed,
+with dense cells serving many devices and sparse cells very few. Consortia
+organised by country behave similarly, since site counts per country are
+uneven. Having established what the theory predicts for structures like these,
+we turn next to testing that prediction directly.
 
 
 \section{Experimental Evaluation}
@@ -745,7 +769,7 @@ silo-level privacy.
 
 \subsection{Configuration}
 
-We use $n = 96$ silos partitioned into regions according to the profile under
+With the representations fixed, the remaining experimental parameters are as follows. We use $n = 96$ silos partitioned into regions according to the profile under
 test, $T = 10$ rounds, $\delta_{\mathrm{DP}} = 10^{-5}$, clipping at $C = 1$, ten
 local optimisation steps per round, batch size $64$, and ten independent seeds
 per configuration. Local class distributions are generated by a coupled
@@ -776,7 +800,7 @@ Table~\ref{tab:main} reports the outcome and Figure~\ref{fig:gain} plots it.
 Budget savings match $\delta$ to three decimal places in every configuration,
 confirming the first prediction and Corollary~\ref{cor:delta}.
 
-The accuracy gain increases with $\delta$, reaching $14.97 \pm 2.51$ points on
+Matching budgets is a necessary check on the theory, but what those budgets buy in accuracy is the second and more consequential prediction. The accuracy gain increases with $\delta$, reaching $14.97 \pm 2.51$ points on
 images and $13.25 \pm 1.72$ points on text in the most heterogeneous deployment,
 quoted as means over ten seeds with the standard error of the paired difference,
 which confirms the second prediction. In the two balanced deployments the gain equals zero to the
@@ -792,12 +816,13 @@ in the mild configuration and by eight to nine points in the severe one. Non-uni
 insufficient, and the gain depends on allocating according to the exposure
 profile.
 
-Agreement between the two modalities is close, at $4.25$ against $3.88$ points in
+Beyond confirming the three predictions, the results show a further regularity across tasks. Agreement between the two modalities is close, at $4.25$ against $3.88$ points in
 the mild configuration and $14.97$ against $13.25$ points in the severe one. We had anticipated that the magnitudes would
 differ, since the gain depends on the local slope of accuracy against noise, which
 is a property of the task. The close agreement is most plausibly a consequence of
 having matched the head dimension and privacy target across the two tasks, and we
-would expect divergence were either varied.
+would expect divergence were either varied. Having confirmed the prediction
+experimentally, we turn next to the assumptions and scope behind it.
 
 \begin{figure*}[t]
 \centering
@@ -845,6 +870,10 @@ Severe, $15/5/2/1/1$ & $0.792$
 \section{Discussion}
 \label{sec:discussion}
 
+The experiments just reported were run in a specific setting, fine-tuning a
+frozen representation, and that choice is deliberate. We explain why it is
+appropriate before turning to guidance, scope, and limitations.
+
 \subsection{Why fine-tuning is the appropriate setting}
 
 The noise entering the aggregate has norm proportional to $C \sigma \sqrt{d
@@ -867,7 +896,7 @@ absolute feasibility.
 
 \subsection{Practical guidance}
 
-The workflow the result suggests is brief. A practitioner computes $\rho_r$ for
+Beyond justifying the experimental setting, the same result yields direct operational guidance. The workflow it suggests is brief. A practitioner computes $\rho_r$ for
 each region from the deployment description, forms $\delta$, and reads off the
 budget that reallocation recovers. Where $\delta$ is small the uniform multiplier
 already sits close to optimal and the existing pipeline may be retained. Where
@@ -883,7 +912,7 @@ give $\delta = 0$ and leave nothing for reallocation to recover.
 
 \subsection{Limitations}
 
-Several limitations bound the scope of our claims.
+The guidance above is optimistic about when the method helps. Several limitations bound the scope of the claims underlying it.
 
 Regions must differ in effective size for the improvement to materialise, and
 $\delta$ quantifies this in advance. Deployments with balanced regions, and flat
@@ -891,27 +920,27 @@ federations lacking an aggregation tier, attain parity with existing practice
 rather than improvement. We regard the explicitness of this condition as a virtue,
 though it does confine the applicable setting.
 
-The analysis assumes regions are disjoint, that membership is fixed for the
+A further assumption concerns the structure itself. The analysis assumes regions are disjoint, that membership is fixed for the
 duration of training, and that silo datasets are disjoint. Deployments in which a
 silo contributes to several aggregates would require the observer's view to be
 modelled jointly across regions, and dynamic reconfiguration would require the
 accounting to track membership over time. Both lie outside the present treatment.
 
-Theorem~\ref{thm:bound} states an upper bound, and slack remains in it in at
+Separately, the bound itself is not tight. Theorem~\ref{thm:bound} states an upper bound, and slack remains in it in at
 least two places: the chain rule step discards a non-negative term, and the
 per-round divergence is a worst case over adjacent inputs. Tightening either would
 reduce the noise required at a given target. The allocation itself is unaffected,
 since it depends on the relative exposure of regions rather than on the absolute
 level of the bound.
 
-The lateral floor $\ell_i$ is defined relative to a stated generative model, and a
+The bound's other structural input carries its own assumption: $\ell_i$ is defined relative to a stated generative model, and a
 deployment whose true correlation structure departs from that model would yield a
 different floor. Our calibration indicates that $\ell_i$ saturates quickly and
 varies modestly across silos, so the allocation is governed by the mechanism term,
 and we would expect the ordering of regions to persist under moderate
 misspecification. Establishing that formally remains open.
 
-We assume a passive observer. Active adversaries that manipulate the protocol, and
+The threat model is similarly bounded. We assume a passive observer. Active adversaries that manipulate the protocol, and
 aggregators that misreport the sums they compute, fall outside the model. Because
 each silo perturbs its own update before transmission, the guarantee holds without
 trusting the aggregator to add noise; it does, however, assume that the
@@ -926,14 +955,15 @@ counts, and with larger trainable heads, remains to be characterised.
 
 \subsection{Relation to trusted-aggregator schemes}
 
-As noted in Section~\ref{sec:related}, a trusted super-node contributing a single
+The trust assumed of the aggregator, touched on above, is worth situating in more detail. As noted in Section~\ref{sec:related}, a trusted super-node contributing a single
 noise draw on behalf of its region requires per-client noise scaling as $1/m$ in
 place of $1/\sqrt{m}$. A deployment able to trust its aggregators therefore
 reaches the same guarantee with less noise, and the factor $\sqrt{m}$ measures
 what the untrusted setting costs. The allocation problem arises in both regimes,
 and Theorem~\ref{thm:allocation} applies to either once the mechanism term is
 written accordingly, while the value of $\delta$ in Corollary~\ref{cor:delta} is
-derived for the untrusted case treated here.
+derived for the untrusted case treated here. Having situated the result against
+its assumptions and its alternatives, we close by drawing the argument together.
 
 \section{Conclusion}
 \label{sec:conclusion}
