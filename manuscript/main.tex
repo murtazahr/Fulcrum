@@ -449,7 +449,16 @@ concentration
 p_i = \frac{\big|\{x \in D_i : x \text{ belongs to the sensitive class}\}\big|}{|D_i|},
 \end{equation}
 quantised to $R$ levels so that $H(p_i)$ is finite. Quantisation reflects the
-operational reality that an estimate is useful at some finite resolution. This
+operational reality that an estimate is useful at some finite resolution, and $R$
+is therefore a property of the inference the observer is attempting rather than a
+free parameter. Two considerations fix it. A prevalence estimate is normally acted
+on at a resolution of a few percentage points, and a silo holding $|D_i|$ records
+carries a sampling error of order $\sqrt{1/4|D_i|}$ on its own concentration, so
+resolutions finer than that are not identifiable from the data in any case. At the
+scale of our experiments the second consideration caps useful resolution near
+$R = 28$; we adopt the coarser $R = 20$, a resolution of $0.05$, throughout.
+Section~\ref{sec:eval} reports the informativeness test across a range of $R$, since
+$H(p_i) \le \ln R$ means a finer quantisation would otherwise inflate the cap. This
 target captures information organisations are frequently obliged to protect, such
 as the prevalence of a condition at a clinical site, and it is a property of the
 dataset rather than of any individual record.
@@ -553,13 +562,15 @@ from flat federated learning, where each silo is observed individually.
 \end{remark}
 
 \begin{remark}[Informativeness is checkable]
+\label{rem:informative}
 A further property concerns not what the bound says about structure but whether it says anything at all. The cap at $H(p_i)$ gives a test of whether a guarantee conveys anything. The
 bound is informative when $T \cdot m_i(\sigma) < H(p_i) - \ell_i$. We refer to the
 right-hand side as the margin, since it measures the information about $p_i$ that
 the deployment structure leaves undetermined and for which the mechanism is
 therefore responsible. A reported bound exceeding the entropy of the target
-conveys nothing about it, and we verify this condition at every operating point we
-evaluate.
+conveys nothing about it. Section~\ref{sec:eval} verifies the condition at the
+operating point we evaluate, and across a range of quantisation resolutions, since
+$H(p_i) \le \ln R$ would otherwise let a finer resolution satisfy it for free.
 \end{remark}
 
 The bound in \eqref{eq:bound} is stated for whatever noise scales $\{\sigma_j\}$
@@ -816,11 +827,41 @@ partitioning scheme in which a region-determined component is mixed with a rando
 component, so that concentrations vary across silos in a controlled manner while
 dataset sizes remain equal by construction.
 
-The privacy target is $K = 0.88$ nats. This lies below the entropy of the
-quantised target, so the guarantee is informative in the sense of
-Section~\ref{sec:theory}, and it yields $\varepsilon = 0.99$ in every run reported
-here. Figure~\ref{fig:pu} shows the privacy-utility relationship across a wider
-range and marks the operating point.
+The privacy target is $K = 0.88$ nats, and it yields $\varepsilon = 0.99$ in every
+run reported here. Figure~\ref{fig:pu} shows the privacy-utility relationship
+across a wider range and marks the operating point.
+
+Remark~\ref{rem:informative} requires $T \cdot m_i(\sigma) < H(p_i) - \ell_i$ for the
+guarantee to convey anything, and we verify it here. Over the $3840$ silo
+instances across all profiles and seeds, the concentrations $p_i$ span $[0.178,
+0.827]$, giving $H(p_i) = 2.23$ nats at $R = 20$ and a margin $H(p_i) - \ell_i =
+1.38$ nats. The mechanism term reaches $K - \ell_i = 0.030$ nats at its largest,
+which is $2.2\%$ of that margin, so the condition holds with two orders of
+magnitude to spare at every operating point and under every allocation.
+
+Because $H(p_i)$ grows with $R$, the test would pass trivially at fine resolution,
+so Table~\ref{tab:informative} reports it across $R$. The condition holds at every
+resolution down to $R = 4$, where the target is resolved only to quartiles and
+$H(p_i) = 1.33$ nats still exceeds $K$. The verification therefore does not depend
+on the choice of $R$.
+
+\begin{table}[t]
+\caption{Informativeness of the guarantee across quantisation resolutions. The condition of Remark~\ref{rem:informative} requires the mechanism term, at most $0.030$ nats here, to fall below the margin $H(p_i) - \ell_i$. It holds at every resolution, including the coarsest.}
+\label{tab:informative}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+$R$ & resolution & $H(p_i)$ & margin & mech.\ term & informative \\
+\midrule
+$4$   & $0.250$ & $1.33$ & $0.48$ & $0.030$ & yes \\
+$10$  & $0.100$ & $1.64$ & $0.79$ & $0.030$ & yes \\
+$20$  & $0.050$ & $2.23$ & $1.38$ & $0.030$ & yes \\
+$50$  & $0.020$ & $3.04$ & $2.19$ & $0.030$ & yes \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{figure}[t]
 \centering
