@@ -1006,10 +1006,17 @@ absolute feasibility.
 Beyond justifying the experimental setting, the same result yields direct operational guidance. The workflow it suggests is brief. A practitioner computes $\rho_r$ for
 each region from the deployment description, forms $\delta$, and reads off the
 budget that reallocation recovers. Where $\delta$ is small the uniform multiplier
-already sits close to optimal and the existing pipeline may be retained. Where
-$\delta$ is large, \Fulcrum (Algorithm~\ref{alg:main}) yields the allocation at negligible
+already sits close to optimal and little is available to recover. Where $\delta$
+is large, \Fulcrum (Algorithm~\ref{alg:main}) yields the allocation at negligible
 computational cost, since $K^\star$ is obtained by one-dimensional bisection
 performed once before training.
+
+Identifying the regime in advance is unnecessary, because the allocation recovers
+the simpler rules rather than competing with them. It returns the uniform
+multiplier when regions are equally exposed, and the $1/\sqrt{m}$ rule of
+Section~\ref{sec:eval} when silos carry equal weight. Running it is therefore
+never worse than running either, and is better whenever the deployment departs
+from those conditions.
 
 The deployment measurements of Section~\ref{sec:allocation} suggest that many operational
 deployments fall into the second category. A federation seeking to reduce its
