@@ -65,6 +65,8 @@ if __name__ == "__main__":
     ap.add_argument("--fdim", type=int, default=32); ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--local", type=int, default=10); ap.add_argument("--root", default="./cifar")
     ap.add_argument("--out", default="agnews_results.json"); ap.add_argument("--probe", action="store_true")
+    ap.add_argument("--spread", type=float, default=0.0)
+    ap.add_argument("--modes", default="fulcrum,uniform,sqrt_m,size_prop,random")
     a = ap.parse_args()
     Xtr, ytr, Xte, yte = features(a.root, a.fdim)
     print(f"AG News features {tuple(Xtr.shape)}  d={a.fdim*2+2}  n={a.n}  "
@@ -79,10 +81,10 @@ if __name__ == "__main__":
     rows = []
     for pname, groups in profiles(a.n).items():
         for seed in range(a.seeds):
-            parts, _ = partition(ytr, a.n, a.eta, groups, seed)
+            parts, _ = partition(ytr, a.n, a.eta, groups, seed, size_spread=a.spread)
             w = np.array([len(p) for p in parts], float); w /= w.sum()
             rho, V, W, delta = rho_stats(w, groups)
-            for mode in ["fulcrum", "uniform", "random"]:
+            for mode in a.modes.split(","):
                 s2, U = sigmas_for_target(w, groups, a.K, np.full(len(V), 0.85), 2.0 * a.T, mode, seed)
                 acc = run(np.sqrt(s2), Xtr, ytr, parts, Xte, yte, groups, a.T, 1.0, 0.5, 64, seed, a.local)
                 se = np.zeros(len(w))
@@ -90,7 +92,7 @@ if __name__ == "__main__":
                     m = groups == r; se[m] = np.sqrt(np.sum(w[m] ** 2 * s2[m])) / w[m]
                 rows.append(dict(profile=pname, delta=delta, seed=seed, mode=mode, acc=acc, U=U,
                                  eps=eps_silo(a.T, float(se.min())), K=a.K, n=a.n, T=a.T,
-                                 d=a.fdim * 2 + 2, dataset="agnews"))
+                                 d=a.fdim * 2 + 2, dataset="agnews", spread=a.spread))
                 print(f"{pname:<20} d={delta:.3f} s={seed} {mode:<8} acc={acc:.4f} "
                       f"U={U:.4g} eps={rows[-1]['eps']:.2f}", flush=True)
             json.dump(rows, open(a.out, "w"), indent=1)

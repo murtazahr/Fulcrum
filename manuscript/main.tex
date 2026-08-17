@@ -77,7 +77,7 @@ vanishes precisely when all regions share the same effective size. Measured
 across operational structures, $\delta$ reaches $88\%$ for consortia organised
 by country and $83$ to $88\%$ for cellular edge deployments. Experiments on
 image and text classification confirm the prediction at $\varepsilon = 0.99$:
-accuracy at matched per-client privacy improves by up to $14.97$ percentage
+accuracy at a matched worst-case per-client guarantee improves by up to $14.97$ percentage
 points where $\delta$ is large, matches the uniform baseline exactly in two
 balanced control deployments for which the theory predicts parity, and falls
 below it for a control that preserves the noise dispersion while assigning it
@@ -486,9 +486,9 @@ computable and depends on the number of other members of $i$'s group. It increas
 with that number and saturates at $I(p_i ; \Phi_g)$, which lies strictly below
 $H(p_i)$. Figure~\ref{fig:leverage} shows the behaviour. Saturation is rapid: the
 first group member contributes roughly two thirds of the eventual total, and the
-difference between a group of twenty and a group of fifty is slight. Consequently
-$\ell_i$ varies little across silos in practice, and the allocation is driven by
-the mechanism term rather than by this floor.
+difference between a group of twenty and a group of fifty is slight. The floor is nonetheless not constant across regions, and
+Corollary~\ref{cor:delta} assumes that it is. Section~\ref{sec:allocation} quantifies
+what that assumption costs for each deployment we report.
 
 \begin{figure}[t]
 \centering
@@ -667,6 +667,43 @@ $\delta = 0$ however unequal the silo sizes may be. An aggregation tier is what
 creates the opportunity to reallocate, which places hierarchical deployments
 within the scope of this paper.
 
+\subsection{The cost of the equal-floor assumption}
+
+Corollary~\ref{cor:delta} treats $\ell_r$ as common to all regions, whereas
+Section~\ref{sec:theory} shows it growing with group size. Regions in the
+heterogeneous profiles differ in size by an order of magnitude, so the assumption
+is loosest exactly where $\delta$ is largest, and the direction is unfavourable:
+larger regions carry a larger floor, hence a smaller $K - \ell_r$, hence a larger
+$S_r$ than the common-floor calculation implies.
+
+Solving \eqref{eq:alloc} numerically with region-dependent $\ell_r$ taken from the
+model of Figure~\ref{fig:leverage} at $\kappa = 20$ and $K = 2.2$ nats gives the
+comparison in Table~\ref{tab:ellgap}. The common-floor value overstates the
+attainable saving by $2.8$ to $6.9$ percentage points, with the largest error on
+the most heterogeneous profile. The ordering of deployments is preserved, so the
+common-floor expression remains serviceable for ranking structures and for the
+$\delta = 0$ applicability test, and the numerical solution should be preferred
+whenever the saving itself is being quoted.
+
+\begin{table}[t]
+\caption{Saving attainable under the common-floor assumption of Corollary~\ref{cor:delta}, against a numerical solution carrying region-dependent $\ell_r$ ($\kappa = 20$, $K = 2.2$ nats).}
+\label{tab:ellgap}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+& & \multicolumn{2}{c}{attainable saving} \\
+\cmidrule(lr){3-4}
+Region profile & $\ell_r$ range & common floor & solved for $\ell_r$ \\
+\midrule
+Mild, $6/6/6/3/3$ & $0.735$--$0.836$ & $37.5\%$ & $34.7\%$ \\
+Severe, $15/5/2/1/1$ & $0$--$0.889$ & $79.2\%$ & $72.3\%$ \\
+Consortium by country & $0$--$0.907$ & $88.0\%$ & $83.1\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Exposure in operational deployments}
 
 Since $\delta$ is a property of a deployment rather than of an experiment, it can
@@ -706,11 +743,41 @@ preserving the dispersion of noise while assigning it to the wrong regions
 withholds the gain, which distinguishes our claim from the weaker proposition that
 any non-uniform allocation suffices.
 
-All three arms hold every silo at the same worst-case bound $K$, so comparison
-occurs at matched per-client privacy and the arms differ only in the total noise
-they require. We report achieved privacy parameters for every run. Silo $i$ is
-concealed by the total noise in its region, so its effective noise multiplier is
-$\sqrt{S_r}/w_i$, and we compute $\varepsilon$ from the least protected silo.
+Every arm holds each silo at the same worst-case bound $K$, so the comparison fixes
+the guarantee received by the least protected silo and the arms differ only in the
+total noise they require. Silo $i$ is concealed by the total noise in its region,
+so its effective noise multiplier is $\sqrt{S_r}/w_i$, from which $\varepsilon$
+follows.
+
+What the worst case fixes, it fixes only at the extreme, and the distribution
+behind it moves. Uniform allocation reaches $K$ by giving every silo the noise the
+most exposed region requires, which leaves silos in well concealed regions
+strictly inside the target; the optimal allocation brings each region to $K$
+exactly. Table~\ref{tab:epsdist} reports the consequence for the severe profile.
+Holding the maximum at $\varepsilon = 0.99$, the mean rises from $0.368$ to
+$0.990$, and the largest region moves from $0.229$ to $0.990$. The budget the
+allocation frees is therefore drawn from silos that previously held protection
+beyond the stated target, and the equalisation is what frees it. Read the other
+way, the uniform multiplier delivers guarantees spanning a factor of $4.3$ across
+silos, and the optimal allocation delivers the target to all of them.
+
+\begin{table}[t]
+\caption{Per-silo $\varepsilon$ by region under each allocation, severe profile $15/5/2/1/1$ at $n = 96$, $T = 10$, $\delta_{\mathrm{DP}} = 10^{-5}$. The worst case is common to both arms by construction; the distribution behind it is not.}
+\label{tab:epsdist}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+& \multicolumn{5}{c}{$\varepsilon$ by region (silos per region)} & \\
+\cmidrule(lr){2-6}
+Allocation & $60$ & $20$ & $8$ & $4$ & $4$ & mean \\
+\midrule
+Uniform            & $0.229$ & $0.414$ & $0.680$ & $0.990$ & $0.990$ & $0.368$ \\
+Optimal (\Fulcrum) & $0.990$ & $0.990$ & $0.990$ & $0.990$ & $0.990$ & $0.990$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Datasets and models}
 
@@ -797,7 +864,7 @@ experimentally, we turn next to the assumptions and scope behind it.
 \begin{figure*}[t]
 \centering
 \includegraphics{figures/fig_gain_vs_delta.pdf}
-\caption{Accuracy gain over uniform allocation at matched per-client privacy,
+\caption{Accuracy gain over uniform allocation at a matched worst-case per-client guarantee,
 plotted against exposure dispersion, for both modalities. Circled markers are the
 two balanced control deployments, for which the theory predicts parity. The dashed
 series is the misallocation control, which preserves the noise dispersion while
@@ -808,7 +875,7 @@ error of the paired difference.}
 \end{figure*}
 
 \begin{table*}[t]
-\caption{Accuracy at matched per-client privacy ($\varepsilon = 0.99$, $n = 96$, $T = 10$, ten seeds). Gains are percentage points relative to uniform allocation, and the budget saved equals $\delta$ in every row. Non-private references are $0.970$ for CIFAR-10 and $0.930$ for AG News.}
+\caption{Accuracy at a matched worst-case per-client guarantee ($\varepsilon = 0.99$, $n = 96$, $T = 10$, ten seeds). Gains are percentage points relative to uniform allocation, and the budget saved equals $\delta$ in every row. Non-private references are $0.970$ for CIFAR-10 and $0.930$ for AG News.}
 \label{tab:main}
 \centering
 \small

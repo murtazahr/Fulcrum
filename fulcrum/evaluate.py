@@ -79,6 +79,19 @@ def sigmas_for_target(w, groups, K, ell_r, a, mode, seed=0):
         s2_perm = s2_reg[perm]
         c = max(need[j] / (s2_perm[j] * V[j]) for j in range(len(regs)))
         S = s2_perm * V * c
+    elif mode in ("sqrt_m", "size_prop"):
+        # Size-based heuristics. A practitioner who knows that a silo is concealed by its
+        # region, but not how much, would scale noise by region SIZE. Two exponents are
+        # natural: sigma ~ 1/m (the per-zone rule of trusted-aggregator schemes, ported
+        # naively to local injection) and sigma ~ 1/sqrt(m) (the correct exponent when each
+        # silo injects its own noise). Both are rescaled to meet the same target K.
+        # Under EQUAL client weights sqrt_m coincides exactly with the optimum, since
+        # rho_r = 1/m_r there; the two separate only when weights vary within regions.
+        expo = 1.0 if mode == "size_prop" else 0.5
+        msz = np.array([float((groups == r).sum()) for r in regs])
+        base = msz ** (-2 * expo)
+        S = np.array([np.sum(w[groups == r] ** 2 * base[j]) for j, r in enumerate(regs)])
+        S = S * max(need[j] / S[j] for j in range(len(regs)))
     else:
         raise ValueError(mode)
     sig2 = np.zeros(len(w))

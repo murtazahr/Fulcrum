@@ -66,21 +66,34 @@ def features(root: str, fdim: int):
     return Xtr, ytr, Xte, yte
 
 
-def partition(y, n, eta, groups, seed):
-    """eta-coupled binary partition: region g pushes p_i toward g%2. Equal |D_i| by construction."""
+def partition(y, n, eta, groups, seed, size_spread=0.0):
+    """eta-coupled binary partition: region g pushes p_i toward g%2.
+
+    size_spread = 0 gives every silo the same |D_i|, so aggregation weights are uniform.
+    size_spread > 0 draws |D_i| log-normally with that log-scale, which is the shape real
+    federations exhibit. Weight heterogeneity is what separates the optimal allocation from
+    a region-size heuristic: with equal weights the exposure ratio rho_r is exactly 1/m_r,
+    so the two coincide.
+    """
     rng = np.random.default_rng(seed)
     idx0, idx1 = list(rng.permutation(np.where(y == 0)[0])), list(rng.permutation(np.where(y == 1)[0]))
     per = len(y) // n
     base = rng.uniform(0.3, 0.7, n)
     tgt = np.array([0.05 if g % 2 == 0 else 0.95 for g in groups])
     p = (1 - eta) * base + eta * tgt
+    if size_spread > 0:
+        sc = rng.lognormal(0.0, size_spread, n)
+        sizes = np.maximum(16, (per * sc / sc.mean()).astype(int))
+    else:
+        sizes = np.full(n, per, dtype=int)
     parts, ps = [], []
     for i in range(n):
-        k1 = int(round(p[i] * per)); k0 = per - k1
+        per_i = int(sizes[i])
+        k1 = int(round(p[i] * per_i)); k0 = per_i - k1
         while len(idx1) < k1: idx1 += list(rng.permutation(np.where(y == 1)[0]))
         while len(idx0) < k0: idx0 += list(rng.permutation(np.where(y == 0)[0]))
         take = [idx1.pop() for _ in range(k1)] + [idx0.pop() for _ in range(k0)]
-        parts.append(np.array(take)); ps.append(k1 / per)
+        parts.append(np.array(take)); ps.append(k1 / per_i)
     return parts, np.array(ps)
 
 
@@ -123,6 +136,8 @@ if __name__ == "__main__":
     ap.add_argument("--fdim", type=int, default=32); ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--local", type=int, default=10); ap.add_argument("--root", default="./cifar")
     ap.add_argument("--out", default="probe_results.json"); ap.add_argument("--probe", action="store_true")
+    ap.add_argument("--spread", type=float, default=0.0)
+    ap.add_argument("--modes", default="fulcrum,uniform,sqrt_m,size_prop,random")
     a = ap.parse_args()
     Xtr, ytr, Xte, yte = features(a.root, a.fdim)
     d = a.fdim * 2 + 2
@@ -137,10 +152,10 @@ if __name__ == "__main__":
     rows = []
     for pname, groups in profiles(a.n).items():
         for seed in range(a.seeds):
-            parts, ps = partition(ytr, a.n, a.eta, groups, seed)
+            parts, ps = partition(ytr, a.n, a.eta, groups, seed, size_spread=a.spread)
             w = np.array([len(p) for p in parts], float); w /= w.sum()
             rho, V, W, delta = rho_stats(w, groups)
-            for mode in ["fulcrum", "uniform", "random"]:
+            for mode in a.modes.split(","):
                 s2, U = sigmas_for_target(w, groups, a.K, np.full(len(V), 0.85), 2.0 * a.T, mode, seed)
                 acc = run(np.sqrt(s2), Xtr, ytr, parts, Xte, yte, groups, a.T, 1.0, 0.5, 64, seed, a.local)
                 se = np.zeros(len(w))
