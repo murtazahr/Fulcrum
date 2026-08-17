@@ -1,6 +1,4 @@
-%% Fulcrum — Topology-Aware Differential Privacy Allocation for Federated Learning
-%% Target venue: IEEE Transactions on Information Forensics and Security (TIFS)
-%%
+%% Fulcrum — Optimal Per-Region DP Noise Allocation for Hierarchical Federated Learning
 %% Build: latexmk -pdf main.tex
 
 \documentclass[letterpaper,journal]{IEEEtran}
@@ -25,2077 +23,829 @@
 % --- Other ---
 \usepackage{textcomp}
 \usepackage{url}
-\usepackage{verbatim}
 \usepackage{xcolor}
 \usepackage{orcidlink}
 \usepackage{xspace}
-\usepackage{enumitem}
-\usepackage{tikz}
-\usetikzlibrary{calc}
 
-% --- Theorem environments (IEEEtran compatible) ---
+% --- Theorem environments ---
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{corollary}[theorem]{Corollary}
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{definition}[theorem]{Definition}
-% --- Unnumbered theorem environments for restated results ---
-\newtheorem*{theoremstar}{Theorem}
-\newtheorem*{corollarystar}{Corollary}
 
-\hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
+\hyphenation{op-tical net-works semi-conduc-tor}
 
 % --- Macros ---
 \newcommand{\eg}{\textit{e.g.,}\xspace}
 \newcommand{\ie}{\textit{i.e.,}\xspace}
-\newcommand{\cf}{cf.\xspace}
-\newcommand{\TADI}{\textsc{TADI}\xspace}
 \newcommand{\Fulcrum}{\textsc{Fulcrum}\xspace}
-\newcommand{\dataA}{Setting~A\xspace}
-\newcommand{\dataB}{Setting~B\xspace}
-\newcommand{\dataC}{Setting~C\xspace}
 \newcommand{\KL}{D_{\mathrm{KL}}}
-\newcommand{\RDP}{\mathrm{RDP}}
-\newcommand{\Var}{\mathrm{Var}}
-\newcommand{\Adv}{\mathcal{A}}
-\newcommand{\Cs}{\mathcal{C}_{s}}
-\newcommand{\Dset}{\mathcal{D}}
-\newcommand{\TOPO}{\mathcal{G}}
-\newcommand{\OBS}{\mathcal{O}}
-\newcommand{\KNW}{\mathcal{K}}
-\newcommand{\FAM}{\mathcal{F}}
-\newcommand{\Tmax}{T_{\max}}
-\newcommand{\eps}{\varepsilon}
-\newcommand{\PLACE}[1]{\textcolor{red!75!black}{\textbf{[#1]}}}
 
 \begin{document}
-\bstctlcite{IEEEexample:BSTcontrol}
 
-\title{Topology-Aware Differential Privacy in Federated Learning}
+\title{Optimal Noise Allocation for Hierarchical\\ Federated Learning}
 
-\author{Murtaza~Rangwala\orcidlink{0009-0003-4578-8671},~\IEEEmembership{Member,~IEEE,}
-        Richard~O.~Sinnott\orcidlink{0000-0001-5998-222X},~\IEEEmembership{}
-        and~Rajkumar~Buyya\orcidlink{0000-0001-9754-6496},~\IEEEmembership{Fellow,~IEEE}
-\\
-\IEEEcompsocitemizethanks{
-  \IEEEcompsocthanksitem Murtaza Rangwala, Richard O. Sinnott and Rajkumar Buyya are with the Quantum Cloud Computing and Distributed Systems (qCLOUDS) Lab, School of Computing and Information Systems, The University of Melbourne, Australia.
-}
-}
+\author{Murtaza Rangwala\,\orcidlink{0000-0000-0000-0000},~\IEEEmembership{Member,~IEEE,}
+        Richard O. Sinnott\,\orcidlink{0000-0000-0000-0000},
+        and~Rajkumar Buyya\,\orcidlink{0000-0000-0000-0000},~\IEEEmembership{Fellow,~IEEE}%
+\thanks{The authors are with the Quantum Cloud Computing and Distributed Systems (qCLOUDS) Lab, School of Computing and Information Systems, The University of Melbourne, Australia.}}
 
+\markboth{}{}
 \maketitle
 
-% =============================================================================
-% ABSTRACT
-% =============================================================================
 \begin{abstract}
-Federated learning enables collaborative model training across
-distributed clients that share only model updates rather than raw
-data, and differentially private stochastic gradient descent (DP-SGD) bounds the content-level
-leakage those updates carry. Neither mechanism accounts for what the
-communication topology of the federation reveals. In cross-silo
-deployments, a passive adversary who knows the topology and
-organisational structure can exploit information channels that the
-content-level accounting of DP-SGD does not model. We formalise this
-threat and prove an additive per-client mutual-information bound that
-separates a controllable mechanism term, governed by per-client
-DP-SGD noise, from an uncontrollable prior-coupling term determined by
-the client's structural position. From this bound we derive \Fulcrum,
-a closed-form min-max optimal noise allocation that minimises the
-worst-case per-client bound under a fixed utility budget, that is, it strictly
-reduces this bound relative to uniform DP-SGD when the leverage
-profile is asymmetric and reduces exactly to uniform DP-SGD when it is
-symmetric, incurring no worst-case penalty relative to standard
-practice. To ground the bound empirically, we introduce \TADI
-(Topology-Aware Distributional Inference), a shadow-trained diagnostic
-that decomposes per-client leakage into parameter, structural, and
-organisational components. Across Fed-ISIC2019, Fed-Heart-Disease, and
-synthetic CIFAR-10 spanning six topology families, \Fulcrum tightens
-the worst-case bound by up to 1.967 nats without measurable utility
-cost, and \TADI localises the residual leakage in the prior-coupling
-term, which is realised only when the adversary's prior matches the
-deployment. Together the two delineate the boundary between leakage
-that noise allocation can optimally control and the structurally
-determined leakage that lies beyond it.
+Hierarchical federated learning inserts regional aggregators between clients and
+the cloud, so that a participant's update is observed only after it has been
+combined with those of its neighbours. The size of that aggregation region
+determines how much protection the region itself provides, and regions in real
+deployments are rarely the same size. Standard practice nonetheless applies a
+single noise multiplier to every participant, which necessarily calibrates for
+the most exposed region and over-provisions all the others. We show that the
+resulting allocation problem has a closed-form solution. We first derive a
+per-client bound on the mutual information between a participant's local class
+distribution and any estimate an observer can form of it, taking care that the
+adjacency notion in the mechanism matches the quantity being protected. We then
+solve for the noise allocation that minimises the worst-case value of this bound
+under a fixed utility budget, and prove it is min-max optimal. The saving over
+uniform allocation is exactly $\delta = 1 - \langle \rho \rangle_V / \rho_{\max}$,
+where $\rho_r$ is the inverse participation ratio of region $r$. This quantity
+depends only on the deployment's region-size profile, so it can be computed
+before any training takes place, and it is zero precisely when all regions have
+the same effective size. Experiments on two modalities, image classification with
+a frozen ResNet-18 and text classification with a frozen sentence encoder, confirm
+the prediction at $\varepsilon = 0.99$. Accuracy at matched per-client privacy
+improves by up to $13.75$ percentage points where $\delta$ is large, is exactly
+zero in two balanced control deployments where the theory predicts no gain, and is
+negative for a control that uses the same noise dispersion but assigns it to the
+wrong regions.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Federated Learning, Differential Privacy, Network Topology
+Federated learning, differential privacy, hierarchical aggregation, noise allocation.
 \end{IEEEkeywords}
 
-% =============================================================================
-% 1. INTRODUCTION
-% =============================================================================
 \section{Introduction}
 \label{sec:intro}
 
-Federated learning (FL) enables collaborative model training across
-distributed participants without centralising raw data. Clients share
-only model updates, so sensitive records, whether patient files,
-clinical measurements, or proprietary assay results, remain local to
-each participant~\cite{sheller2020medicine,dayan2021covid,melloddy2023,bonawitz2019sysml}.
-The privacy premise is that an adversary observing these updates
-learns little about the underlying data.
+\IEEEPARstart{F}{ederated} learning allows several organisations to train a
+shared model without pooling their data. In cross-silo and edge deployments the
+participants seldom report to a single server. Instead they report to an
+intermediate aggregator, which combines the updates it receives and forwards only
+the combination. Cellular deployments place these aggregators at base stations,
+clinical consortia place them at the hospital or country level, and industrial
+deployments place them at regional gateways. This three-tier arrangement is
+usually adopted for bandwidth and scalability reasons, but it also changes the
+privacy picture, because an observer no longer sees any single participant's
+update in isolation.
 
-Considerable work has shown this premise requires active enforcement.
-Gradient inversion attacks can reconstruct individual training samples
-from unprotected gradient observations~\cite{zhu2019dlg,geiping2020inverting},
-membership inference attacks can determine whether a specific record
-participated in training~\cite{shokri2017membership}, and property
-inference attacks can recover distributional attributes of a client's
-local dataset from the joint update sequence~\cite{melis2019exploiting}.
-The standard defense against this class of content-level leakage is
-differentially private stochastic gradient descent (DP-SGD)~\cite{abadi2016dpsgd}, which
-clips and noise-perturbs each client's gradient before transmission,
-bounding the influence of any individual training record on the
-observable update. Its federated instantiation, DP-FedAvg~\cite{mcmahan2018dpfedavg},
-applies this mechanism within the FedAvg aggregation protocol, and
-Renyi differential privacy (RDP)~\cite{mironov2017rdp} provides the
-tightest known composition accounting for the cumulative privacy cost
-across training rounds.
+The size of the group a participant is aggregated with therefore matters. A silo
+in a region of twenty peers is concealed by the combined noise of twenty
+participants, while a silo that shares its region with only one other is
+concealed by far less. Real deployments are heterogeneous in exactly this
+respect. Base station loads are long tailed, with dense urban cells serving many
+devices and rural cells serving very few. Multinational consortia contribute
+wildly uneven numbers of sites per country.
 
-These defenses operate on the content of updates. They do not account
-for what the communication topology of the federation itself reveals.
-Real deployments are structurally heterogeneous: hospital consortia
-route updates through regional aggregators before reaching a central
-server~\cite{liu2020hierarchical,abad2020icassp}, industrial
-deployments employ peer-to-peer gossip
-protocols~\cite{roy2019braintorrent,hegedus2021decentralized}, and
-various DAG-based aggregation schemes have been proposed for
-operational scalability~\cite{beilharz2021dag}. Topology is treated
-as a performance design parameter~\cite{wang2021fieldguide}, and its
-privacy implications have received little systematic attention. A
-passive adversary who knows the communication topology and
-organisational structure of the federation, and who observes
-per-round parameter updates, has access to two information channels
-that DP-SGD leaves entirely unaddressed: the structural position of
-each client in the communication graph, and the organisational
-membership encoded by the deployment. Together, these channels may
-expose each client's sensitive-class concentration even when the
-parameter channel is effectively noise-saturated.
+Standard practice ignores this. Differentially private federated learning applies
+one noise multiplier to every participant, which must be calibrated so that the
+most exposed participant is adequately protected. Every participant in a larger
+region then receives more noise than its own privacy requirement calls for, and
+that surplus noise is paid for in model accuracy by the whole federation.
 
-This paper formalises this leakage and uses it to refine how DP-SGD noise is allocated across clients. The information an adversary can extract about a client's data separates additively into two terms: a controllable mechanism term that flows through the parameter updates and decreases as per-client DP-SGD noise increases, and an uncontrollable prior-coupling term that reflects the client's structural position in the federation and cannot be reduced by any noise allocation. Standard DP-SGD does not account for this asymmetry, applying a uniform noise multiplier across all clients; this is worst-case suboptimal whenever the federation topology is asymmetric. We formalise this observation and derive \Fulcrum, a closed-form allocation that minimises the worst-case per-client bound under a fixed utility budget. It strictly reduces this bound relative to uniform DP-SGD when clients occupy structurally asymmetric positions in the federation, and reduces exactly to uniform DP-SGD when their
-positions are symmetric. \Fulcrum therefore incurs no worst-case penalty relative to standard practice, and the reduction it achieves comes without measurable cost to model utility.
+This paper asks how noise should be distributed across regions instead, and shows
+that the question has a clean answer. Our contributions are as follows.
 
-To ground this decomposition empirically, we introduce \TADI
-(Topology-Aware Distributional Inference), a shadow-trained diagnostic with four channel ablations that measures the marginal information contributed by the parameter, structural, and organisational channels. \TADI is a measurement instrument for the bound rather than an attack: it verifies that the channel boundaries the bound assumes are meaningful, that the controllable parameter term is empirically bounded by the per-client noise, and that the uncontrollable prior-coupling term is realisable precisely when the adversary's prior matches the deployment. The reference adversary that \TADI instantiates also defines the threat model against which \Fulcrum's guarantees are stated.\medskip
+We derive a per-client bound on the information an observer can obtain about a
+participant's local class distribution (Theorem~\ref{thm:bound}). The bound is
+stated for silo-level adjacency, meaning that the mechanism protects a
+participant's entire dataset rather than any single record in it. This matters
+because the quantity we wish to protect, the proportion of a silo's data
+belonging to a sensitive class, is a property of the dataset as a whole and is not
+controlled by record-level guarantees. The bound also carries an explicit cap at
+the entropy of the target, which makes it possible to check whether the guarantee
+is informative at a given operating point.
 
-\noindent The key contributions of this paper are:
-\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=2pt]
-\item A formal threat model for topology-conditional distributional inference against DP-protected FL, and an additive per-client mutual-information bound (Theorem~\ref{thm:per-client}) separating a controllable mechanism term from an uncontrollable prior-coupling floor.
-\item The closed-form allocation \Fulcrum (Theorem~\ref{thm:allocation}), which is balanced and min-max optimal, together with three principled leverage proxies covering the hierarchical, decentralised, and cross-silo deployment regimes.
-\item The \TADI channel-decomposition diagnostic, comprising four ablations and a constant-mean baseline comparator, which provides the first per-channel empirical characterisation of topology-conditional leakage in DP-FL and confirms the additive structure of Theorem~\ref{thm:per-client}.
-\item An end-to-end empirical evaluation on Fed-ISIC2019~\cite{flamby2022}, Fed-Heart-Disease~\cite{flamby2022}, and synthetic CIFAR-10~\cite{krizhevsky2009cifar} with parametric topology-data coupling. \Fulcrum strictly reduces the worst-case per-client bound relative to uniform DP-SGD at every tested budget and observation window, without measurable cost to model utility. The \TADI diagnostic shows that the parameter channel is bounded by DP-SGD across all settings, that the prior-coupling channel is empirically attained only when the shadow and target priors match, and that the bound is conservative in a deployment-favourable direction on real cross-silo deployments.\medskip
-\end{enumerate}
+We then pose the allocation problem, minimising the worst-case value of that
+bound over all participants subject to a fixed budget on the noise injected into
+the global model, and give its closed-form solution
+(Theorem~\ref{thm:allocation}). The correct budget is the noise variance actually
+entering the aggregate, which under weighted averaging is
+$\sum_i w_i^2 \sigma_i^2$ rather than $\sum_i \sigma_i^2$.
 
-\noindent The remainder of the paper is organised as follows.
-Section~\ref{sec:related} reviews related work on privacy leakage,
-privacy mechanisms, and topology in federated learning.
-Section~\ref{sec:threat} formalises the system and threat model.
-Section~\ref{sec:attack} introduces the \TADI channel-decomposition
-diagnostic. Section~\ref{sec:defense} develops the per-client
-mutual-information bound (Theorem~\ref{thm:per-client}) and derives
-the min-max optimal \Fulcrum allocation
-(Theorem~\ref{thm:allocation}) with three practical leverage proxies.
-Section~\ref{sec:experiments} reports the empirical evaluation across
-three benchmarks and six topology families.
-Section~\ref{sec:discussion} discusses scope and limitations, and
-Section~\ref{sec:conclusion} concludes and outlines future work.
+The improvement over uniform allocation follows in closed form
+(Corollary~\ref{cor:delta}). Writing $\rho_r$ for the inverse participation ratio
+of region $r$, the fraction of the noise budget saved at equal per-client privacy
+is $\delta = 1 - \langle \rho \rangle_V / \rho_{\max}$. Because $\delta$ is
+determined by the region-size profile alone, a deployer can compute it in advance
+and decide whether the method is worth applying. It is zero exactly when all
+regions have the same effective size, which gives the approach an explicit
+applicability test rather than a failure mode discovered after deployment.
 
-% =============================================================================
-% 2. RELATED WORK
-% =============================================================================
+Finally we validate the prediction experimentally on two modalities and report
+the privacy parameters achieved in every run. The evaluation includes two
+deployments for which the theory predicts no benefit at all, and a control that
+uses the same noise dispersion but assigns it to the wrong regions. Both behave
+as predicted, which we regard as more informative than the positive result alone.
+
 \section{Related Work}
 \label{sec:related}
 
-We position our work along three axes: privacy leakage in FL,
-privacy mechanisms for FL, and the largely separate literature on
-topology in FL. The gap our work fills, namely a topology-aware analysis of distributional leakage under DP together with a noise allocation derived from it by construction, sits at the intersection of all
-three and, to our knowledge, has not been addressed.
+\subsection{Differentially private federated learning}
 
-\subsection{Privacy Leakage in Federated Learning}
-\label{sec:related-attacks}
+Differentially private stochastic gradient descent~\cite{abadi2016dpsgd} clips
+per-example gradients and adds calibrated noise, and its federated instantiation
+adds noise to client updates before aggregation~\cite{mcmahan2018dprnn}. Privacy
+accounting across rounds is usually performed with Renyi differential
+privacy~\cite{mironov2017rdp} or the moments accountant. These mechanisms
+distribute noise uniformly across participants.
 
-Two families of leakage dominate the literature, both content-oriented.
-The first, \textit{gradient inversion}, reconstructs training samples
-by optimising dummy inputs to match observed gradients. Zhu
-et~al.~\cite{zhu2019dlg} introduced Deep Leakage from Gradients
-(DLG), which recovers pixel-accurate images from per-batch gradients
-in the absence of noise. Zhao et~al.~\cite{zhao2020idlg} improved
-upon this with iDLG, which analytically extracts ground-truth labels
-before optimisation, and Geiping et~al.~\cite{geiping2020inverting}
-subsequently demonstrated that magnitude-invariant formulations can
-recover images even from federated-averaging updates covering
-multiple local steps. Yin et~al.~\cite{yin2021gradinversion} further
-showed that high-resolution reconstruction remains feasible even with
-batch sizes larger than those assumed by earlier work. This family
-degrades sharply under DP-SGD because gradient clipping and
-Gaussian perturbation destroy the high-frequency signal required for
-pixel-level reconstruction~\cite{fowl2022robbing}. We treat gradient
-inversion as a complementary threat relevant primarily when DP noise
-is weak; it is outside the scope of our empirical evaluation.
+\subsection{Heterogeneous and personalised privacy budgets}
 
-The second family, \textit{inference attacks}, targets distributional
-or membership properties rather than per-sample reconstruction.
-Shokri et~al.~\cite{shokri2017membership} established the
-shadow-model paradigm for membership inference, in which the
-adversary trains an attack model on shadow datasets where membership
-is known and applies it to the target. Nasr
-et~al.~\cite{nasr2019comprehensive} extended this paradigm to the
-federated setting, demonstrating that a malicious participant or
-aggregator can mount membership inference attacks by exploiting
-gradient updates during training. Melis
-et~al.~\cite{melis2019exploiting} showed that joint update sequences
-leak unintended distributional properties of client datasets. Our
-\TADI diagnostic builds on this shadow-training framework
-but differs in two respects: it targets a per-client distributional
-quantity, namely the fraction of each client's data belonging to a
-sensitive class, rather than membership, and it explicitly
-decomposes its information sources into parameter,
-structural-position, and organisational-label channels. To our
-knowledge, no prior work isolates or quantifies the contribution of
-these structural channels.
+A separate line of work assigns different budgets to different participants.
+Jorgensen et al.~\cite{jorgensen2015personalized} introduced personalised
+differential privacy, in which each individual declares a budget, and subsequent
+work extended the idea to federated training. In these schemes the per-client
+budget is an input to the system, supplied by the user. In ours it is an output
+of an optimisation, determined by the participant's structural position. The two
+are complementary, and an allocation combining declared preferences with
+structural exposure is a natural extension that we do not pursue here.
 
-\subsection{Privacy Mechanisms for Federated Learning}
-\label{sec:related-defense}
+\subsection{Clustered and hierarchical private federated learning}
 
-The dominant defense against content-level leakage in federated
-learning is differential privacy applied at the client. Abadi
-et~al.~\cite{abadi2016dpsgd} introduced DP-SGD, which clips
-per-record gradients and adds calibrated Gaussian noise before
-transmission. McMahan et~al.~\cite{mcmahan2018dpfedavg} instantiated
-this mechanism within federated averaging as DP-FedAvg and
-demonstrated its viability for production-scale next-word prediction.
-Wei et~al.~\cite{wei2020nbafl} provided the first comprehensive
-convergence analysis of DP-FL via the noising-before-aggregation
-framework, which informs our utility cost analysis in
-Section~\ref{sec:defense}. Privacy accounting across training rounds
-is performed via Renyi differential privacy
-(RDP)~\cite{mironov2017rdp}, a moment-based composition framework
-that tracks cumulative privacy cost more tightly than classical
-bounds. Subsampling amplification~\cite{wang2019subsampled} extends
-this accounting to the Poisson-batched setting that DP-SGD requires,
-where each client samples a random subset of its data per round. The
-mutual-information (MI) characterisation of DP by Cuff and
-Yu~\cite{cuff2016mi} and its tighter conversions between RDP and
-other variants~\cite{asoodeh2021variants} provide the machinery we
-use to derive the per-client MI bound of
-Theorem~\ref{thm:per-client}.
+Closest to our setting is work that combines hierarchical or clustered training
+with differential privacy. Chandrasekaran et al.~\cite{chandrasekaran2022hfl}
+propose hierarchical differential privacy, in which clients are organised into
+zones with elected super-nodes and calibrated noise is added at the zone level.
+Their per-zone noise scale depends on the number of participating clients in that
+zone, and they observe that intermediate aggregation provides additional
+protection at the central aggregator. We take the existence of this effect as our
+starting point rather than as a contribution. What we add is the optimisation: we
+show that choosing the per-region noise levels is a constrained min-max problem
+with a closed-form solution, and we characterise exactly how much is gained
+relative to uniform allocation.
 
-Beyond noise-based mechanisms, a complementary cryptographic defense
-exists in the form of secure aggregation. Bonawitz
-et~al.~\cite{bonawitz2017secagg} proposed a protocol that masks
-individual client updates so that only their aggregate is visible to
-the server. Combined with DP, secure aggregation reduces the
-adversary's effective observation to neighbourhood-aggregated updates
-rather than per-client ones, weakening \TADI's parameter channel
-without addressing the structural and organisational channels.
-\Fulcrum's allocation is compatible with secure aggregation as a
-complementary defense; we discuss the implications in
-Section~\ref{sec:discussion} and leave a full empirical evaluation
-under secure aggregation to future work.
+The two settings also differ in where the noise originates, and the difference is
+quantitative. If a trusted super-node adds a single noise draw on behalf of its
+zone, the noise required per client scales as $1/m$ in a region of $m$ equally
+weighted participants. If each participant adds its own noise before transmitting,
+as we assume, the region's noise accumulates across $m$ independent draws and the
+requirement scales as $1/\sqrt{m}$. The gap of $\sqrt{m}$ is the price of not
+having to trust the aggregator, and we make the assumption explicit rather than
+leaving it implicit in the mechanism.
 
-A separate line of work permits per-individual privacy budgets driven
-by user preferences, rather than a uniform budget applied across all
-clients. Jorgensen et~al.~\cite{jorgensen2015personalized} introduced
-personalised differential privacy for sample-release queries, and
-subsequent work has extended this to ML training. Our setting is
-distinct: the asymmetry that motivates per-client noise allocation is
-structural, arising from topology and organisational position, rather
-than preferential, and the allocation is derived from a worst-case MI
-bound rather than from declared user preferences. The two lines are
-complementary, and an integrated allocation combining structural
-leverage with per-user preferences is a natural direction that falls
-outside the scope of this work.
+Guo et al.~\cite{guo2025fedcdp} study clustered federated learning with
+heterogeneous differential privacy. Their clusters group clients with similar data
+distributions in order to train personalised models, and their intra-cluster
+weighting adjusts aggregation weights as a function of a client's noise level
+using a chosen logarithmic function. The direction is the reverse of ours: they
+take the noise as given and choose the weights, whereas we take the structure as
+given and choose the noise. Yin et al.~\cite{yin2026hdpfedcd} allocate noise
+according to a per-example data-quality metric within each client's local dataset;
+their topology is flat and their hierarchy is internal to a client, so region size
+plays no role. Neither work states an optimality result or bounds the achievable
+gain.
 
-What none of these mechanisms address is which clients should receive
-how much noise when the topology breaks symmetry. Existing
-implementations apply a uniform noise multiplier across all clients,
-implicitly assuming a symmetric topology. Our defense generalises
-this: when the topology is symmetric, the allocation reduces to
-uniform DP-SGD; when it is not, the allocation balances the
-per-client privacy bound across the asymmetric leverage profile.
+\subsection{Amplification by aggregation and by topology}
 
-\subsection{Topology in Federated Learning}
-\label{sec:related-topology}
+Secure aggregation~\cite{bonawitz2017secagg} conceals individual updates from the
+server, and shuffling arguments quantify the resulting amplification, which
+typically improves with the number of participants combined. Cyffers and
+Bellet~\cite{cyffers2022amplification} and Cyffers et
+al.~\cite{cyffers2022muffliato} develop network differential privacy for
+decentralised averaging, where the guarantee between two nodes strengthens with
+their distance in the communication graph. All of this work computes the
+amplification enjoyed by a fixed, uniform mechanism. We treat the amplification
+profile as the object to allocate against. When regions differ in effective size
+the amplification is unequal, and uniform noise is then provably wasteful by a
+quantity we compute exactly.
 
-As discussed in Section~\ref{sec:intro}, topology-aware FL has been
-studied primarily as a performance and scalability question. The
-earliest cross-device benchmark suite, LEAF~\cite{leaf2018},
-demonstrated that natural client-partitioned datasets exhibit
-substantial heterogeneity but did not consider topology beyond the
-implicit star aggregator. Hierarchical
-FL~\cite{liu2020hierarchical,abad2020icassp} introduced edge
-aggregators between clients and the cloud to reduce communication
-cost. Decentralised gossip-based
-schemes~\cite{roy2019braintorrent,hegedus2021decentralized} eliminate
-the central aggregator entirely, and Beilharz
-et~al.~\cite{beilharz2021dag} proposed a DAG-based extension for
-further operational flexibility. Briggs
-et~al.~\cite{briggs2020hierarchical} cluster clients by local-update
-similarity to address non-IID data, producing a hierarchical
-training structure that incidentally encodes data similarity. The
-field guide survey by Wang et~al.~\cite{wang2021fieldguide} documents
-topology choice as one of the canonical decisions in FL system design
-but treats it as orthogonal to privacy.
+Table~\ref{tab:related} summarises the comparison.
 
-The privacy literature has largely assumed away topology. Threat
-models almost universally assume a star configuration with a single
-semi-honest aggregator, and the adversary's view, when explicitly
-modelled, consists of per-client gradients without structural
-metadata. This assumption is reasonable for cross-device deployments
-where every client is interchangeable, but it breaks down in
-cross-silo
-healthcare~\cite{flamby2022,sheller2020medicine,dayan2021covid},
-multi-organisation industry consortia~\cite{melloddy2023}, and any
-deployment that uses hierarchical or decentralised aggregation for
-operational reasons.
-
-A notable exception is the line of work on topology as a privacy
-amplification mechanism. Cyffers and
-Bellet~\cite{cyffers2022amplification} showed that in fully
-decentralised algorithms, the restricted local view of each
-participant provides stronger privacy guarantees than local
-differential privacy alone. This perspective treats topology as a
-privacy asset for honest participants. Our work takes the opposite
-view: we assume the adversary has global knowledge of the topology
-and study how structural position and organisational membership
-become information channels for inferring sensitive data properties.
-Feng et~al.~\cite{feng2025topology} occupy a third position,
-demonstrating that the topology itself can be inferred from model
-behaviour alone. Our threat model differs from both: we assume
-topology is known and treat it as a leakage surface rather than an
-amplification mechanism or a reconstruction target.
-
-\begin{figure}[t]
+\begin{table}[t]
+\caption{Placement relative to the closest lines of work.}
+\label{tab:related}
 \centering
-\includegraphics[width=\columnwidth]{figures/positioning.pdf}
-\caption{Positioning of this work relative to the three bodies of
-literature it spans: privacy leakage in FL, privacy mechanisms, and
-topology in FL. Prior work addresses at most two of the three axes;
-this paper is the first to operate at their intersection.}
-\label{fig:positioning}
-\end{figure}
-
-No prior work treats topology as a known information channel that an
-adversary can exploit to infer sensitive data properties, nor derives
-a defense that accounts for the resulting structural asymmetry. We
-are the first to define a per-client distributional channel
-decomposition with explicit ablations isolating parameter,
-structural, and organisational information; prove an additive
-per-client MI bound separating a controllable mechanism term from an
-uncontrollable prior-coupling floor; and derive a closed-form noise
-allocation that strictly reduces the worst-case bound relative to
-uniform DP-SGD whenever the topology breaks leverage symmetry.
-Figure~\ref{fig:positioning} summarises this positioning relative to
-the three bodies of literature surveyed above.
-% % =============================================================================
-% 3. SYSTEM AND THREAT MODEL
-% =============================================================================
-\section{System and Threat Model}
-\label{sec:threat}
-
-We consider a passive, honest-but-curious adversary against a
-DP-protected federated learning system, reflecting the realistic
-scenario of a curious infrastructure observer or aggregator who
-follows the protocol but exploits what they can passively observe.
-Active protocol manipulation, malicious aggregators, and Sybil
-attacks are outside our scope and discussed in
-Section~\ref{sec:discussion}. The channel-decomposition diagnostic and the bound are grounded in the
-same formal assumptions and the same adversary, so the leakage \TADI measures and the leakage \Fulcrum's bound controls are defined against
-a single, consistent threat model.
-
-\subsection{System Model}
-\label{sec:system-model}
-
-A federation consists of $n$ clients $\mathcal{P} =
-\{P_1,\ldots,P_n\}$ arranged in a communication topology
-$\mathcal{G} = (\mathcal{P}, E)$, where $E$ denotes the set of edges
-determining which pairs of clients communicate during aggregation.
-Each client $P_i$ holds a local dataset $\mathcal{D}_i$ over a class
-set $\mathcal{C}$ of size $K = |\mathcal{C}|$, inducing a local
-class distribution $\Delta_i \in \Delta(\mathcal{C})$. Clients are
-partitioned into organisational groups by a labelling $\omega :
-\mathcal{P} \to [k_{\mathrm{org}}]$, where $k_{\mathrm{org}}$ is
-the number of distinct groups. Training proceeds for $T_{\max}$
-rounds. At each round $t$, client $P_i$ applies local DP-SGD with
-per-client noise scale $\sigma_i$ to produce an updated parameter
-vector $\theta_i^{(t)}$, which is then transmitted to its neighbours
-in $\mathcal{G}$. Topologies are assumed to be static throughout
-training. Client datasets are assumed to be disjoint: no two clients
-share training records. This is the standard cross-silo
-assumption~\cite{wang2021fieldguide}, satisfied naturally in settings
-such as hospital consortia, where each site enrols distinct patients.
-Aggregation follows FedAvg~\cite{mcmahan2018dpfedavg} for centralised
-hierarchical settings and decentralised
-gossip~\cite{hegedus2021decentralized} for peer-to-peer topologies;
-both reduce to weighted averages of client parameter vectors.
-
-\subsection{Adversarial Model}
-\label{sec:adv-model}
-
-The adversary $\mathcal{A}$ is specified by four components:
-knowledge $\mathcal{K}$, observations $\mathcal{O}$, an inference
-goal $\mathcal{I}$, and a set of restrictions $\mathcal{R}$.
-
-The adversary's knowledge $\mathcal{K}$ comprises the communication
-topology $\mathcal{G}$, the organisational labelling $\omega$, and
-all public protocol parameters, including the DP budget
-$\varepsilon$, the per-client noise schedule $\{\sigma_j\}$, the
-model architecture, and the training schedule. The adversary does
-not know any client's local dataset $\mathcal{D}_i$ or its induced
-class distribution $\Delta_i$. We treat $\mathcal{K}$ as a
-configuration constant, conditioning all probabilistic claims on it
-throughout.
-
-The adversary's observations $\mathcal{O}$ consist of the full
-tensor of transmitted parameter updates, $\Theta =
-\{\theta_i^{(t)} : i \in [n],\, t \in [T_{\max}]\}$, together with
-communication metadata. The realisation of this observer differs
-across deployment regimes. In centralised and hierarchical
-topologies, per-client observation is immediate: an aggregator, or a
-curious infrastructure provider hosting it, processes each client's
-update prior to aggregation and therefore observes $\Theta$ directly.
-In decentralised gossip topologies, no single participant observes
-all updates; per-client observation there corresponds to a global
-passive eavesdropper with visibility of all communication links, such
-as a network-level observer of unencrypted traffic.
-
-We adopt this global per-client observation model uniformly across
-all topologies as a deliberate worst-case choice, consistent with the
-worst-case nature of the bound derived in
-Section~\ref{sec:defense}. A guarantee proven against an adversary who
-observes every per-client update holds \emph{a fortiori} against any
-weaker adversary with a restricted local view, including the
-single-node participants that arise naturally in decentralised
-settings. The observation model is therefore not stronger for
-centralised topologies than for decentralised ones; it is the same
-model throughout, and in decentralised deployments it is conservative
-in the deployer's favour, since a realistic local-view adversary
-observes strictly less than the global eavesdropper against which the
-bound is stated. This mirrors the convention in the privacy
-amplification literature, where restricting an adversary's view can
-only improve the guarantee~\cite{cyffers2022amplification}.
-
-The inference goal $\mathcal{I}$ is to recover, for each client $i$,
-the sensitive-class concentration
-\[
-p_i \;=\; \Delta_i(\mathcal{C}_s) \;\in\; [0,1],
-\]
-where $\mathcal{C}_s \subset \mathcal{C}$ is a designated sensitive
-class set. This captures either a single sensitive proportion in
-binary classification tasks, or a designated rare-class proportion
-in multiclass settings. In cross-silo deployments, $p_i$ encodes
-population-level attributes that organisations are legally and
-ethically obligated to
-protect~\cite{sheller2020medicine,dayan2021covid}: the melanoma rate
-per hospital site, the cardiovascular disease prevalence per clinical
-centre, or the failure rate of a proprietary assay. An adversary who
-recovers these concentrations across sites can exploit them for
-adversarial site selection, competitive intelligence, or regulatory
-disclosure inference~\cite{hu2021source}, harms that are concretely
-realised in the deployment contexts federated learning was designed
-to serve. Inference performance is measured by calibration loss
-$L_{\text{cal}} = \frac{1}{n}\sum_i (\hat{p}_i - p_i)^2$ and
-channel lift relative to the constant-mean baseline $\bar{p} =
-\frac{1}{n}\sum_j p_j$, which measures whether a given channel
-contributes information beyond the federation aggregate.
-
-The restrictions $\mathcal{R}$ define an honest-but-curious
-adversary. The adversary follows the protocol faithfully, cannot
-perturb $\theta_i^{(t)}$ prior to observation, cannot inject
-training data, cannot collude with clients, and cannot adaptively
-select targets.
-
-\subsection{Independence Assumptions}
-\label{sec:independence}
-
-\noindent Two assumptions underpin the formal analysis.\medskip
-
-\noindent\textbf{(IA1) DP-SGD noise independence.} The per-round
-Gaussian noise $\xi_i^{(t)} \sim \mathcal{N}(0, \sigma_i^2 C^2 I)$
-is independent across all $(i, t)$ pairs. This is standard in the
-DP-SGD literature~\cite{abadi2016dpsgd}.\medskip
-
-\noindent\textbf{(IA2) Disjoint client datasets.} For $i \neq j$,
-$\mathcal{D}_i \cap \mathcal{D}_j = \emptyset$, as established in
-Section~\ref{sec:system-model}. Cross-device settings with overlapping client datasets would require strengthened conditions; see Section~\ref{sec:discussion}.\medskip
-
-\noindent Aggregation follows FedAvg or its hierarchical and gossip
-variants and is not treated as a privacy mechanism in our threat
-model, since the adversary observes per-client updates prior to
-aggregation. Under secure aggregation~\cite{bonawitz2017secagg} this
-changes; \Fulcrum is compatible with secure aggregation as a
-complementary defense, and we discuss this in
-Section~\ref{sec:discussion}.
-
-\subsection{Reference Adversaries}
-\label{sec:reference-adv}
-
-To isolate the contribution of each information channel, we define
-five reference adversaries differing only in their knowledge
-$\mathcal{K}$, with observations $\mathcal{O} = \Theta$ in all
-cases.
-
-\begin{itemize}[topsep=2pt,itemsep=2pt,leftmargin=*]
-\item $\mathcal{A}_0$ (constant-mean baseline): outputs the
-  federation mean $\bar{p}$ for every client. Serves as the
-  reference for computing channel lift.
-\item $\mathcal{A}_1$ (parameter-only): $\mathcal{K} =
-  \{\sigma_j\}$. Recovers $\hat{p}_i$ from parameter sequences
-  alone, with no access to structural or organisational information.
-  This is the topology-agnostic adversary of Melis
-  et~al.~\cite{melis2019exploiting}.
-\item $\mathcal{A}_2^{\text{topo}}$ (structural): $\mathcal{K} =
-  \mathcal{G}$. Augments parameter sequences with structural
-  features including degree, hierarchical depth, and distance to
-  root, isolating the marginal information value of the
-  communication topology.
-\item $\mathcal{A}_2^{\text{org}}$ (organisational): $\mathcal{K} =
-  \omega$. Augments parameter sequences with organisational labels,
-  isolating the marginal information value of organisational
-  membership.
-\item $\mathcal{A}_2^{\text{full}}$ (full knowledge): $\mathcal{K}
-  = (\mathcal{G}, \omega, \{\sigma_j\})$. The primary adversary of
-  interest.\medskip
-\end{itemize}
-
-The topology contribution is measured as $L_{\text{cal}}(\mathcal{A}_1)
-- L_{\text{cal}}(\mathcal{A}_2^{\text{full}})$, and the marginal
-contributions of structure and organisational label are obtained by
-comparing $\mathcal{A}_2^{\text{full}}$ against the corresponding
-partial adversary. The IID-null condition arises when the data
-partitioning makes $p_i$ constant across clients, in which case
-every adversary's calibration loss equals $\mathrm{Var}(p)$ and
-channel lift is identically zero. We use this condition as a
-consistency check that holds by construction throughout the empirical
-evaluation.
-% =============================================================================
-% 4. TADI CHANNEL DECOMPOSITION
-% =============================================================================
-\section{The \TADI Channel-Decomposition Diagnostic}
-\label{sec:attack}
-
-\TADI is a measurement instrument that decomposes per-client leakage
-channel by channel, showing how much information each channel carries
-and, in particular, whether the parameter channel is bounded by the
-per-client noise. Concretely, it is a learned regressor with four
-channel ablations, each corresponding to a different subset of the
-adversary's available information. The architecture maps observable
-inputs to per-client sensitive-class concentration estimates, and the
-ablations differ only in which channels of $\mathcal{K}$ and
-$\mathcal{O}$ are exposed to the regressor. This design serves two
-purposes: it provides the empirical characterisation of
-topology-conditional leakage, and it ensures the channel boundaries
-align with the decomposition used by the bound of
-Section~\ref{sec:defense}.
-
-Let $f_\phi : (\Theta_i, x_i) \to \hat{p}_i \in [0,1]$ denote the
-regressor with learnable parameters $\phi$. The regressor takes two
-classes of input, as illustrated in
-Figure~\ref{fig:tadi-pipeline}. The first is the parameter sequence
-$\Theta_i = (\theta_i^{(1)}, \ldots, \theta_i^{(T_{\max})})$, from
-which we extract a fixed-dimensional feature vector combining
-per-round and temporal-aggregate signals. Per-round signals comprise
-parameter norms $\{\|\theta_i^{(t)}\|_2\}$, layer-wise norms, and
-pairwise cosine similarities to neighbouring clients' updates.
-Temporal aggregates comprise the mean and standard deviation of
-parameter norms across rounds, a linear trend estimate, and the
-last-round parameter value. The second is a structural and
-organisational feature vector $x_i \in \mathbb{R}^k$ derived from
-$(\mathcal{G}, \omega)$, comprising client $i$'s degree in
-$\mathcal{G}$, its distance to the topology root, and its
-betweenness centrality, with the organisational label $\omega_i$
-encoded as a one-hot vector and concatenated. Distance to root is
-defined for rooted topologies such as hierarchical FL; for
-decentralised peer-to-peer topologies without a natural root, this
-feature is set to zero. Betweenness centrality is precomputed from
-the known topology $\mathcal{G}$ prior to training.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/tadi_pipeline.png}
-\caption{The \TADI channel-decomposition pipeline. Shadow
-federations are simulated to harvest labelled training tuples,
-parameter and structural features are extracted, a channel subset
-corresponding to one of the four ablations is selected, and a
-regressor $f_\phi$ is fitted to estimate the sensitive-class
-concentration $\hat{p}_i$ for each client. $\mathcal{A}_0$ is the
-constant-mean baseline and does not correspond to a channel
-ablation.}
-\label{fig:tadi-pipeline}
-\end{figure*}
-
-\begin{algorithm}[t]
-\caption{\TADI, full-channel variant ($\mathcal{A}_2^{\text{full}}$)}
-\label{alg:tadi}
-\begin{algorithmic}[1]
-\REQUIRE Shadow corpus
-         $\mathcal{S} = \{(\Theta_i, x_i, p_i)\}_{i=1}^{N}$,
-         target observations
-         $(\Theta^{\text{tgt}}, \mathcal{G}, \omega, \{\sigma_j\})$,
-         regressor backend $\mathcal{B}$
-\ENSURE  $\{\hat{p}_i\}_{i=1}^{n}$
-\STATE $\phi_{\Theta}^{(i)} \gets \textsc{ParamFeatures}(\Theta_i)$
-       $\forall\, (\Theta_i, x_i, p_i) \in \mathcal{S}$
-\STATE $\phi_x^{(i)} \gets [\deg_{\mathcal{G}}(i),\;
-       \mathrm{depth}(i),\; \mathrm{cent}(i),\;
-       \mathrm{onehot}(\omega_i)]$
-       $\forall\, i$
-\STATE $f \gets \mathcal{B}\bigl(
-       \{[\phi_{\Theta}^{(i)};\, \phi_x^{(i)}]\}_{i},\,
-       \{p_i\}_{i}\bigr)$
-\FOR{$i = 1$ \textbf{to} $n$}
-  \STATE $\phi_{\Theta}^{(\text{tgt},i)} \gets
-         \textsc{ParamFeatures}(\Theta_i^{\text{tgt}})$
-  \STATE $\hat{p}_i \gets \mathrm{clip}_{[0,1]}\bigl(
-         f([\phi_{\Theta}^{(\text{tgt},i)};\,
-         \phi_x^{(\text{tgt},i)}])\bigr)$
-\ENDFOR
-\RETURN $\{\hat{p}_i\}_{i=1}^{n}$
-\end{algorithmic}
-\end{algorithm}
-
-Given these two input classes, the regressor is trained offline via
-the shadow-model framework~\cite{shokri2017membership}. Shadow
-federations are simulated on a proxy dataset where the ground-truth
-$p_i$ is known, $(\Theta_i, x_i, p_i)$ tuples are harvested across
-many simulated clients, and $f_\phi$ is fitted to minimise mean
-squared calibration loss on the harvested set. At test time,
-$f_\phi$ is applied to the target federation. The regressor is
-therefore a deterministic function of $(\mathcal{K}, \mathcal{O})$,
-consistent with the threat model of Section~\ref{sec:adv-model}. The
-regressor is instantiated as gradient-boosted trees
-(\textsc{LightGBM}, default), a multilayer perceptron, or ridge
-regression, all clipped to $[0,1]$. Algorithm~\ref{alg:tadi} gives
-the formal specification.
-
-\begin{table*}[t]
-\centering
-\caption{Channel decomposition evaluation metrics computed per
-target run and channel.}
-\label{tab:metrics}
-\begin{tabular}{@{}lll@{}}
+\small
+\begin{tabular}{@{}lccc@{}}
 \toprule
-Metric & Definition & Notes \\
+& Per-client & Allocation & Optimality \\
+& noise varies & derived from & result \\
 \midrule
-Calibration loss &
-$L_{\text{cal}}(\hat{p}, p) = \frac{1}{n}\sum_i (\hat{p}_i - p_i)^2$ &
-Primary metric; retains statistical power at small $n$ \\
-Constant-mean baseline &
-$L_{\text{cal}}(\bar{p}, p) = \mathrm{Var}(p)$ &
-Trivial predictor; reference for computing channel lift \\
-Channel lift &
-$L_{\text{cal}}(\bar{p}, p) - L_{\text{cal}}(\hat{p}, p)$ &
-Positive iff channel beats baseline; zero under IID-null \\
-Top-$k$ recovery &
-$|\text{top-}k(\hat{p}) \cap \text{top-}k(p)| / k$ &
-Bounded, interpretable ranking metric \\
-AUROC &
-For $y_i = \mathbb{1}[p_i > \tau]$ &
-Ranking quality indicator; meaningful at $n \geq 20$ \\
+DP-FedAvg~\cite{mcmahan2018dprnn}      & no  & ---                & --- \\
+Personalised DP~\cite{jorgensen2015personalized} & yes & user preference & no \\
+FedCDP~\cite{guo2025fedcdp}            & yes & noise level (heur.) & no \\
+HDP-FedCD~\cite{yin2026hdpfedcd}       & yes & data quality (heur.) & no \\
+Hierarchical DP~\cite{chandrasekaran2022hfl} & yes & zone size & no \\
+Muffliato~\cite{cyffers2022muffliato}  & no  & ---                & --- \\
+\textbf{This work}                     & \textbf{yes} & \textbf{zone exposure} & \textbf{yes} \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
-To isolate the contribution of each information source, the four
-channel ablations correspond to the reference adversaries of
-Section~\ref{sec:reference-adv} and differ only in which features
-are exposed to the regressor. $\mathcal{A}_1$ receives parameter
-features only. $\mathcal{A}_2^{\text{topo}}$ receives parameter
-features augmented with structural features, comprising degree,
-depth, and centrality. $\mathcal{A}_2^{\text{org}}$ receives
-parameter features augmented with the one-hot organisational label
-$\omega_i$. $\mathcal{A}_2^{\text{full}}$ receives all three
-concatenated. A separate regressor is trained per channel on the
-same shadow corpus, ensuring that each $\hat{p}_i$ represents the
-best the regressor can achieve given exactly that channel's input.
+\section{System and Threat Model}
+\label{sec:model}
 
-Performance across the four ablations is evaluated using the metrics
-summarised in Table~\ref{tab:metrics}. Here $\text{top-}k(\hat{p})$
-and $\text{top-}k(p)$ denote the sets of $k$ clients with the
-highest predicted and true sensitive-class concentration
-respectively, and $\tau$ is a concentration threshold used to
-binarise the ranking task for AUROC.
+\subsection{Federation}
 
-The diagnostic is designed to answer three empirical questions.
-First, does DP-SGD effectively bound the parameter channel under the
-per-client noise allocation, independently of any prior coupling?
-Second, which non-parameter channel, structural position or
-organisational label, carries the prior-coupling signal in a given
-deployment? Third, is the prior-coupling signal realisable under the
-public-proxy threat model, or does the gap between the adversary's
-shadow prior and the target's deployment prior place the supremum
-$\ell_i^\circ$ out of empirical reach? These questions are addressed
-in Section~\ref{sec:experiments}.
+A federation consists of $n$ silos $P_1, \dots, P_n$. Silo $i$ holds a local
+dataset $D_i$ and contributes to the global model with aggregation weight
+$w_i = |D_i| / \sum_j |D_j|$, so that $\sum_i w_i = 1$. Silos are partitioned
+into disjoint aggregation regions. We write $A(i)$ for the region containing silo
+$i$, and index regions by $r$. Training proceeds for $T$ rounds of federated
+averaging.
 
-% =============================================================================
-% 5. FULCRUM: TOPOLOGY-AWARE NOISE ALLOCATION
-% =============================================================================
-\section{\Fulcrum: Topology-Aware Noise Allocation}
-\label{sec:defense}
+The region structure is a property of the deployment. It may follow the physical
+network, as when clients report to the base station serving them, or the
+organisational structure, as when hospital sites report through a national
+coordinator. We take it as given.
 
-The leakage an adversary can extract about a client's data separates
-additively into a mechanism term that flows through parameter updates
-and can be suppressed by noise, and a prior-coupling term that flows
-through structural position and cannot. \Fulcrum targets the
-controllable component by allocating the per-client noise scale
-$\sigma_i$ asymmetrically according to each client's structural
-leverage, rather than applying a uniform multiplier across all clients
-as standard practice assumes. Structural leverage is a scalar
-measuring how strongly a client's position in the federation exposes
-its sensitive-class concentration to inference from the rest of the
-federation; we define it formally in
-Section~\ref{sec:defense-leverage}. We derive this allocation from a
-per-client mutual-information bound that holds against the adversary
-of Section~\ref{sec:adv-model}, and show it to be closed-form, balanced, and min-max optimal, that is, it strictly reduces the worst-case bound relative to uniform DP-SGD whenever these leverage scores are non-uniform across clients, and reduces exactly to uniform DP-SGD when they are equal.
+\subsection{Mechanism}
 
-\subsection{Notation and Setup}
-\label{sec:defense-setup}
-
-The world prior $\mathbb{P}_{\mathrm{world}}$ generates client
-datasets $D = (D_1,\ldots,D_n)$ with class distributions $\Delta_i
-= \delta(D_i)$ and sensitive-class concentrations $p_i =
-\Delta_i(\mathcal{C}_s)$. DP-SGD~\cite{abadi2016dpsgd} produces,
-per round and per client,
+At round $t$, silo $i$ trains locally on $D_i$ starting from the current global
+model $\theta^{(t-1)}$, forms its update $\Delta_i^{(t)}$, clips it so that
+$\|\Delta_i^{(t)}\| \le C$, and adds Gaussian noise:
 \begin{equation}
-\begin{split}
-\theta_i^{(t)} &= \theta^{(t-1)} - \alpha \cdot \tilde{g}_i^{(t)},\\
-\tilde{g}_i^{(t)} &= \frac{1}{|B|}\sum_{x \in B_i^{(t)}}
-\mathrm{clip}\bigl(\nabla\ell(\theta^{(t-1)},x), C\bigr)
-+ \xi_i^{(t)},
-\end{split}
-\label{eq:dpsgd}
+\tilde{\Delta}_i^{(t)} \;=\; \mathrm{clip}\big(\Delta_i^{(t)}, C\big)
+\;+\; \xi_i^{(t)}, \qquad
+\xi_i^{(t)} \sim \mathcal{N}\!\left(0, \sigma_i^2 C^2 I\right).
+\label{eq:mechanism}
 \end{equation}
-where $\alpha$ is the learning rate, $B_i^{(t)}$ is the mini-batch
-sampled by client $i$ at round $t$, $\ell$ is the loss function,
-and $\xi_i^{(t)} \sim \mathcal{N}(0, \sigma_i^2 C^2 I)$ is the
-per-round Gaussian noise introduced by DP-SGD, where $\sigma_i > 0$
-is a dimensionless noise multiplier following Abadi
-et~al.~\cite{abadi2016dpsgd}: the noise is added to the per-sample
-average gradient, so the effective noise scale on the averaged
-gradient is $\sigma_i C$, and the sensitivity of the averaged
-gradient is $C/|B|$. The adversary observes $\Theta =
-\{\theta_i^{(t)}\}_{i,t}$ and outputs estimate $\hat{p}_i$ via a
-deterministic function $f$ as defined in
-Section~\ref{sec:attack}. We let $T_{\max}$ denote the observation
-window length, that is, the number of rounds visible to the
-adversary, which may be capped if a windowing or re-keying defense
-is in place.
-
-The analysis is constrained to a family of priors
-$\mathcal{F}_{\mathcal{G},\omega}$ over
-$(\Delta_1,\ldots,\Delta_n)$ satisfying three conditions: (a) the
-prior factorises over connected components of $\mathcal{G}$; (b)
-within each component, the prior satisfies a Markov property with
-respect to $\mathcal{G}$; and (c) the prior has bounded second
-moments. These conditions are standard in graphical-model analyses.
-Condition (c) ensures that the supremum quantities introduced below
-are finite, and all three conditions are satisfied by the deployment
-priors used in Section~\ref{sec:experiments}.
-
-\subsection{Structural Leverage}
-\label{sec:defense-leverage}
-
-The key quantity driving the noise allocation is the degree to which
-a client's structural position in the federation makes its
-sensitive-class concentration $p_i$ statistically predictable from
-the rest of the federation's data. A client at a structurally
-exposed position, such as the hub of a star topology or the sole
-member of a small organisational group, carries more lateral
-information about $p_i$ than a client in a symmetric or isolated
-position. We formalise this intuition through the concept of
-structural leverage.
-
-\begin{definition}[Structural leverage]
-\label{def:leverage}
-For client $i$ in deployment $(\mathcal{G}, \omega)$, the structural
-leverage is
-\[
-\ell_i^\circ \;:=\; \sup_{\mathbb{P} \in \mathcal{F}_{\mathcal{G},\omega}}
-I_{\mathbb{P}}\big(p_i;\, D_{-i}\big),
-\]
-where $D_{-i} = (D_1, \ldots, D_{i-1}, D_{i+1}, \ldots, D_n)$
-denotes the datasets of all clients other than $i$.
-\end{definition}
-
-The supremum captures the worst-case prior coupling between $p_i$
-and the rest of the federation's data, taken over all priors
-consistent with the deployment structure. It is a deterministic
-function of $(\mathcal{G}, \omega, i)$, finite under condition~(c)
-of Section~\ref{sec:defense-setup}, and computable in closed form
-for the practical proxies introduced in
-Section~\ref{sec:defense-proxies}. Clients with higher structural
-leverage are more exposed to distributional inference and therefore
-warrant stronger noise protection under the allocation derived in
-Section~\ref{sec:defense-thm2}.
-
-\subsection{Per-Client Conditional MI Bound}
-\label{sec:defense-thm1}
-
-With structural leverage defined, we can now bound the mutual
-information an adversary can extract about any individual client.
-The bound decomposes additively into the two terms identified
-informally in Section~\ref{sec:intro}: a controllable mechanism term
-that shrinks with increasing per-client noise, and an uncontrollable
-prior-coupling floor determined by the client's structural position.
-
-\begin{theorem}[Per-client conditional MI bound]
-\label{thm:per-client}
-Under (IA1) and (IA2), for any deterministic adversary strategy $f$,
-any prior $\mathbb{P} \in \mathcal{F}_{\mathcal{G},\omega}$, and any
-client $i$:
+The regional aggregator sums the noised updates it receives, and the observer
+sees only the regional sums
 \begin{equation}
-I_{\mathbb{P}}\!\left(p_i;\hat{p}_i \,\middle|\,
-\mathcal{G},\omega,\{\sigma_j\}\right)
-\;\leq\;
-\underbrace{\frac{T_{\max}}{2\sigma_i^2 |B|^2}}_{\text{controllable}}
-\;+\;
-\underbrace{\ell_i^\circ}_{\text{uncontrollable}}.
-\label{eq:thm1}
+Y_r^{(t)} \;=\; \sum_{j \in r} w_j \, \tilde{\Delta}_j^{(t)} .
+\label{eq:observation}
+\end{equation}
+
+Two features of \eqref{eq:mechanism} deserve comment. First, the clipping is
+applied to the silo's whole update rather than to per-example gradients, so the
+mechanism protects the participation of an entire silo. This matches the quantity
+we set out to protect, which is a property of the silo's dataset as a whole.
+Second, each silo adds its own noise before transmitting, so the aggregator need
+not be trusted to perform the noise addition honestly.
+
+A useful practical consequence is that the amount of local computation performed
+between communications does not affect the privacy accounting. Each silo releases
+exactly one clipped and noised update per round regardless of how many local
+optimisation steps produced it, so the number of mechanism invocations is $T$.
+This is not true of record-level DP-SGD, where every local step is a separate
+release.
+
+\subsection{Adversary}
+
+We consider a passive observer who follows the protocol but examines what it can
+see. It knows the region structure and the noise scales $\{\sigma_j\}$, and it
+observes the regional sums $Y_r^{(t)}$ for all rounds. It does not observe
+individual silo updates, which is the property the aggregation tier provides.
+
+The observer's goal is to infer, for a target silo $i$, the concentration
+\begin{equation}
+p_i \;=\; \frac{|\{x \in D_i : x \text{ belongs to the sensitive class}\}|}{|D_i|},
+\end{equation}
+quantised to $R$ levels so that $H(p_i)$ is finite. This target captures
+information that organisations are often obliged to protect, such as the
+prevalence of a condition at a particular clinical site, and it is a property of
+the dataset rather than of any single record.
+
+\section{Privacy Analysis}
+\label{sec:theory}
+
+\subsection{Lateral leakage}
+
+Some information about $p_i$ is available to the observer without seeing any
+model updates at all, because silos in the same organisational group tend to have
+correlated distributions. We write this floor as
+\begin{equation}
+\ell_i \;=\; I\big(p_i ; D_{-i}\big),
+\end{equation}
+evaluated under the deployment's stated generative model, where
+$D_{-i}$ denotes the datasets of all other silos. No amount of noise added to
+silo $i$'s updates can reduce $\ell_i$, since it does not flow through the
+mechanism at all.
+
+It is important that $\ell_i$ be defined relative to a stated prior rather than as
+a supremum over all priors consistent with the structure. Under an unconstrained
+supremum one may always choose a prior making $p_i$ a deterministic function of a
+neighbour's data, in which case $\ell_i = H(p_i)$ for every silo with at least one
+neighbour, the quantity is constant across silos, and any allocation derived from
+it degenerates to the uniform one.
+
+Under a hierarchical model in which a group-level parameter $\Phi_g$ is drawn
+first and each member's concentration is drawn conditionally on it, $\ell_i$ is
+computable and depends only on the number of other members of $i$'s group. It
+increases with that number and saturates at $I(p_i ; \Phi_g)$, which is strictly
+below $H(p_i)$. Saturation is rapid: in our calibration the first sibling
+contributes roughly two thirds of the eventual total, and the difference between a
+group of twenty and a group of fifty is negligible. Consequently $\ell_i$ varies
+little across silos in practice, and it is not the quantity that drives the
+allocation.
+
+\subsection{The per-client bound}
+
+\begin{theorem}[Per-client information bound]
+\label{thm:bound}
+Let $\hat{p}_i = f(Y)$ be any estimate formed by a deterministic function of the
+observations $Y = \{Y_r^{(t)}\}$. Then
+\begin{equation}
+I\big(p_i ; \hat{p}_i \,\big|\, \{\sigma_j\}\big)
+\;\le\;
+\min\Big\{\, H(p_i), \;\; T \cdot m_i(\sigma) + \ell_i \,\Big\},
+\label{eq:bound}
+\end{equation}
+where the mechanism term is
+\begin{equation}
+m_i(\sigma) \;=\; \frac{2\,w_i^2}{\sum_{j \in A(i)} w_j^2 \sigma_j^2}.
+\label{eq:mterm}
 \end{equation}
 \end{theorem}
 
-\begin{proof}[Proof sketch]
-By the data processing inequality, $\hat{p}_i = f(\Theta)$ implies
-$I(p_i;\hat{p}_i) \leq I(p_i;\Theta)$. Applying the chain rule and
-dropping the non-negative term $I(p_i; D_{-i} \mid \Theta) \geq 0$
-gives $I(p_i;\Theta) \leq I(p_i;\Theta \mid D_{-i}) +
-I(p_i;D_{-i})$. Under (IA2), the first term reduces to
-$I(D_i;\Theta_i \mid D_{-i})$ and is bounded by $T_{\max}/(2\sigma_i^2
-|B|^2)$ via Mironov's RDP composition~\cite{mironov2017rdp} applied
-to the Gaussian mechanism~\cite{abadi2016dpsgd}, converted to mutual
-information via the max-KL bound of Cuff and Yu~\cite{cuff2016mi}.
-The second term is bounded by $\ell_i^\circ$ by
-Definition~\ref{def:leverage}. The full proof is given in the
-supplementary material (Appendix~A).
-\end{proof}
+The proof is given in the appendix. Its structure is as follows. The data
+processing inequality reduces the estimate to the observations. A chain rule
+separates the observations into what they reveal beyond $D_{-i}$ and what
+$D_{-i}$ reveals on its own, the latter being $\ell_i$ by definition. Conditioning
+on the observations from earlier rounds then isolates silo $i$'s contribution
+within each round, since given the past every other silo's update is a
+deterministic function of the previous global model and its own data, perturbed by
+independent noise. The per-round contribution is bounded by the largest
+Kullback-Leibler divergence the mechanism can produce between two silo-adjacent
+inputs, and these bounds add across rounds.
 
-The additive structure is the central feature of the bound. The
-first term is controllable: it shrinks as the per-client noise
-$\sigma_i$ increases and is the target of the allocation derived in
-Section~\ref{sec:defense-thm2}. The second term is uncontrollable:
-it is a property of the deployment prior and cannot be reduced by
-any amount of DP-SGD noise applied to client $i$. The allocation
-therefore manages the controllable term given that the
-prior-coupling floor is fixed.
+Three properties of \eqref{eq:bound} are worth drawing out.
 
-Theorem~\ref{thm:per-client} is an upper bound rather than a tight
-equality, and two sources of slack are worth noting. First, the
-chain-rule step drops the non-negative term $I(p_i; D_{-i} \mid
-\Theta) \geq 0$, introducing conservatism. Second, the Cuff-Yu
-max-KL conversion~\cite{cuff2016mi} is loose at extreme noise
-levels. In the implementation of Section~\ref{sec:experiments},
-Poisson subsampling at rate $q = |B|/|\mathcal{D}_i|$ is applied
-via Opacus~\cite{yousefpour2021opacus}, under which amplified
-RDP~\cite{wang2019subsampled} would tighten the per-round
-contribution from $1/(2\sigma_i^2|B|^2)$ to
-$1/(2\sigma_i^2|\mathcal{D}_i|^2)$, a substantial improvement when
-$|\mathcal{D}_i| \gg |B|$. Tighter bounds via Asoodeh
-et~al.~\cite{asoodeh2021variants} or amplified RDP are natural
-extensions of the proof structure and are discussed in
-Section~\ref{sec:discussion}.
+The mechanism term depends on the total noise in the region, not on silo $i$'s
+noise alone. This is the formal statement of the intuition that a participant is
+concealed by its neighbours. For $m$ equally weighted silos sharing a region, all
+using the same scale $\sigma$, the term reduces to $2/(m \sigma^2)$, so the noise
+each silo must contribute to reach a given level falls as $1/\sqrt{m}$.
 
-\subsection{Balanced Min-Max Optimal Allocation}
-\label{sec:defense-thm2}
+The bound enters through the region, so the region structure is something the
+mechanism can act on. This is what makes the allocation problem in
+Section~\ref{sec:allocation} non-trivial.
 
-Given the per-client MI bound of Theorem~\ref{thm:per-client}, the
-natural objective is to minimise the worst-case bound across all
-clients subject to a fixed total noise budget. Let $a := T_{\max} /
-(2|B|^2)$. The optimisation problem is
+The cap at $H(p_i)$ makes it possible to say whether the guarantee is
+informative. The bound conveys something only when
+$T \cdot m_i(\sigma) < H(p_i) - \ell_i$. We refer to the right-hand side as the
+margin, since it is the amount of information about $p_i$ that is not already
+determined by the deployment structure and that the mechanism is therefore
+responsible for protecting. Reporting a bound of several nats against a target
+whose entropy is smaller conveys nothing, and we check this condition explicitly
+at every operating point we evaluate.
+
+\section{Optimal Allocation}
+\label{sec:allocation}
+
+\subsection{The problem}
+
+Let $S_r = \sum_{j \in r} w_j^2 \sigma_j^2$ denote the noise variance that region
+$r$ contributes to the aggregate. The utility cost of privacy is the total noise
+variance entering the global model,
 \begin{equation}
-\min_{\{\sigma_i^2 > 0\}}\; \max_i \big[\, a / \sigma_i^2 +
-\ell_i^\circ\, \big]
-\quad \text{subject to} \quad
-\sum_{i=1}^n \sigma_i^2 \leq U,
+U \;=\; \sum_i w_i^2 \sigma_i^2 \;=\; \sum_r S_r ,
+\label{eq:budget}
+\end{equation}
+and not $\sum_i \sigma_i^2$. The distinction matters under weighted averaging,
+where a silo's noise enters the aggregate scaled by its weight. Using the
+unweighted sum both misstates the cost and makes the optimisation degenerate,
+because it becomes cheapest to concentrate all of a region's noise on its
+highest-weight member.
+
+Writing $W_r = \max_{i \in r} w_i^2$ for the weight of the most exposed silo in
+region $r$, the worst-case bound within the region is
+$a W_r / S_r + \ell_r$ with $a = 2T$. The allocation problem is therefore
+\begin{equation}
+\min_{\{S_r > 0\}} \; \max_r \left[ \frac{a W_r}{S_r} + \ell_r \right]
+\quad \text{subject to} \quad \sum_r S_r \le U .
 \label{eq:opt}
 \end{equation}
-where $U$ is the total noise variance budget. The total noise
-variance $\sum_i \sigma_i^2$ governs the utility cost of DP-SGD
-under standard FL convergence assumptions~\cite{wei2020nbafl},
-justifying $U$ as a utility budget proxy and motivating the
-constraint in \eqref{eq:opt}. Intuitively, increasing $U$ admits
-larger per-client noise scales and therefore higher utility cost.
-The following theorem shows that \eqref{eq:opt} admits a closed-form
-solution.
 
-\begin{theorem}[Balanced min-max allocation]
+\subsection{Solution}
+
+\begin{theorem}[Min-max optimal allocation]
 \label{thm:allocation}
-For any utility budget $U > 0$, the optimal allocation solving
-\eqref{eq:opt} is
+For any budget $U > 0$, the solution of \eqref{eq:opt} is
 \begin{equation}
-\sigma_i^{*\,2} \;=\; \frac{a}{K^\star - \ell_i^\circ},
-\label{eq:sigma-star}
+S_r^{\star} \;=\; \frac{a W_r}{K^{\star} - \ell_r},
+\label{eq:alloc}
 \end{equation}
-where $K^\star$ is the unique solution to
-\begin{equation}
-\sum_{i=1}^n \frac{a}{K^\star - \ell_i^\circ} = U,
-\quad
-K^\star > \max_i \ell_i^\circ.
-\label{eq:budget-eq}
-\end{equation}
-The achieved worst-case per-client MI bound is $K^\star$,
-equilibrated uniformly across clients.
+where $K^{\star}$ is the unique root of
+$\sum_r a W_r / (K - \ell_r) = U$ on $(\max_r \ell_r, \infty)$. The achieved
+worst-case bound equals $K^{\star}$ and is equalised across regions.
 \end{theorem}
 
-\begin{proof}[Proof sketch]
-Reformulate \eqref{eq:opt} via a slack variable $K$: minimise $K$
-subject to $a/\sigma_i^2 + \ell_i^\circ \leq K$ for all $i$ and
-$\sum_i \sigma_i^2 \leq U$. The objective is linear in $K$, the
-constraints are convex since $a/x$ is convex on $x > 0$, and
-Slater's condition holds at $\sigma_i^2 = U/(2n)$.
-Karush-Kuhn-Tucker (KKT) conditions therefore give $\sigma_i^{*\,2}
-= a/(K^\star - \ell_i^\circ)$ at the active-budget optimum;
-uniqueness of $K^\star$ follows from strict monotonicity of the
-budget equation in $K$. The full proof is given in the supplementary
-material (Appendix~B).
-\end{proof}
+The objective is not smooth, but introducing a slack variable for the maximum
+converts \eqref{eq:opt} into a convex program with a linear objective. Slater's
+condition holds, so the Karush-Kuhn-Tucker conditions are necessary and
+sufficient, and they give \eqref{eq:alloc} directly. Uniqueness of $K^{\star}$
+follows because the left-hand side of the budget equation is continuous and
+strictly decreasing on the relevant interval, tends to infinity at its left
+endpoint, and tends to zero at infinity. The full argument is in the appendix.
 
-An immediate consequence of Theorem~\ref{thm:allocation} is that the
-topology-aware allocation strictly reduces the worst-case bound
-relative to uniform DP-SGD whenever the federation is asymmetric.
+\subsection{How much is gained}
 
-\begin{corollary}[Strict improvement over uniform allocation]
-\label{cor:strict}
-Under uniform allocation $\sigma_i^2 = U/n$, the worst-case bound
-is $K_{\mathrm{uniform}} = an/U + \max_i \ell_i^\circ$. The
-balanced allocation of Theorem~\ref{thm:allocation} satisfies
-$K^\star \leq K_{\mathrm{uniform}}$, with equality if and only if
-all $\ell_i^\circ$ are equal.
+Uniform allocation applies one scale $\sigma$ to every silo, so that
+$S_r = \sigma^2 V_r$ with $V_r = \sum_{j \in r} w_j^2$. To meet a target $K$ it
+must satisfy the most demanding region, which fixes $\sigma^2$ and hence the total
+budget. Comparing the two budgets required to reach the same target gives the
+following.
+
+\begin{corollary}[Budget saved at equal privacy]
+\label{cor:delta}
+Define the exposure ratio of region $r$ as
+\begin{equation}
+\rho_r \;=\; \frac{W_r}{V_r} \;=\; \frac{\max_{i \in r} w_i^2}{\sum_{i \in r} w_i^2},
+\end{equation}
+and let $\langle \rho \rangle_V = \sum_r \rho_r V_r / \sum_r V_r$. If the lateral
+floors $\ell_r$ are equal across regions, the fraction of the noise budget saved
+by \eqref{eq:alloc} relative to uniform allocation at the same target is
+\begin{equation}
+\delta \;=\; 1 - \frac{\langle \rho \rangle_V}{\rho_{\max}} .
+\label{eq:delta}
+\end{equation}
 \end{corollary}
 
-Corollary~\ref{cor:strict} confirms that the topology-aware
-allocation reduces the worst-case bound exactly when it should.
-Symmetric topologies such as rings, complete graphs, and balanced
-hierarchies produce uniform leverage scores, and the allocation
-reduces to standard uniform DP-SGD. This is the appropriate
-behaviour: there is no asymmetry to exploit, and \Fulcrum incurs no
-worst-case penalty relative to the uniform baseline in this regime.
-Asymmetric topologies such as lines, hierarchies with uneven groups,
-and stars, as well as deployments with heterogeneous client dataset
-sizes, produce non-uniform leverage and admit a strict reduction in
-the worst-case bound.
+The quantity $\rho_r$ is the inverse participation ratio of the weights within
+region $r$. For $m$ equally weighted silos it equals $1/m$, so it measures the
+region's effective size, and it accounts correctly for the case where a region is
+dominated by one large participant. Three consequences follow.
 
-\subsection{Practical Leverage Proxies}
-\label{sec:defense-proxies}
+First, $\delta$ is determined entirely by the region-size profile. It does not
+depend on the dataset, the model, the number of rounds, or the privacy target.
+A deployer can therefore compute it from the deployment description before
+training anything and decide whether the method is worth adopting.
 
-The abstract leverage $\ell_i^\circ$ is well-defined but not always
-analytically computable in closed form. We instantiate three
-principled proxies, each capturing a different source of structural
-asymmetry. Theorems~\ref{thm:per-client} and~\ref{thm:allocation}
-hold for any non-negative weight vector substituted in place of
-$\{\ell_i^\circ\}$: the allocation strictly reduces the worst-case
-bound relative to uniform DP-SGD whenever the weights are
-non-uniform, regardless of whether they equal the true structural
-leverage. The proxies are therefore validated on two criteria:
-ordering consistency, meaning the proxy correctly ranks clients by
-structural exposure, which is sufficient for
-Corollary~\ref{cor:strict} to apply; and empirical conservatism,
-meaning the allocation consistently reduces $K_{\mathrm{uniform}}$
-in practice. Tight analytical bounding of $\ell_i^\circ$ from above
-by each proxy, which would give a guaranteed per-client MI bound,
-holds for the group-size proxy asymptotically and remains open for
-the degree and dataset-size proxies.\smallskip
+Second, $\delta = 0$ exactly when $\rho_r$ is the same for every region, that is
+when all regions have the same effective size. The method then provably does
+nothing, and we treat this as an applicability test to be stated up front rather
+than a limitation to be discovered later.
 
-\noindent\textbf{1. Group-size proxy.} Under a stochastic block model
-prior on $(\Delta_1,\ldots,\Delta_n)$ with
-$\Delta_i \sim_{\mathrm{iid}} \mathbb{P}_{\Phi_{\omega_i}}$ given
-finite-entropy block parameter $\Phi$, it can be shown that
-$\ell_i^\circ \leq H(\Phi_{\omega_i})$, asymptotically independent
-of block size. For finite blocks, $\ell_i^\circ$ is approximated by
-the group size $|G_i|$ scaled by a prior-dependent constant,
-motivating the proxy $\ell_i^{\mathrm{org}} \propto |G_i|$. This
-proxy is ordering-consistent under the SBM prior and satisfies the
-asymptotic bounding condition. It is appropriate whenever the
-dominant source of asymmetry is uneven organisational groups,
-as in hierarchical FL with heterogeneous clusters~\cite{briggs2020hierarchical}.\smallskip
+Third, flat federated learning, in which each silo forms its own region and its
+update is observed individually, has $\rho_r = 1$ for every silo and therefore
+$\delta = 0$ regardless of how unequal the silo sizes are. Without an aggregation
+tier there is nothing to reallocate. The scope of this paper is consequently
+hierarchical deployments.
 
-\noindent\textbf{2. Degree proxy.} Under bounded-degree Markov
-priors with a regularity assumption on neighbourhood-conditional
-entropy, leverage admits an upper bound proportional to graph
-degree. We adopt the proxy $\ell_i^{\mathrm{deg}} \propto
-\deg_{\mathcal{G}}(i)$ as a heuristic for deployments where the
-dominant asymmetry arises from non-uniform graph degree, such as
-decentralised peer-to-peer
-protocols~\cite{roy2019braintorrent,hegedus2021decentralized,beilharz2021dag}.
-Ordering consistency holds when degree is the primary driver of
-neighbourhood entropy; a tight analytical bound requires
-characterising the conditional entropy at each neighbourhood as a
-function of global graph structure, which resists a closed-form
-treatment and remains open. Empirical validation across six topology
-families, including graphs where degree heterogeneity is
-the defining structural property, provides the practical basis for
-its use.\smallskip
+\subsection{Exposure in real deployments}
 
-\noindent\textbf{3. Dataset-size proxy.} In FedAvg with
-size-weighted aggregation
-$\theta^{(t+1)} = \sum_i \frac{|\mathcal{D}_i|}{\sum_j
-|\mathcal{D}_j|} \theta_i^{(t+1)}$, each client's update is
-weighted proportionally to its dataset size, making larger clients
-structurally more influential. Under a Dirichlet-multinomial prior
-on client class distributions, the lateral mutual information
-$I(p_i; D_{-i})$ scales with the client's aggregation weight,
-giving $\ell_i^\circ \propto |\mathcal{D}_i|$ under this generative
-model. We adopt the mean-normalised proxy $\ell_i^{\mathrm{ds}}
-\propto |\mathcal{D}_i|/\bar{|\mathcal{D}|}$, which is
-ordering-consistent under the Dirichlet-FedAvg model by
-construction. A tight upper bound on $\ell_i^\circ$ beyond the
-ordering result remains open, as in the degree proxy case. The
-Pareto dominance results of
-Section~\ref{sec:experiments-pareto} provide empirical validation
-across all tested budgets and observation windows.\smallskip
+Because $\delta$ is a property of the deployment rather than of an experiment, it
+can be measured directly for real federations. Table~\ref{tab:realdelta} reports
+it for several. Cellular deployments sit high on the scale because base station
+loads are long tailed, with dense cells serving many devices and sparse cells very
+few. Consortia organised by country behave similarly. A federation whose sites are
+grouped into equally sized regions sits at zero, as does flat cross-silo training.
 
-\noindent The three proxies are not mutually exclusive. A deployment
-can blend them by passing per-client weight vectors that combine
-group size, degree, and dataset size, normalised to unit mean. The
-choice of proxy is a deployment design parameter; each experimental
-setting in Section~\ref{sec:experiments} uses the proxy that matches
-its dominant source of asymmetry.
-
-% =============================================================================
-% 6. EXPERIMENTS
-% =============================================================================
-\section{Performance Evaluation}
-\label{sec:experiments}
-
-We evaluate both contributions on three federated benchmarks spanning
-the canonical cross-silo deployment regimes. The \TADI diagnostic is
-evaluated on its ability to characterise sensitive-class concentration
-leakage across the four ablations, and \Fulcrum is evaluated on its
-privacy-utility trade-off relative to uniform DP-SGD. The benchmarks
-are chosen to cover different sources of structural asymmetry:
-heterogeneous site sizes in a real healthcare imaging federation,
-heterogeneous site sizes in a real cross-silo tabular task, and
-parametric topology-data coupling in a controlled synthetic setting.
-Together they provide both deployment realism and the statistical
-power needed to validate our theoretical claims.
-
-\subsection{Settings and Datasets}
-\label{sec:experiments-settings}
-
-\noindent\textbf{Setting A: Fed-ISIC2019.}
-The Fed-ISIC2019 component of FLamby~\cite{flamby2022} comprises
-dermoscopy images from six hospital sites with eight skin lesion
-classes, where melanoma is the designated sensitive class
-$\mathcal{C}_s$. Site sizes are highly heterogeneous across the six
-centres, with the largest site contributing nearly thirty times more
-training samples than the smallest. We arrange the six sites in a
-two-level hierarchy with three regional aggregators following the
-architectural pattern of Liu et~al.~\cite{liu2020hierarchical}, and
-train a small convolutional network with GroupNorm replacing
-BatchNorm for DP-SGD compatibility. This setting combines
-dataset-size asymmetry with hierarchical topology structure, so both
-the dataset-size proxy and the organisational position of each site
-within the hierarchy contribute to the leverage
-profile.\medskip
-
-\noindent\textbf{Setting B: Fed-Heart-Disease.}
-The Fed-Heart-Disease component of FLamby~\cite{flamby2022} provides
-records across four clinical centres with 13 clinical features and a
-binary heart-disease indicator. With four clients arranged on a ring
-topology, all nodes share the same degree and the topology
-introduces no structural leverage asymmetry. Dataset-size
-heterogeneity is therefore the sole source of asymmetry, with the
-largest centre contributing more than six times the training samples
-of the smallest, making this a clean test of the dataset-size proxy
-in isolation from any topological confound.\medskip
-
-\noindent\textbf{Setting C: Synthetic CIFAR-10 with parametric
-coupling.} To provide controlled statistical power for validating
-the theoretical claims of Section~\ref{sec:defense}, we partition
-CIFAR-10~\cite{krizhevsky2009cifar} across $n = 50$ synthetic
-clients using the $\eta$-coupled construction
-\[
-\Delta_i = (1-\eta)\,\tilde{\Delta}_i + \eta\,\Delta^*_{\phi(i)},
-\]
-where $\tilde{\Delta}_i \sim \mathrm{Dirichlet}(\alpha)$ provides
-the standard non-IID heterogeneity
-component~\cite{hsu2019dirichlet}, $\Delta^*_{\phi(i)}$ is
-concentrated on class $\phi(i) \bmod K$, and $\eta \in [0,1]$
-interpolates between the IID regime ($\eta = 0$) and fully
-position-determined class distributions ($\eta = 1$). Topology is
-varied across ring, line, hierarchical, star, Erd\H{o}s-R\'{e}nyi
-(ER)~\cite{erdos1959random}, and Barab\'{a}si-Albert
-(BA)~\cite{barabasi1999emergence} configurations to expose the full
-leverage-asymmetry spectrum, from uniform-degree graphs to
-scale-free networks with highly non-uniform degree distributions.
-Setting~C is the only configuration in which AUROC is a meaningful
-metric ($n \geq 20$) and provides clean control over $\eta$ as the
-parameter driving lateral leakage.
-
-\subsection{Methodology}
-\label{sec:experiments-methodology}
-
-DP-SGD is implemented via Opacus~\cite{yousefpour2021opacus} with
-Poisson subsampling, the RDP accountant~\cite{mironov2017rdp},
-gradient clipping at $C = 1.0$, and batch size $|B| = 64$. The
-federated training infrastructure builds on the Murmura
-framework~\cite{rangwala2026murmura}. Each configuration is run
-with three independent seeds. Per-client noise scales are set either
-by the \Fulcrum allocation $\sigma_i^{*2} = a / (K^\star -
-\ell_i^\circ)$ from Theorem~\ref{thm:allocation}, or uniformly as
-$\sigma_i^2 = U/n$ for the baseline. The privacy bounds $K^\star$
-and $K_{\mathrm{uniform}}$ are computed analytically by
-one-dimensional bisection of the budget and carry no seed variance;
-test accuracy is reported as the mean over three seeds with 95\%
-confidence intervals.
-
-The allocation is evaluated across a factorial sweep of utility
-budgets $U$ and observation windows $T_{\max}$ under both the
-topology-aware and uniform schemes, with the per-setting sweep grids
-stated in the relevant subsections below. Utility consistency is assessed by matched pairs
-at fixed $U$ and seed, giving 18 paired observations per $T_{\max}$.
-We use Two One-Sided Tests (TOST) at a $\pm 0.5$ percentage-point
-margin as the primary equivalence test~\cite{lakens2017equivalence},
-since a TOST $p$-value below 0.05 actively rejects practically
-meaningful difference rather than merely failing to reject equality.
-The conventional paired $t$-test $p$-value is reported alongside for
-completeness.
-
-The \TADI diagnostic is evaluated separately from the allocation
-sweep. One regressor per channel is trained on a setting-specific
-shadow corpus and applied to all target runs from the Pareto sweep.
-The shadow corpus construction differs across settings along the
-prior-matching axis of the threat model. For Setting~C, the shadow
-corpus uses the same $\eta$-coupled partitioning as the target, so
-shadow and target priors match by construction and the prior-coupling
-supremum $\ell_i^\circ$ is realisable in principle. For Setting~B,
-the shadow corpus is built from synthetic Dirichlet re-partitioning
-of the public FLamby data, the only construction available to an
-adversary without access to native per-site labels, so the shadow
-and target priors are deliberately mismatched. Setting~A is omitted
-from the channel ablation because its native FLamby partitioning
-produces the same qualitative pattern as Setting~B under the
-public-proxy threat model; the Pareto sweep and utility consistency
-results of Section~\ref{sec:experiments-pareto} provide full defense
-coverage for that setting. Statistical significance across channels
-is assessed via paired bootstrap on calibration loss with
-multiple-comparison correction.
-
-\subsection{Theorem Illustration: The \texorpdfstring{$\eta$}{eta}-Sweep}
-\label{sec:experiments-eta}
-
-The Setting~C $\eta$-sweep provides the most direct illustration of
-Theorem~\ref{thm:allocation} and Corollary~\ref{cor:strict}. It varies
-the topology-data coupling $\eta \in \{0, 0.25, 0.5, 0.75, 1\}$ across
-nine topology configurations at fixed $U = 0.5$ and $T_{\max} = 100$.
-Because Corollary~\ref{cor:strict} establishes $K^\star \leq
-K_{\mathrm{uniform}}$ analytically, and both quantities are computed in
-closed form without seed variance, this sweep illustrates the theorem
-rather than testing a falsifiable hypothesis. Its purpose is to show
-how the gap between the two bounds scales with the degree of leverage
-asymmetry, and to confirm that the degree proxy tracks this asymmetry
-rather than mean degree, as evidenced by the non-monotone
-Erd\H{o}s-R\'{e}nyi peak at $p = 0.5$ discussed below. The
-complementary and falsifiable claim, that this reduction in the bound
-is achieved without utility cost, is established separately in
-Section~\ref{sec:experiments-pareto}. Figure~\ref{fig:eta-heatmap}
-shows the privacy-bound gap $K_{\mathrm{uniform}} - K^\star$ (nats)
-across the $9 \times 4$ grid at $\eta \in \{0.25, 0.5, 0.75, 1\}$.
-
-\begin{figure}[t]
+\begin{table}[t]
+\caption{Exposure dispersion $\delta$ for real deployment structures. $\delta$ upper-bounds the fraction of the noise budget that allocation can save.}
+\label{tab:realdelta}
 \centering
-\includegraphics[width=\columnwidth]{figures/eta_gap_heatmap_setting_c.pdf}
-\caption{Privacy-bound gap $K_{\mathrm{uniform}} - K^\star$ (nats)
-across nine topology configurations and four coupling strengths
-$\eta \in \{0.25, 0.5, 0.75, 1\}$ on Setting~C ($n = 50$, $U =
-0.5$, $T_{\max} = 100$). The $\eta = 0$ column is omitted as all
-values are analytically zero. Rows are sorted by maximum gap. The
-ring row is identically zero at every $\eta$. Scale-free topologies
-(BA, star) saturate within 2\% of the analytic asymptote $an/U
-\approx 1.22$ nats, marked on the colourbar. Among ER
-configurations, the gap peaks non-monotonically at $p = 0.5$, where
-the binomial degree variance is maximised.}
-\label{fig:eta-heatmap}
-\end{figure}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Deployment structure & Regions & $\delta$ \\
+\midrule
+Cellular edge, long-tailed devices per cell & 60 & $82.8$--$87.6\%$ \\
+Consortium, sites per country $30/10/5/3/1/1$ & 6 & $88.0\%$ \\
+Clinical sites grouped by hospital $3/1/1/1$ & 4 & $14.4\%$ \\
+Equally sized regions & any & $0\%$ \\
+Flat federation, no aggregation tier & --- & $0\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-The heatmap simultaneously illustrates five predictions of the
-theory. At $\eta = 0$, both allocations are analytically equivalent
-on every topology since no topology-data correlation exists; this
-column is omitted from Figure~\ref{fig:eta-heatmap} as all values are
-identically zero. The ring row is likewise identically zero at every
-$\eta$: a ring assigns equal degree to all clients, producing a
-uniform leverage profile under which the allocation reduces to
-uniform DP-SGD regardless of coupling strength. Both observations
-confirm the degenerate case of Corollary~\ref{cor:strict}.
+\section{Evaluation}
+\label{sec:eval}
 
-For every asymmetric topology, the gap grows monotonically in
-$\eta$. The growth is near-linear for moderate-asymmetry
-configurations, specifically line, hierarchical, and ER, and
-saturates rapidly for extreme-asymmetry configurations. BA
-topologies ($m = 2$, $m = 4$) and the star reach approximately 98\%
-of the analytic asymptote $an/U = 1.2207$ nats by $\eta = 0.25$,
-with the star reaching 1.196 nats and BA $m = 2$ reaching 1.193
-nats at $\eta = 1$, both within 2\% of the asymptote. Crucially,
-the star is not uniquely special: any topology with extreme degree
-concentration saturates the bound. The BA configurations establish
-this generalisation, extending the worst-case claim from star
-topologies to scale-free networks more broadly. Among the three ER configurations, the gap peaks non-monotonically
-at $p = 0.5$ rather than at either extreme. At $\eta = 1$, the gaps
-are 0.575 nats ($p = 0.3$), 0.871 nats ($p = 0.5$), and 0.610 nats
-($p = 0.7$). This pattern follows directly from the binomial degree
-distribution $\mathrm{Bin}(n-1, p)$, whose variance
-$(n-1)p(1-p)$ is maximised at $p = 0.5$, producing the most
-heterogeneous degree profile among the three configurations. The
-non-monotone pattern is direct evidence that the degree proxy tracks
-the underlying leverage asymmetry rather than mean degree, providing
-empirical grounding for the degree proxy of
-Section~\ref{sec:defense-proxies}.
+\subsection{Design}
 
-The relative-gap perspective complements the absolute picture. The
-largest absolute reduction in the privacy bound at $\eta = 1$
-occurs on star and BA topologies ($\approx 1.2$ nats), where
-uniform DP-SGD places clients under a catastrophic bound. The
-largest fractional improvement occurs on ER at $p = 0.5$ (19.4\%
-reduction), where moderate degree heterogeneity produces a leverage
-spread that \Fulcrum exploits efficiently without the
-$K_{\mathrm{uniform}}$ baseline becoming so large as to dilute the
-relative gain. Together, these two perspectives show that \Fulcrum
-delivers the largest absolute reductions where the privacy risk is
-most severe, and the largest fractional reductions where leverage
-asymmetry is moderate but meaningful.
+Corollary~\ref{cor:delta} makes a prediction that an experiment can contradict,
+so we designed the evaluation around that possibility rather than around a
+favourable configuration. We sweep the region-size profile across the range of
+$\delta$, including two deployments with $\delta = 0$ for which the theory
+predicts no gain whatsoever. We state three predictions in advance.
 
-\subsection{Privacy--Utility Pareto Dominance}
-\label{sec:experiments-pareto}
+The first is that the budget saved at a matched privacy target equals $\delta$.
+The second is that the accuracy gain at matched privacy increases with $\delta$
+and is zero when $\delta = 0$. The third is that an allocation with the same
+dispersion of noise but assigned to the wrong regions does not reproduce the gain,
+which rules out the possibility that any non-uniform allocation would do as well.
 
-Having illustrated the theoretical predictions of
-Theorem~\ref{thm:allocation} on the synthetic $\eta$-sweep, we now
-evaluate whether the strict reduction of the worst-case bound
-transfers to real cross-silo deployments across the full range of
-utility budgets and observation windows.
-Figure~\ref{fig:pareto-all} shows the privacy bound $K^\star$ as a
-function of utility budget $U$ across three observation windows
-$T_{\max}$ for each setting. Topology-aware allocation lies strictly
-below uniform DP-SGD at every tested $U$ and $T_{\max}$ cell across
-all three settings, with no exception.
+All three arms hold every silo at the same worst-case bound $K$, so the comparison
+is at matched per-client privacy and the arms differ only in the total noise they
+require. We report the privacy parameters achieved in every run. Client $i$ is
+concealed by the total noise in its region, so its effective noise multiplier is
+$\sqrt{S_r}/w_i$, and we compute $\varepsilon$ from the least protected client.
 
-The direction of this ordering is guaranteed analytically by
-Corollary~\ref{cor:strict}. The empirical content of
-Figure~\ref{fig:pareto-all} is therefore the magnitude of the
-reduction obtained on real cross-silo leverage profiles, evaluated
-jointly with the utility-neutrality result reported below.
+\subsection{Setup}
 
-\begin{figure*}[t]
-\centering
-\subfloat[Setting~A (Fed-ISIC2019)\label{fig:pareto-a}]{%
-    \includegraphics[width=\linewidth]{figures/pareto_setting_a.pdf}}\\
-\subfloat[Setting~B (Fed-Heart-Disease)\label{fig:pareto-b}]{%
-    \includegraphics[width=\linewidth]{figures/pareto_setting_b.pdf}}\\
-\subfloat[Setting~C (Synthetic CIFAR-10, $\eta = 0.5$)\label{fig:pareto-c}]{%
-    \includegraphics[width=\linewidth]{figures/pareto_setting_c.pdf}}
-\caption{Privacy--utility Pareto curves across all three settings.
-Each panel within a subfigure fixes $T_{\max}$; the $x$-axis is the
-utility budget $U$ and the $y$-axis is the privacy bound $K^\star$
-(nats, log scale). Topology-aware allocation (blue) lies strictly
-below uniform DP-SGD (red) at every $U$ and $T_{\max}$ cell across
-all settings. The shaded region marks the absolute gap
-$K_{\mathrm{uniform}} - K^\star$.}
-\label{fig:pareto-all}
-\end{figure*}
+We use $n = 96$ silos, $T = 10$ rounds, $\delta_{\mathrm{DP}} = 10^{-5}$, clipping
+at $C = 1$, and three seeds per configuration. The privacy target is $K = 0.88$
+nats, which lies below the entropy of the quantised target and is therefore
+informative in the sense of Section~\ref{sec:theory}. The resulting privacy
+parameter is $\varepsilon = 0.99$ in every run reported here.
 
-Setting~A produces the largest gaps in absolute terms, with the
-privacy bound reduced by up to 1.967 nats (21.7\%) at the
-strong-privacy regime ($T_{\max} = 100$, $U = 0.05$). The near
-30:1 site-size heterogeneity of Fed-ISIC2019 gives the dataset-size
-proxy its widest leverage spread across the three settings.
-Setting~B delivers gaps of up to 0.628 nats in absolute terms and
-14.9\% in relative terms, with the largest relative reduction at
-$T_{\max} = 50$, $U = 0.4$. Setting~C, evaluated on the imbalanced
-hierarchical topology at $\eta = 0.5$, produces gaps up to 0.422
-nats and 10.8\%, reflecting the half-strength coupling; the full
-coupling ceiling for this topology (0.456 nats at $\eta = 1$) is
-confirmed by the $\eta$-sweep of
-Section~\ref{sec:experiments-eta}.
+Both tasks are federated fine-tuning of a frozen pretrained backbone. For images
+we take CIFAR-10 grouped into two superclasses, embed it with an
+ImageNet-pretrained ResNet-18, reduce to 32 dimensions, and train a linear head.
+For text we take AG News reduced to two classes, embed it with a frozen
+MiniLM sentence encoder, and apply the same reduction and head. The head
+dimension is identical across the two tasks, which holds the signal-to-noise
+regime fixed and makes the results comparable.
 
-A natural question is whether these reductions in the worst-case
-bound come at the cost of model utility.
-Table~\ref{tab:utility-all} reports the paired utility comparison
-across all three settings, using TOST equivalence testing at a
-$\pm 0.5$ percentage-point margin as the primary statistic. Across
-all three settings and all nine $T_{\max}$ rows, every TOST
-$p$-value is below 0.05, establishing statistical equivalence within
-the $\pm 0.5$ percentage-point margin. The mean absolute accuracy
-difference $\overline{|\Delta|}$ does not exceed 0.486 pp on any row
-and collapses to 0.006 pp on Setting~B at $T_{\max} = 100$. These
-reductions in the worst-case bound are therefore obtained at no
-practically meaningful utility cost.
+The choice of fine-tuning rather than training from scratch is deliberate and is
+discussed in Section~\ref{sec:discussion}.
+
+\subsection{Results}
+
+Table~\ref{tab:main} reports the outcome. The budget saved matches $\delta$ to
+three decimal places in every configuration, confirming the first prediction and
+Corollary~\ref{cor:delta}.
+
+The accuracy gain increases with $\delta$, reaching $13.75$ points on images and
+$13.55$ points on text in the most heterogeneous deployment, which confirms the
+second prediction. In the two balanced deployments the gain is exactly zero, to
+the precision of the measurement, on both tasks. This is the outcome the theory
+requires, and we regard it as the most informative row in the table: a method that
+did not act on the quantity we claim it acts on would be unlikely to produce
+exactly zero here.
+
+The misallocation control confirms the third prediction. Given the same dispersion
+of noise but assigned to the wrong regions, and rescaled so that it still meets
+the same target, it performs worse than uniform allocation by between two and
+three points in every non-trivial configuration. Non-uniformity alone is therefore
+not sufficient, and the gain depends on allocating according to the exposure
+profile.
+
+Agreement between the two modalities is close, at $4.33$ against $4.02$ points and
+$13.75$ against $13.55$ points. We had expected the magnitudes to differ, since
+the gain depends on the local slope of accuracy against noise, which is a property
+of the task. The close agreement is likely a consequence of having matched the
+head dimension and privacy target across the two tasks, and we would not expect it
+to persist if either were varied.
 
 \begin{table*}[t]
+\caption{Accuracy at matched per-client privacy ($\varepsilon = 0.99$, $n = 96$, $T = 10$, three seeds). Gains are percentage points relative to uniform allocation. Non-private references are $0.970$ for CIFAR-10 and $0.930$ for AG News.}
+\label{tab:main}
 \centering
-\caption{Utility consistency across all three settings. Each row
-aggregates paired $(U, \mathrm{seed})$ observations at fixed
-$T_{\max}$. $\overline{|\Delta|}$ is the mean absolute accuracy
-difference in percentage points between topology-aware and uniform
-allocation at matched $(U, \mathrm{seed})$. TOST $p$ tests $H_0$:
-$|\mathbb{E}[\Delta]| \geq 0.5$ pp; values below 0.05 establish
-statistical equivalence within the margin. The conventional
-paired-$t$ $p$ is reported for completeness.}
-\label{tab:utility-all}
-\begin{tabular}{@{}llccccc@{}}
+\small
+\begin{tabular}{@{}lcc cccc cccc@{}}
 \toprule
-Setting & $T_{\max}$ & $\overline{|\Delta|}$ (pp) & 95\% CI (pp) &
-paired-$t$ $p$ & TOST $p$ & $n$ \\
+& & & \multicolumn{4}{c}{CIFAR-10 (frozen ResNet-18)} & \multicolumn{4}{c}{AG News (frozen MiniLM)} \\
+\cmidrule(lr){4-7}\cmidrule(lr){8-11}
+Region profile & $\delta$ & Budget saved
+& \Fulcrum & Uniform & Gain & Misalloc.
+& \Fulcrum & Uniform & Gain & Misalloc. \\
 \midrule
-\multirow{3}{*}{A (Fed-ISIC2019)}
-& 25  & 0.399 & $[-0.324, +0.322]$ & 0.993 & 0.002 & 18 \\
-& 50  & 0.437 & $[-0.437, +0.106]$ & 0.215 & 0.009 & 18 \\
-& 100 & 0.486 & $[-0.372, +0.272]$ & 0.745 & 0.005 & 18 \\
-\midrule
-\multirow{3}{*}{B (Fed-Heart-Disease)}
-& 25  & 0.163 & $[-0.125, +0.236]$ & 0.534 & $1.4\times10^{-5}$ & 27 \\
-& 50  & 0.016 & $[-0.017, +0.049]$ & 0.331 & $1.0\times10^{-16}$ & 18 \\
-& 100 & 0.006 & $[-0.003, +0.015]$ & 0.168 & $8.7\times10^{-37}$ & 27 \\
-\midrule
-\multirow{3}{*}{C (Synthetic CIFAR-10)}
-& 25  & 0.016 & $[-0.019, +0.009]$ & 0.484 & $2.8\times10^{-23}$ & 18 \\
-& 50  & 0.012 & $[-0.011, +0.007]$ & 0.614 & $1.6\times10^{-26}$ & 18 \\
-& 100 & 0.016 & $[-0.013, +0.010]$ & 0.740 & $8.5\times10^{-25}$ & 18 \\
+Balanced, 4 regions (control) & $0.000$ & $0.0\%$
+& $0.868$ & $0.868$ & $+0.00$ & $+0.00$
+& $0.767$ & $0.767$ & $+0.00$ & $+0.00$ \\
+Balanced, 6 regions (control) & $0.000$ & $0.0\%$
+& $0.832$ & $0.832$ & $+0.00$ & $+0.00$
+& $0.734$ & $0.734$ & $+0.00$ & $+0.00$ \\
+Mild, $6/6/6/3/3$ & $0.375$ & $37.5\%$
+& $0.851$ & $0.808$ & $+4.33$ & $-3.12$
+& $0.748$ & $0.708$ & $+4.02$ & $-2.55$ \\
+Severe, $15/5/2/1/1$ & $0.792$ & $79.2\%$
+& $0.845$ & $0.708$ & $\mathbf{+13.75}$ & $-2.33$
+& $0.759$ & $0.623$ & $\mathbf{+13.55}$ & $-3.25$ \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-\subsection{\TADI Channel Decomposition and Bound Realisability}
-\label{sec:experiments-channels}
-
-With the allocation results established, we turn to the channel
-decomposition evaluation. The four-channel \TADI decomposition
-serves as the empirical instantiation of
-Theorem~\ref{thm:per-client}'s additive structure, separating the
-controllable mechanism term from the uncontrollable prior-coupling
-term. The parameter channel $\mathcal{A}_1$ corresponds to the
-controllable term; the organisational and combined channels carry
-the prior-coupling term. Figure~\ref{fig:channel-ablation} compares
-channel lift and AUROC across the four channels on Settings~B
-and~C, spanning the two extremes of prior alignment: mismatched
-prior on Setting~B and matched prior on Setting~C at the $\eta = 1$
-ceiling. Figure~\ref{fig:realisability} then traces the full
-transition between these extremes by tracking channel lift and AUROC
-as a function of $\eta$ on Setting~C.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/channel_ablation_cross_setting.pdf}
-\caption{Mean channel lift (left) and AUROC (right) per channel per
-setting, with 95\% confidence intervals. Setting~C bars correspond
-to the $\eta = 1$ matched-prior ceiling; Setting~B uses the native
-FLamby partitioning throughout. The dashed line marks zero lift and
-chance AUROC ($= 0.5$) respectively. DP-SGD bounds the parameter
-channel $\mathcal{A}_1$ across both settings. Under matched prior,
-the organisational and combined channels achieve positive lift and
-perfect AUROC; under mismatched prior, no channel achieves positive
-lift.}
-\label{fig:channel-ablation}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/tadi_realisability_setting_c.pdf}
-\caption{Channel lift (top) and AUROC (bottom) across the (channel,
-$\eta$) grid on Setting~C. Red cells indicate DP-SGD-bounded or
-below-chance performance; blue cells indicate realised leakage. The
-parameter channel $\mathcal{A}_1$ row is uniformly red in the lift
-panel at every $\eta$. The organisational and combined channels
-progress from red to blue as $\eta$ grows, reaching lift $+0.060$
-and $+0.076$ and perfect AUROC at $\eta = 1$. The $\eta = 0$ column
-is the IID-null calibration band; the structural channel
-$\mathcal{A}_2^{\text{topo}}$ row is uniformly near-white in both
-panels.}
-\label{fig:realisability}
-\end{figure}
-
-Three findings map directly onto the theoretical decomposition of
-Theorem~\ref{thm:per-client}. The parameter channel $\mathcal{A}_1$
-achieves negative channel lift in every configuration: $-0.058$ on
-Setting~B and $-0.021$ on Setting~C at $\eta = 1$, remaining
-negative across the full $\eta$ range from $-0.017$ at $\eta = 0$
-to $-0.021$ at $\eta = 1$. The parameter-only regressor cannot
-improve on the constant-mean baseline regardless of setting, prior
-regime, or coupling strength, confirming that the controllable
-mechanism term of Theorem~\ref{thm:per-client} is effectively
-bounded by the per-client noise allocation under both \Fulcrum and
-uniform DP-SGD. The structural channel
-$\mathcal{A}_2^{\text{topo}}$ achieves near-zero lift and
-chance-level AUROC across both settings: in Setting~C, the
-hierarchical topology routes the class signal through the
-organisational label rather than structural graph features; in
-Setting~B, the ring topology renders all structural features
-degenerate. The structural channel therefore contributes no marginal
-information in either deployment.
-
-The prior-coupling channels $\mathcal{A}_2^{\text{org}}$ and
-$\mathcal{A}_2^{\text{full}}$ reveal the deployment-dependence of
-the uncontrollable term. On Setting~B, where the shadow corpus is
-built from synthetic Dirichlet re-partitioning of public data while
-the target uses native FLamby site labels, both channels achieve
-negative lift ($-0.040$ and $-0.041$ respectively). The shadow
-prior does not match the target prior, and the supremum
-$\ell_i^\circ$ is not realised. The bound holds as an upper bound
-regardless: the diagnostic additionally shows that $\ell_i^\circ$ is
-conservative in a deployment-favourable direction whenever the
-adversary lacks the native partition structure. On Setting~C, the
-organisational channel grows monotonically in $\eta$, from $-0.024$
-at $\eta = 0$ to $+0.060$ at $\eta = 1$, with AUROC reaching perfect
-ranking at $\eta \geq 0.75$. At the matched-prior ceiling of $\eta =
-1$, the combined channel achieves lift $+0.076$ and perfect AUROC of
-1.00. The regressor can perfectly rank all 50 clients by
-sensitive-class concentration, confirming that the supremum
-$\ell_i^\circ$ is realisable when the shadow prior matches the
-deployment. This monotone progression is the empirical signature of
-the uncontrollable prior-coupling term: as the deployment encodes
-more class information into structural position, the lateral
-information $I(p_i; D_{-i})$ that DP-SGD cannot suppress grows
-accordingly. At $\eta = 0$, every channel's lift is slightly
-negative, in the range $[-0.071, -0.002]$, confirming that the
-regressors extract no signal when no topology-data correlation
-exists.
-
-The four channels are best understood as a decomposition of
-information sources rather than a tournament of strictly ordered
-adversaries: which channel carries signal is determined by how the
-deployment routes the topology-data correlation, not by any
-universal ordering. Together, the cross-setting comparison and the
-$\eta$-sweep establish the three empirical questions posed at the
-close of Section~\ref{sec:attack}. DP-SGD effectively bounds the
-parameter channel independently of prior coupling. The
-organisational label carries the prior-coupling signal in the
-hierarchical Setting~C deployment, while neither channel carries
-signal in the ring Setting~B. The prior-coupling supremum
-$\ell_i^\circ$ is realisable under matched-prior conditions and
-conservative in a deployment-favourable direction under the
-public-proxy threat model of real cross-silo deployments.
-
-% =============================================================================
-% 7. DISCUSSION
-% =============================================================================
 \section{Discussion}
 \label{sec:discussion}
 
-Corollary~\ref{cor:strict} establishes that \Fulcrum strictly reduces
-the worst-case bound relative to uniform DP-SGD whenever leverage
-scores are non-uniform, and reduces to equality when they are not. The
-experimental results of Section~\ref{sec:experiments} confirm this
-characterisation across the full topology spectrum. Symmetric
-configurations produce zero gap by construction, while every
-asymmetric configuration produces a strictly positive and
-monotonically growing gap whose magnitude scales with the degree of
-leverage heterogeneity. The dataset-size proxy delivers the largest
-absolute reductions on the real cross-silo settings, up to 1.967 nats
-on Setting~A and 0.628 nats on Setting~B, driven by the near 30:1 and
-6.6:1 site-size ratios respectively. In every case the reduction is
-obtained at no practically meaningful utility cost. \Fulcrum therefore
-incurs no worst-case penalty relative to uniform DP-SGD: it strictly
-reduces the worst-case per-client bound wherever structural asymmetry
-is present and reduces exactly to the uniform baseline where it is
-absent.
+\subsection{Why fine-tuning}
 
-It is useful to state precisely what this contribution establishes.
-\Fulcrum acts on the controllable mechanism term of
-Theorem~\ref{thm:per-client}, providing an optimal closed-form
-allocation that eliminates the worst-case suboptimality of uniform
-noise under topological asymmetry, at no measurable utility cost. The
-prior-coupling term $\ell_i^\circ$ lies outside the reach of any noise
-mechanism: it is a property of the deployment structure rather than of
-the noise added to updates, and our analysis makes this boundary
-explicit. The \TADI diagnostic confirms empirically where the residual
-leakage sits: the parameter channel is bounded by DP-SGD in every
-setting we study, so the leakage that remains is carried by the
-prior-coupling term rather than the controllable one. Suppressing that
-component is a deployment-level problem, addressed through
-interventions on the structure itself, such as minimising
-organisational labels, balancing group sizes, coarsening aggregation,
-or re-randomising structural metadata. Our contribution is
-complementary to these measures: we give the tightest worst-case
-treatment of the leakage that noise can control, and a diagnostic that
-quantifies how much of the residual risk lies beyond it.
+The noise added to the aggregate has norm proportional to
+$C \sigma \sqrt{d \sum_i w_i^2}$, where $d$ is the number of trainable
+parameters, while the aggregate signal has norm proportional to $C \sqrt{a}$ for
+an average alignment $a$ among the clipped updates. The ratio therefore behaves as
+$\sqrt{a n / d} \, / \, \sigma$. Parameter count enters directly, and at
+silo-level granularity it is the binding constraint.
 
-The empirical behaviour of the prior-coupling term warrants closer
-examination. Theorem~\ref{thm:per-client} defines $\ell_i^\circ$ as
-a supremum over the prior family $\mathcal{F}_{\mathcal{G},\omega}$,
-representing the worst-case coupling between a client's
-sensitive-class concentration and the rest of the federation's data.
-Achieving this supremum empirically requires the shadow training
-distribution to match the target's deployment prior.
-Section~\ref{sec:experiments-channels} provides direct evidence on
-this point. On Setting~C, where shadow and target priors match by
-construction, the prior-coupling supremum is realised: the
-organisational channel achieves perfect AUROC and positive lift that
-scales monotonically with $\eta$, vanishing at $\eta = 0$ as the
-IID-null calibration requires. On Settings~A and~B, where the
-shadow corpus uses only synthetic Dirichlet re-partitioning of data
-from the same domain while the target uses native FLamby site
-labels, no channel achieves positive lift despite three rounds of
-methodological strengthening. The supremum is not realised because
-the shadow prior does not match the deployment's. This is a
-deployment-favourable property of the bound: the theoretical
-guarantee holds as an upper bound regardless of prior alignment,
-while the empirical result shows that the worst case is not realised
-by the most realistic public-proxy construction.
+The practical consequence is sharp. A convolutional network trained from scratch
+in our setting has $d$ on the order of $5 \times 10^5$ against $n = 96$ silos, and
+at any noise level for which the bound is informative the model does not learn at
+all. Fine-tuning a small head on a frozen backbone reduces $d$ by four orders of
+magnitude and reaches full non-private accuracy at the same privacy target. We
+therefore present silo-level differential privacy as suitable for federated
+fine-tuning rather than for federated training from scratch, and we regard this as
+a deployment guideline rather than a limitation of the allocation result, which
+holds regardless.
 
-The prior-mismatch result raises a natural question about the
-validity of the shadow training setup itself. The setup assumes the
-adversary has access to data drawn from the same distribution as the
-federation without knowing the target's per-client partitioning.
-This is the canonical same-distribution shadow scenario of Shokri
-et~al.~\cite{shokri2017membership} and is realistic in cross-silo
-settings where an infrastructure observer or external party may have
-domain knowledge, such as access to publicly released aggregate
-statistics, de-identified datasets from the same clinical domain, or
-data from a separate federation operating on similar populations,
-without knowledge of how any specific federation partitions that
-data across its participating sites. The per-client partitioning,
-which determines which patients are enrolled at which site, is the
-private quantity the adversary seeks to infer. The IID-null
-condition provides the key empirical safeguard: if the regressor
-were exploiting global distributional properties rather than genuine
-partition-level signal, channel lift would be positive at $\eta = 0$
-where the partitioning carries no topology-data correlation. The
-negative lift at $\eta = 0$ across every channel confirms that the
-regressors learn partition structure rather than distributional
-identity.
+\subsection{Scope and assumptions}
 
-Beyond the noise allocation itself, \Fulcrum is compatible with
-secure aggregation~\cite{bonawitz2017secagg} as a complementary
-defense. Secure aggregation masks individual client updates so that
-only their aggregate is visible to the server, collapsing \TADI's
-parameter channel to neighbourhood-aggregated observations. This
-weakens the controllable mechanism term of
-Theorem~\ref{thm:per-client} without affecting the prior-coupling
-term, since the structural and organisational channels depend on
-$(\mathcal{G}, \omega)$ rather than on $\Theta$. \Fulcrum's
-per-client noise allocation is performed before aggregation and is
-therefore fully compatible with secure aggregation, with the two
-mechanisms addressing different threat axes. A full empirical
-evaluation of the combined defense is left to future work.
+The allocation is worth applying only when regions differ in effective size, and
+$\delta$ quantifies this before deployment. Flat federations gain nothing.
 
-Several limitations bound the scope of the claims. First, the bound
-of Theorem~\ref{thm:per-client} is conservative: it drops the
-non-negative term $I(p_i; D_{-i} \mid \Theta) \geq 0$ in the
-chain-rule decomposition and uses the Cuff-Yu max-KL
-conversion~\cite{cuff2016mi}, which is loose at extreme noise
-levels. Under the Poisson subsampling applied by
-Opacus~\cite{yousefpour2021opacus}, amplified
-RDP~\cite{wang2019subsampled} would tighten the per-round
-contribution from $1/(2\sigma_i^2|B|^2)$ to
-$1/(2\sigma_i^2|\mathcal{D}_i|^2)$, a substantial improvement when
-$|\mathcal{D}_i| \gg |B|$. Second, the optimality guarantee of
-Theorem~\ref{thm:allocation} and the reduction result of
-Corollary~\ref{cor:strict} are stated in terms of the abstract
-leverage scores $\{\ell_i^\circ\}$. In practice, \Fulcrum uses one
-of the three proxies of Section~\ref{sec:defense-proxies} in place
-of $\ell_i^\circ$. The guarantee is preserved in full when the proxy
-upper-bounds the true leverage for every client, since the
-allocation then injects at least as much noise as the true optimum.
-The group-size proxy satisfies this condition asymptotically under
-the stochastic block model prior. The dataset-size proxy is
-ordering-consistent under the Dirichlet-FedAvg generative model,
-which ensures Corollary~\ref{cor:strict} applies, but whether it
-upper-bounds $\ell_i^\circ$ in general is unproven. The degree
-proxy is in the same position. In deployments where a proxy
-underestimates $\ell_i^\circ$ for some client, the per-client bound
-of Theorem~\ref{thm:per-client} for that client is not guaranteed;
-the Pareto dominance results of
-Section~\ref{sec:experiments-pareto} then constitute empirical
-rather than theoretical evidence of improvement. Third, the
-observation model of Section~\ref{sec:adv-model} assumes global
-per-client visibility. For decentralised topologies this corresponds
-to a global passive eavesdropper, and the resulting guarantee, while
-valid, is conservative for adversaries restricted to a local view; a
-tighter bound tailored to the restricted view of gossip participants
-is left to future work. Fourth, the analysis assumes static
-topologies and disjoint client datasets. Dynamic reconfiguration and
-cross-device deployments where the same individual contributes to
-multiple clients both require strengthened conditions outside the
-current framework. The threat model is also restricted to a passive,
-honest-but-curious adversary; active adversaries, malicious
-aggregators, and Sybil attacks are complementary threats for which
-\Fulcrum is compatible with, but not sufficient for, a complete
-defense.
+The analysis assumes disjoint regions, static membership over training, and
+disjoint silo datasets. Overlapping regions, in which a silo contributes to
+several aggregates, would require the observer's view to be modelled jointly
+across regions and is not covered.
 
-% =============================================================================
-% 8. CONCLUSION
-% =============================================================================
-\section{Conclusions and Future Work}
+The bound is an upper bound and is loose in at least two places. The chain rule
+step discards a non-negative term, and the per-round divergence is a worst case
+over adjacent inputs. Tightening either would reduce the noise required at a given
+target, but would not change the allocation, since the allocation depends on the
+relative exposure of regions rather than on the absolute level of the bound.
+
+We assume a passive observer. An active adversary that manipulates the protocol,
+or a malicious aggregator that misreports sums, is outside the model. Because each
+silo adds its own noise before transmitting, the guarantee does not require
+trusting the aggregator to add noise, but it does assume the aggregator reports
+the sum it computed.
+
+\subsection{Relation to trusted-aggregator schemes}
+
+As noted in Section~\ref{sec:related}, a trusted super-node that injects a single
+noise draw on behalf of its region requires per-client noise scaling as $1/m$
+rather than $1/\sqrt{m}$. A deployment able to trust its aggregators can therefore
+reach the same guarantee with less noise. The allocation problem we solve arises
+in both settings, and Theorem~\ref{thm:allocation} applies to either once the
+mechanism term is written accordingly, but the value of $\delta$ in
+Corollary~\ref{cor:delta} is derived for the untrusted case treated here.
+
+\section{Conclusion}
 \label{sec:conclusion}
 
-This paper has shown that the communication topology of a federated
-learning system is an information channel that existing privacy
-mechanisms do not address. We introduced \TADI, a shadow-trained
-channel decomposition with four ablations that isolates
-topology-conditional leakage into parameter, structural, and
-organisational components, and \Fulcrum, a closed-form balanced
-min-max optimal noise allocation derived from a per-client
-mutual-information bound separating a controllable mechanism term
-from an uncontrollable prior-coupling floor. The allocation strictly
-dominates uniform DP-SGD whenever the federation's leverage profile
-is asymmetric, degenerates exactly to uniform DP-SGD when it is
-not, and can therefore be adopted unconditionally. Across three
-benchmarks and six topology families, \Fulcrum delivers privacy
-gains of up to 1.967 nats at no measurable utility cost. The \TADI
-channel decomposition confirms the additive structure of the bound:
-the parameter channel is bounded by DP-SGD across all settings, the
-prior-coupling channel is empirically attained under matched-prior
-conditions, and the bound is conservative in a deployment-favourable
-direction on real cross-silo deployments.
+In hierarchical federated learning a participant is concealed by the region it is
+aggregated with, and regions in real deployments differ substantially in effective
+size. Uniform noise must be calibrated for the most exposed region and therefore
+over-provisions the rest. We derived a per-client information bound whose
+adjacency matches the property being protected, solved the resulting allocation
+problem in closed form, and showed that the saving relative to uniform allocation
+is exactly $\delta = 1 - \langle \rho \rangle_V / \rho_{\max}$, a quantity
+computable from the deployment before training and zero precisely when regions are
+equally sized. Experiments on two modalities confirmed the prediction at
+$\varepsilon = 0.99$, including two controls for which the theory predicts no
+gain and which delivered none.
 
-Extending the framework to dynamic topologies, evaluating the
-combined defense under secure aggregation, and integrating structural
-leverage with per-user privacy preferences are natural next steps
-toward a complete treatment of topology-conditional privacy in
-federated learning.
+Two directions follow naturally. An allocation combining structural exposure with
+declared per-participant preferences would unify this work with personalised
+differential privacy. Extending the analysis to overlapping regions would cover
+deployments in which a silo contributes to more than one aggregate, which the
+present treatment excludes.
 
 \section*{Data and Code Availability}
-\noindent \Fulcrum and \TADI software source code is available at
+
+Source code and the analysis artefacts underlying every table are available at
 \url{https://doi.org/10.5281/zenodo.20507155}.
 
-% =============================================================================
-% ACKNOWLEDGMENTS
-% =============================================================================
-% \section*{Acknowledgments}
-% \noindent This work is supported by the Australian Research Council
-% (ARC) through Discovery Project grant DP240102088.
+\begin{thebibliography}{99}
+\bibitem{abadi2016dpsgd} M. Abadi \textit{et al.}, ``Deep learning with differential privacy,'' in \textit{ACM CCS}, 2016, pp. 308--318.
+\bibitem{mcmahan2018dprnn} H. B. McMahan, D. Ramage \textit{et al.}, ``Learning differentially private recurrent language models,'' in \textit{ICLR}, 2018.
+\bibitem{mironov2017rdp} I. Mironov, ``R\'enyi differential privacy,'' in \textit{IEEE CSF}, 2017, pp. 263--275.
+\bibitem{jorgensen2015personalized} Z. Jorgensen, T. Yu, and G. Cormode, ``Conservative or liberal? Personalized differential privacy,'' in \textit{IEEE ICDE}, 2015, pp. 1023--1034.
+\bibitem{chandrasekaran2022hfl} V. Chandrasekaran, S. Banerjee, D. Perino, and N. Kourtellis, ``Hierarchical federated learning with privacy,'' \textit{arXiv:2206.05209}, 2022.
+\bibitem{guo2025fedcdp} P. Guo, C. Bai, M. Zhang, and P. O. Dusadeerungsikul, ``Clustered federated learning with heterogeneous differential privacy on non-IID data,'' \textit{Computer Communications}, vol. 244, p. 108339, 2025.
+\bibitem{yin2026hdpfedcd} C. Yin, K. He, and J. Shi, ``HDP-FedCD: Data-quality-driven hierarchical federated learning for optimizing privacy protection in non-IID data,'' \textit{Future Generation Computer Systems}, vol. 176, p. 108140, 2026.
+\bibitem{bonawitz2017secagg} K. Bonawitz \textit{et al.}, ``Practical secure aggregation for privacy-preserving machine learning,'' in \textit{ACM CCS}, 2017, pp. 1175--1191.
+\bibitem{cyffers2022amplification} E. Cyffers and A. Bellet, ``Privacy amplification by decentralization,'' in \textit{AISTATS}, 2022, pp. 5334--5353.
+\bibitem{cyffers2022muffliato} E. Cyffers, M. Even, A. Bellet, and L. Massouli\'e, ``Muffliato: Peer-to-peer privacy amplification for decentralized optimization and averaging,'' in \textit{NeurIPS}, 2022.
+\bibitem{krizhevsky2009cifar} A. Krizhevsky, ``Learning multiple layers of features from tiny images,'' Tech. Rep., 2009.
+\bibitem{zhang2015agnews} X. Zhang, J. Zhao, and Y. LeCun, ``Character-level convolutional networks for text classification,'' in \textit{NeurIPS}, 2015.
+\end{thebibliography}
 
-% =============================================================================
-% BIBLIOGRAPHY
-% =============================================================================
-\bibliographystyle{IEEEtran}
-\bibliography{references}
+\appendices
 
-\appendix
+\section{Proof of Theorem~\ref{thm:bound}}
+\label{app:bound}
 
-% =============================================================================
-\section{Proof of Theorem~V.2}
-\label{app:thm1}
-% =============================================================================
+We first record two standard facts.
 
-\subsection{Statement}
-
-\begin{theoremstar}[V.2 \textnormal{---} Per-client conditional
-MI bound]
-Under (IA1) and (IA2) from the main paper, for any deterministic
-adversary strategy $f$, any prior $\mathbb{P} \in
-\FAM_{\TOPO,\omega}$, and any client $i$:
-\begin{equation}
-I_{\mathbb{P}}\!\left(p_i;\,\hat{p}_i \;\middle|\;
-\TOPO,\,\omega,\,\{\sigma_j\}\right)
-\;\leq\;
-\underbrace{\frac{\Tmax}{2\sigma_i^2\,|B|^2}}_{\text{controllable}}
-\;+\;
-\underbrace{\ell_i^\circ}_{\text{uncontrollable}}.
-\label{eq:thm1-supp}
-\end{equation}
-\end{theoremstar}
-
-\subsection{Proof Structure}
-
-\noindent The proof decomposes into four lemmas, assembled in
-Section~\ref{sec:assembly1}.
-
-\begin{itemize}
-\item Lemmas~\ref{lem:chain} and~\ref{lem:lateral} isolate the
-      \emph{uncontrollable} lateral-leakage term via a chain-rule
-      inequality and the definition of structural leverage.
-\item Lemmas~\ref{lem:perround} and~\ref{lem:composition} bound
-      the \emph{controllable} mechanism term using the Gaussian
-      noise structure of DP-SGD.\medskip
-\end{itemize}
-
-\noindent Three standard tools are used throughout: the chain rule of
-mutual information and the data processing inequality;
-Mironov's RDP composition for the Gaussian
-mechanism~\cite{mironov2017rdp}; and the Cuff-Yu max-KL to
-MI-DP conversion~\cite{cuff2016mi}.
-
-\subsection{Lemmas}
-
-\begin{lemma}[Chain-rule decomposition]
+\begin{lemma}[Chain rule bound]
 \label{lem:chain}
-For any random variables $X$, $Y$, $Z$:
-\[
-I(X;\,Y) \;\leq\; I(X;\,Z) \;+\; I(X;\,Y \mid Z).
-\]
+For random variables $X, Y, Z$, $I(X;Y) \le I(X;Z) + I(X;Y \mid Z)$.
 \end{lemma}
-
 \begin{proof}
-By the MI conditioning identity:
-\[
-I(X;Y) \;=\; I(X;Z) \;+\; I(X;Y \mid Z) \;-\; I(X;Z \mid Y).
-\]
-The result follows since $I(X;Z \mid Y) \geq 0$.
+Expanding $I(X;Y,Z)$ in two ways gives
+$I(X;Z) + I(X;Y \mid Z) = I(X;Y) + I(X;Z \mid Y)$,
+and $I(X;Z \mid Y) \ge 0$.
 \end{proof}
 
-\begin{lemma}[Per-round Gaussian-mechanism KL bound]
-\label{lem:perround}
-Under (IA1) and (IA2), for each round $t$, any $D_{-i}$, and
-any adjacent databases $D_i$, $D_i'$:
+\begin{lemma}[Maximal divergence bound]
+\label{lem:maxkl}
+If a channel $P_{Y \mid X}$ satisfies
+$\KL(P_{Y \mid x} \,\|\, P_{Y \mid x'}) \le \kappa$ for all $x, x'$, then
+$I(X;Y) \le \kappa$.
+\end{lemma}
+\begin{proof}
+$I(X;Y) = \mathbb{E}_X \KL(P_{Y \mid X} \| P_Y)$ with
+$P_Y = \mathbb{E}_{X'} P_{Y \mid X'}$. By convexity of the divergence in its
+second argument, $\KL(P_{Y \mid x} \| P_Y) \le \mathbb{E}_{X'} \KL(P_{Y \mid x} \| P_{Y \mid X'}) \le \kappa$.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:bound}]
+Since $\hat{p}_i$ is a deterministic function of $Y$, the data processing
+inequality gives $I(p_i ; \hat{p}_i) \le I(p_i ; Y)$. Applying
+Lemma~\ref{lem:chain} with $Z = D_{-i}$,
 \begin{equation}
-\KL\!\left(
-\mathbb{P}_{\theta_i^{(t)} \mid D_i,\, \theta^{(t-1)},\, D_{-i}}
-\;\Big\|\;
-\mathbb{P}_{\theta_i^{(t)} \mid D_i',\, \theta^{(t-1)},\,
-D_{-i}}\right)
-\;\leq\;
-\frac{1}{2\sigma_i^2\,|B|^2}.
-\label{eq:kl-bound}
+I(p_i ; Y) \;\le\; I(p_i ; D_{-i}) + I(p_i ; Y \mid D_{-i})
+\;=\; \ell_i + I(p_i ; Y \mid D_{-i}).
 \end{equation}
-Consequently, by the Cuff-Yu conversion~\cite{cuff2016mi}:
-\[
-I\!\left(D_i;\;\theta_i^{(t)} \;\middle|\;
-\theta^{(t-1)},\,D_{-i}\right)
-\;\leq\; \frac{1}{2\sigma_i^2\,|B|^2}.
-\]
-\end{lemma}
+Because $p_i$ is a function of $D_i$, a further application of the data
+processing inequality gives
+$I(p_i ; Y \mid D_{-i}) \le I(D_i ; Y \mid D_{-i})$.
 
-\begin{proof}
-Conditional on $\theta^{(t-1)}$ and $D_{-i}$, the round-$t$
-update (Eq.~(1) of the main paper) applies the Gaussian
-mechanism to the per-sample average of clipped gradients
-of $D_i$.
-
-\medskip
-\noindent\textit{Sensitivity.} Each clipped gradient has norm
-at most $C$, so the sensitivity of the averaged gradient is:
-\[
-\Delta \;=\; \frac{C}{|B|}.
-\]
-
-\noindent\textit{Noise scale.} The per-round noise is
-$\xi_i^{(t)} \sim \mathcal{N}(0, \sigma_i^2 C^2 I)$, giving
-effective noise scale $s = \sigma_i C$ on the averaged gradient,
-where $\sigma_i > 0$ is the dimensionless multiplier of Abadi
-et~al.~\cite{abadi2016dpsgd}.
-
-\medskip
-\noindent\textit{KL bound.} The KL divergence between adjacent
-mechanism outputs is:
-\[
-\frac{\Delta^2}{2s^2}
-\;=\; \frac{(C/|B|)^2}{2(\sigma_i C)^2}
-\;=\; \frac{C^2/|B|^2}{2\sigma_i^2 C^2}
-\;=\; \frac{1}{2\sigma_i^2\,|B|^2},
-\]
-establishing~\eqref{eq:kl-bound}. The Cuff-Yu max-KL
-bound~\cite{cuff2016mi} then implies MI-DP with the same
-parameter, giving the stated MI inequality.
-\end{proof}
-
-\begin{lemma}[Sequential composition]
-\label{lem:composition}
-Under (IA1) and (IA2), sequential composition of the per-round
-bound across all $\Tmax$ rounds gives:
-\begin{align*}
-I\!\left(D_i;\;\Theta_i \;\middle|\; D_{-i}\right)
-&\;\leq\;
-\sum_{t=1}^{\Tmax}
-I\!\left(D_i;\;\theta_i^{(t)} \;\middle|\;
-\theta^{(t-1)},\,D_{-i}\right) \\
-&\;\leq\;
-\frac{\Tmax}{2\sigma_i^2\,|B|^2}.
-\end{align*}
-\end{lemma}
-
-\begin{proof}
-\textit{Step 1: Chain rule.} By the MI chain rule:
-\[
-I(D_i;\Theta_i \mid D_{-i})
-\;=\; \sum_{t=1}^{\Tmax}
-I\!\left(D_i;\;\theta_i^{(t)} \;\middle|\;
-\theta_i^{(<t)},\,D_{-i}\right).
-\]
-
-\noindent\textit{Step 2: Conditioning inequality.}
-For each term, we claim:
-\[
-I\!\left(D_i;\;\theta_i^{(t)} \;\middle|\;
-\theta_i^{(<t)},\,D_{-i}\right)
-\;\leq\;
-I\!\left(D_i;\;\theta_i^{(t)} \;\middle|\;
-\theta^{(t-1)},\,D_{-i}\right).
-\]
-To see this, note that conditional on $D_{-i}$ and
-$\theta_i^{(<t)}$, the global state $\theta^{(t-1)}$ is a
-deterministic function of $\theta_i^{(<t)}$,
-$\Theta_{-i}^{(<t)}$, and the aggregation rule. Since
-$\Theta_{-i}^{(<t)}$ depends only on $D_{-i}$ and noise
-$\{\xi_j^{(<t)}\}_{j \neq i}$, which is independent of $D_i$
-by (IA1) and (IA2), $\theta^{(t-1)}$ is conditionally
-independent of $D_i$ given $(\theta_i^{(<t)}, D_{-i})$.
-The Markov chain
-\[
-D_i \;\longrightarrow\; \theta_i^{(<t)}
-\;\longrightarrow\;
-\bigl(\theta_i^{(<t)},\,\theta^{(t-1)}\bigr)
-\]
-and the data processing inequality therefore imply that
-conditioning additionally on $\theta^{(t-1)}$ cannot increase
-the MI.
-
-\medskip
-\noindent\textit{Step 3: Apply Lemma~\ref{lem:perround}.}
-Each term is bounded by $1/(2\sigma_i^2|B|^2)$. Summing
-over $t = 1, \ldots, \Tmax$ completes the proof.
-\end{proof}
-
-\begin{lemma}[Lateral-leakage bound]
-\label{lem:lateral}
-Under (IA2):
-\[
-I\!\left(p_i;\;D_{-i}\right) \;\leq\; \ell_i^\circ.
-\]
-\end{lemma}
-
-\begin{proof}
-Immediate from Definition~V.1 of the main paper, which defines
-$\ell_i^\circ$ as $\sup_{\mathbb{P} \in \FAM_{\TOPO,\omega}}
-I_{\mathbb{P}}(p_i; D_{-i})$.
-\end{proof}
-
-\subsection{Assembly}
-\label{sec:assembly1}
-
-We now combine the four lemmas. Let $(\cdot)$ denote
-conditioning on $(\TOPO, \omega, \{\sigma_j\})$ throughout;
-these are deployment constants, not random variables.
-
-\medskip
-\noindent\textit{Step 1 (data processing).}
-Since $\hat{p}_i = f(\Theta)$ is a deterministic function of
-the observations:
-\[
-I(p_i;\,\hat{p}_i \mid \cdot)
-\;\leq\; I(p_i;\,\Theta \mid \cdot).
-\]
-
-\noindent\textit{Step 2 (chain rule).}
-Applying Lemma~\ref{lem:chain} with $X = p_i$, $Y = \Theta$,
-$Z = D_{-i}$:
-\[
-I(p_i;\,\Theta \mid \cdot)
-\;\leq\;
-I(p_i;\,D_{-i})
-\;+\; I(p_i;\,\Theta \mid D_{-i}).
-\]
-
-\noindent\textit{Step 3 (lateral term).}
-By Lemma~\ref{lem:lateral}:
-\[
-I(p_i;\,D_{-i}) \;\leq\; \ell_i^\circ.
-\]
-
-\noindent\textit{Step 4 (independence of other clients).}
-Under (IA1), $\Theta_{-i}$ is independent of $D_i$ given
-$D_{-i}$. Therefore:
-\[
-I(p_i;\,\Theta \mid D_{-i})
-\;=\; I(p_i;\,\Theta_i \mid D_{-i}).
-\]
-
-\noindent\textit{Step 5 (data processing on $p_i$).}
-Since $p_i$ is a deterministic function of $D_i$:
-\[
-I(p_i;\,\Theta_i \mid D_{-i})
-\;\leq\; I(D_i;\,\Theta_i \mid D_{-i}).
-\]
-
-\noindent\textit{Step 6 (composition bound).}
-By Lemma~\ref{lem:composition}:
-\[
-I(D_i;\,\Theta_i \mid D_{-i})
-\;\leq\; \frac{\Tmax}{2\sigma_i^2\,|B|^2}.
-\]
-
-\noindent Chaining Steps 1--6 gives:
-\[
-I(p_i;\,\hat{p}_i \mid \cdot)
-\;\leq\;
-\frac{\Tmax}{2\sigma_i^2\,|B|^2}
-\;+\; \ell_i^\circ,
-\]
-which is the statement of Theorem~V.2. \hfill\qed
-
-% =============================================================================
-\section{Proof of Theorem~V.3}
-\label{app:thm2}
-% =============================================================================
-
-\subsection{Statement}
-
-\begin{theoremstar}[V.3 \textnormal{---} Balanced min-max
-allocation]
-For any utility budget $U > 0$, the unique solution to:
+Expanding over rounds by the chain rule,
 \begin{equation}
-\min_{\{\sigma_i^2 > 0\}}\;
-\max_i \left[\, \frac{a}{\sigma_i^2} + \ell_i^\circ \,\right]
-\quad \text{subject to} \quad
-\sum_{i=1}^n \sigma_i^2 \leq U,
-\label{eq:opt-supp}
+I(D_i ; Y \mid D_{-i}) \;=\; \sum_{t=1}^{T} I\big(D_i ; Y^{(t)} \,\big|\, Y^{(<t)}, D_{-i}\big).
 \end{equation}
-where $a := \Tmax/(2|B|^2)$, is:
-\[
-\sigma_i^{*\,2} \;=\; \frac{a}{K^\star - \ell_i^\circ},
-\]
-where $K^\star$ is the unique solution to:
+Fix a round $t$ and condition on $Y^{(<t)}$ and $D_{-i}$. The global model
+$\theta^{(t-1)}$ is a deterministic function of $Y^{(<t)}$ through the aggregation
+rule. Hence for every $j \ne i$ the update $\Delta_j^{(t)}$ is a deterministic
+function of $\theta^{(t-1)}$ and $D_j$, and the noise $\xi_j^{(t)}$ is drawn
+independently. Writing the region sum containing $i$ as
 \begin{equation}
-\sum_{i=1}^n \frac{a}{K^\star - \ell_i^\circ} \;=\; U,
-\qquad K^\star > \max_i\,\ell_i^\circ.
-\label{eq:budget-supp}
+Y_{A(i)}^{(t)} \;=\; w_i \big(\mathrm{clip}(\Delta_i^{(t)}, C) + \xi_i^{(t)}\big) \;+\; R,
 \end{equation}
-The achieved worst-case per-client MI bound is $K^\star$,
-equilibrated uniformly across all clients.
-\end{theoremstar}
+the remainder $R$ is a function of $Y^{(<t)}$, $D_{-i}$ and noise independent of
+$D_i$, and is therefore conditionally independent of $D_i$ given the conditioning
+variables. Region sums not containing $i$ are likewise conditionally independent
+of $D_i$. We note that no claim of unconditional independence between $D_i$ and
+the other silos' updates is made or needed; conditioning on the past is what makes
+the step valid, since across rounds the updates of other silos do depend on $D_i$
+through the shared global model.
 
-\subsection{Proof Structure}
-
-\noindent Problem~\eqref{eq:opt-supp} has a non-smooth $\max$ objective.
-The proof proceeds in three steps.
-
-\begin{enumerate}
-\item \textit{Reformulation.} Introduce a slack variable $K$
-      to convert the $\max$ objective into a linear one, yielding
-      a convex programme.
-\item \textit{Strong duality.} Verify Slater's condition to
-      establish that KKT conditions are necessary and sufficient.
-\item \textit{KKT analysis.} Derive the closed-form solution
-      and establish uniqueness of $K^\star$.
-\end{enumerate}
-
-\subsection{Convex Reformulation}
-
-\noindent Introduce slack variable $K$ to rewrite~\eqref{eq:opt-supp}:
+The conditional channel from $D_i$ to $Y_{A(i)}^{(t)}$ is therefore Gaussian with
+covariance $\big(\sum_{j \in A(i)} w_j^2 \sigma_j^2\big) C^2 I$ and with mean
+shifted by $w_i \,\mathrm{clip}(\Delta_i^{(t)}, C)$. Replacing $D_i$ by any other
+dataset moves the clipped update by at most $2C$ in norm, and hence moves the mean
+by at most $2 w_i C$. The divergence between two such Gaussians is
 \begin{equation}
-\min_{K,\,\{\sigma_i^2 > 0\}} K
-\quad\text{subject to}\quad
-\frac{a}{\sigma_i^2} + \ell_i^\circ \leq K \;\;\forall\, i,
-\quad \sum_{i=1}^n \sigma_i^2 \leq U.
-\label{eq:opt-reform-supp}
+\frac{(2 w_i C)^2}{2 \big(\sum_{j \in A(i)} w_j^2 \sigma_j^2\big) C^2}
+\;=\; \frac{2 w_i^2}{\sum_{j \in A(i)} w_j^2 \sigma_j^2} \;=\; m_i(\sigma),
 \end{equation}
+so Lemma~\ref{lem:maxkl} bounds each round's term by $m_i(\sigma)$. Summing over
+$T$ rounds and adding $\ell_i$ gives the second entry of the minimum. The first
+entry holds because $I(p_i ; \hat{p}_i) \le H(p_i)$ for any $\hat{p}_i$.
 
-\noindent The objective is linear in $K$. The per-client constraints are
-convex since $a/\sigma_i^2$ is convex and strictly decreasing
-on $\sigma_i^2 > 0$. The budget constraint is linear.
-
-\medskip
-\noindent\textit{Slater's condition.} Setting $\sigma_i^2 =
-U/(2n)$ for all $i$ is strictly feasible, with:
-\[
-K \;=\; \frac{2na}{U} + \max_i \ell_i^\circ
-\;>\; \frac{a}{\sigma_i^2} + \ell_i^\circ
-\quad \forall\, i.
-\]
-Strong duality therefore holds, and KKT conditions are
-necessary and sufficient for optimality.
-
-\subsection{KKT Analysis}
-
-\begin{lemma}[KKT optimality]
-\label{lem:kkt}
-The unique solution to \eqref{eq:opt-reform-supp} satisfies:
-\[
-\sigma_i^{*\,2} \;=\; \frac{a}{K^\star - \ell_i^\circ}
-\quad \forall\, i,
-\]
-where $K^\star$ is the unique root of
-$g(K) = \sum_i a/(K - \ell_i^\circ) = U$ on
-$({\max_i \ell_i^\circ},\, \infty)$.
-\end{lemma}
-
-\begin{proof}
-The Lagrangian for \eqref{eq:opt-reform-supp} is:
-\[
-\mathcal{L}
-\;=\; K
-\;+\; \sum_{i=1}^n \mu_i
-      \!\left(\frac{a}{\sigma_i^2} + \ell_i^\circ - K\right)
-\;+\; \lambda\!\left(\sum_{i=1}^n \sigma_i^2 - U\right),
-\]
-with multipliers $\mu_i \geq 0$ and $\lambda \geq 0$.
-
-\medskip
-\noindent\textit{Stationarity in $K$.}
-\[
-\frac{\partial \mathcal{L}}{\partial K}
-\;=\; 1 - \sum_{i=1}^n \mu_i \;=\; 0
-\;\implies\;
-\sum_{i=1}^n \mu_i \;=\; 1.
-\]
-
-\noindent\textit{Stationarity in $\sigma_i^2$.}
-\[
-\frac{\partial \mathcal{L}}{\partial \sigma_i^2}
-\;=\; -\frac{\mu_i a}{\sigma_i^4} + \lambda \;=\; 0
-\;\implies\;
-\sigma_i^{*\,2} \;=\; \sqrt{\frac{\mu_i a}{\lambda}}.
-\]
-
-\noindent\textit{All constraints are active.}
-Suppose the per-client constraint for some $i$ were inactive.
-Then $\mu_i = 0$ by complementary slackness. Stationarity
-in $\sigma_i^2$ then requires $\lambda = 0$. But $\lambda = 0$
-forces $\mu_j = 0$ for all $j$, contradicting $\sum_i \mu_i =
-1$. Therefore all per-client constraints are active at the
-optimum:
-\[
-\frac{a}{\sigma_i^{*\,2}} + \ell_i^\circ \;=\; K^\star
-\quad \forall\, i,
-\]
-which gives the closed form
-$\sigma_i^{*\,2} = a/(K^\star - \ell_i^\circ)$.
-
-\medskip
-\noindent\textit{Uniqueness of $K^\star$.}
-Define $g(K) = \sum_i a/(K - \ell_i^\circ)$ on the domain
-$(K_{\min}, \infty)$ where $K_{\min} = \max_i \ell_i^\circ$.
-Then:
-\begin{itemize}
-\item $g$ is continuous and strictly decreasing on
-      $(K_{\min}, \infty)$,
-\item $g(K) \to +\infty$ as $K \downarrow K_{\min}$,
-\item $g(K) \to 0$ as $K \to +\infty$.
-\end{itemize}
-By the intermediate value theorem, for any $U > 0$ there exists
-a unique $K^\star \in (K_{\min}, \infty)$ with
-$g(K^\star) = U$.
+Both the left-hand side and the divergence computation refer to replacement of the
+entire dataset $D_i$, so the adjacency notion is the same throughout and no group
+privacy argument is required.
 \end{proof}
 
-\subsection{Strict Improvement over Uniform Allocation}
+\section{Proof of Theorem~\ref{thm:allocation}}
+\label{app:alloc}
 
-\begin{corollarystar}[V.4 \textnormal{---} Strict improvement
-over uniform allocation]
-Let $K_{\mathrm{uniform}} = an/U + \max_i \ell_i^\circ$ denote
-the worst-case MI bound under uniform allocation
-$\sigma_i^2 = U/n$. Then:
-\[
-K^\star \;\leq\; K_{\mathrm{uniform}},
-\]
-with equality if and only if all $\ell_i^\circ$ are equal.
-\end{corollarystar}
+Introduce a slack variable $K$ and rewrite \eqref{eq:opt} as
+\begin{equation}
+\min_{K, \{S_r > 0\}} K
+\quad \text{s.t.} \quad
+\frac{a W_r}{S_r} + \ell_r \le K \;\; \forall r,
+\qquad \sum_r S_r \le U .
+\label{eq:convex}
+\end{equation}
+The objective is linear and each constraint is convex, since $S \mapsto aW_r/S$ is
+convex and decreasing on $S > 0$. Setting $S_r = U / (2 |\mathcal{R}|)$ for all
+$r$, where $|\mathcal{R}|$ is the number of regions, is strictly feasible for $K$
+large enough, so Slater's condition holds and the Karush-Kuhn-Tucker conditions
+are necessary and sufficient.
 
-\begin{proof}
-Uniform allocation $\sigma_i^2 = U/n$ for all $i$ is feasible
-for \eqref{eq:opt-reform-supp} and achieves objective value
-$K_{\mathrm{uniform}}$. Since $K^\star$ is the minimum of
-\eqref{eq:opt-reform-supp}, we have $K^\star \leq
-K_{\mathrm{uniform}}$. Equality holds if and only if uniform allocation satisfies the
-KKT conditions of Lemma~\ref{lem:kkt}, which requires:
-\[
-\frac{a}{U/n} + \ell_i^\circ \;\equiv\; K^\star
-\quad \forall\, i.
-\]
-This holds if and only if all $\ell_i^\circ$ are equal.
-\end{proof}
+The Lagrangian is
+\begin{equation}
+\mathcal{L} = K + \sum_r \mu_r \left( \frac{a W_r}{S_r} + \ell_r - K \right)
++ \lambda \left( \sum_r S_r - U \right),
+\end{equation}
+with $\mu_r \ge 0$ and $\lambda \ge 0$. Stationarity in $K$ gives
+$\sum_r \mu_r = 1$. Stationarity in $S_r$ gives
+$-\mu_r a W_r / S_r^2 + \lambda = 0$, hence
+$S_r = \sqrt{\mu_r a W_r / \lambda}$.
 
-\subsection{Edge Cases and Computational Note}
+Every per-region constraint is active at the optimum. Suppose otherwise for some
+$r$; complementary slackness then forces $\mu_r = 0$, and stationarity in $S_r$
+forces $\lambda = 0$, which in turn forces $\mu_{r'} = 0$ for all $r'$ and
+contradicts $\sum_r \mu_r = 1$. Activity of every constraint gives
+$a W_r / S_r + \ell_r = K^{\star}$ for all $r$, which rearranges to
+\eqref{eq:alloc}.
 
-\noindent\textit{Small utility budget.} The KKT solution
-requires $K^\star > \max_i \ell_i^\circ$, which holds for all
-$U > 0$ by Lemma~\ref{lem:kkt}. However, when $U$ is very
-small, the solution concentrates the budget on high-leverage
-clients ($\sigma_i^2 \to 0$ for low-leverage clients), falling
-below the practically deployable range for DP-SGD. This regime
-is not analysed further.
+For uniqueness, define $g(K) = \sum_r a W_r / (K - \ell_r)$ on
+$(\max_r \ell_r, \infty)$. It is continuous and strictly decreasing there, tends
+to $+\infty$ as $K$ approaches the left endpoint, and tends to $0$ as
+$K \to \infty$. By the intermediate value theorem there is exactly one
+$K^{\star}$ with $g(K^{\star}) = U$.
 
-\medskip
-\noindent\textit{Computation.} Solving $g(K^\star) = U$ via
-one-dimensional bisection on $K$ requires
-$O(n \log(1/\varepsilon))$ operations for tolerance
-$\varepsilon$, which is negligible for $n \leq 500$.
+\section{Proof of Corollary~\ref{cor:delta}}
+\label{app:delta}
+
+Assume $\ell_r = \ell$ for all $r$ and write $c = a / (K - \ell)$ for a target
+$K > \ell$. By \eqref{eq:alloc} the optimal allocation requires
+$U_{\mathrm{opt}} = c \sum_r W_r$.
+
+Uniform allocation uses a single scale $\sigma$, giving $S_r = \sigma^2 V_r$. The
+constraint for region $r$ reads $a W_r / (\sigma^2 V_r) + \ell \le K$, that is
+$\sigma^2 \ge c \, W_r / V_r = c \rho_r$. Meeting every region therefore requires
+$\sigma^2 = c \, \rho_{\max}$, and the resulting budget is
+$U_{\mathrm{uni}} = c \, \rho_{\max} \sum_r V_r$.
+
+Using $W_r = \rho_r V_r$,
+\begin{equation}
+\frac{U_{\mathrm{opt}}}{U_{\mathrm{uni}}}
+= \frac{\sum_r \rho_r V_r}{\rho_{\max} \sum_r V_r}
+= \frac{\langle \rho \rangle_V}{\rho_{\max}},
+\end{equation}
+and $\delta = 1 - U_{\mathrm{opt}} / U_{\mathrm{uni}}$ gives \eqref{eq:delta}.
+Since $\rho_r \le \rho_{\max}$ for every $r$, the ratio is at most one and
+$\delta \ge 0$, with equality if and only if $\rho_r$ is constant across regions.
 
 \end{document}
