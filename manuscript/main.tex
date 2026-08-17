@@ -919,20 +919,25 @@ to meet the same target $K$ and evaluate them alongside the allocation.
 
 One identity governs the comparison. When all silos carry equal aggregation
 weight, $\rho_r = W_r/V_r = 1/m_r$ exactly, so \eqref{eq:alloc} reduces to
-$\sigma_i \propto 1/\sqrt{m_r}$ and the second heuristic \emph{is} the optimum.
-Table~\ref{tab:baselines} confirms this in training: the two agree to four decimal
-places on every profile, at $+4.25$ and $+14.97$ points. In a federation of
-equally sized silos the optimisation contributes nothing the heuristic does not
-already capture, and a practitioner should use the heuristic.
+$\sigma_i \propto 1/\sqrt{m_r}$. The second heuristic is therefore not a rival to
+the allocation but its equal-weight special case, and the upper half of
+Table~\ref{tab:baselines} shows the two agreeing to four decimal places, at
+$+4.25$ and $+14.97$ points. Equality of weights is a knife-edge condition, and
+the identity fails as soon as silo sizes differ at all.
 
-Silo sizes in real federations are not equal, and the identity fails as soon as
-they differ. The lower half of Table~\ref{tab:baselines} draws silo sizes
-log-normally, giving roughly an order of magnitude between largest and smallest.
-The two balanced profiles isolate the effect: their regions are equally sized, so
-a size-based rule is by construction indistinguishable from uniform and returns
-exactly zero, while the allocation gains between $1.18$ and $3.08$ points by
-responding to weight concentration that region size does not express. On the
-severe profile the allocation roughly doubles the heuristic on both tasks.
+They differ in every federation we are aware of. The lower half of
+Table~\ref{tab:baselines} draws silo sizes log-normally, giving roughly an order
+of magnitude between largest and smallest. The two balanced profiles isolate what
+the allocation adds: their regions are equally sized, so a size-based rule is by
+construction indistinguishable from uniform and returns exactly zero, while the
+allocation gains between $1.18$ and $3.08$ points by responding to weight
+concentration that region size cannot express. On the severe profile it roughly
+doubles the heuristic on both tasks. Across every profile and both modalities the
+allocation is at least as accurate as the heuristic and strictly more accurate
+wherever silo sizes vary, which is what \eqref{eq:alloc} being the optimum of
+\eqref{eq:opt} requires. No regime therefore favours the heuristic: it costs the
+same to compute and forfeits the gain precisely when the federation is
+heterogeneous.
 
 The naive $1/m$ port behaves worse than uniform in most heterogeneous
 configurations, reaching $-8.08$ points. This is the practical consequence of the
