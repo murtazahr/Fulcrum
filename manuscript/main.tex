@@ -24,8 +24,6 @@
 \usepackage{xcolor}
 \usepackage{orcidlink}
 \usepackage{xspace}
-\usepackage{tikz}
-\usetikzlibrary{calc,positioning,fit,backgrounds}
 
 % --- Theorem environments ---
 \newtheorem{theorem}{Theorem}[section]
@@ -370,44 +368,16 @@ $\delta$            & exposure dispersion, the achievable saving \\
 
 \begin{figure}[t]
 \centering
-\begin{tikzpicture}[
-  x=7.6mm, y=7.6mm,
-  silo/.style={draw,rounded corners=0.8pt,minimum width=4.4mm,minimum height=3.4mm,
-               fill=blue!8,line width=0.35pt,inner sep=0pt},
-  agg/.style={draw,rounded corners=1.5pt,minimum width=13mm,minimum height=4.6mm,
-              fill=blue!22,line width=0.45pt,inner sep=1pt,font=\scriptsize},
-  cloud/.style={draw,rounded corners=2pt,minimum width=26mm,minimum height=5mm,
-                fill=gray!16,line width=0.45pt,inner sep=1pt,font=\scriptsize},
-  lnk/.style={-,line width=0.35pt,gray!65},
-  lab/.style={font=\scriptsize,inner sep=1pt}
-]
-\node[cloud] (C) at (0,2.35) {central aggregator};
-\node[agg] (R1) at (-1.85,1.15) {region $r_1$};
-\node[agg] (R2) at (0.10,1.15)  {region $r_2$};
-\node[agg] (R3) at (1.85,1.15)  {region $r_3$};
-\draw[lnk] (R1) -- (C); \draw[lnk] (R2) -- (C); \draw[lnk] (R3) -- (C);
-\foreach \x/\n in {-2.35/a,-1.85/b,-1.35/c} \node[silo] (\n) at (\x,0.05) {};
-\foreach \n in {a,b,c} \draw[lnk] (\n) -- (R1);
-\foreach \x/\n in {-0.15/d,0.35/e} \node[silo] (\n) at (\x,0.05) {};
-\foreach \n in {d,e} \draw[lnk] (\n) -- (R2);
-\node[silo] (f) at (1.85,0.05) {};
-\draw[lnk] (f) -- (R3);
-\node[lab] at (-1.85,-0.62) {$\rho_{r_1}=\tfrac{1}{3}$};
-\node[lab] at (0.10,-0.62)  {$\rho_{r_2}=\tfrac{1}{2}$};
-\node[lab] at (1.85,-0.62)  {$\rho_{r_3}=1$};
-\node[lab,gray!75,font=\scriptsize] at (0,-1.25) {most concealment $\longleftrightarrow$ least};
-\begin{scope}[on background layer]
-  \node[draw=gray!45,dashed,rounded corners=1.5pt,inner sep=2pt,fit=(a)(c)(R1)] {};
-  \node[draw=gray!45,dashed,rounded corners=1.5pt,inner sep=2pt,fit=(d)(e)(R2)] {};
-  \node[draw=gray!45,dashed,rounded corners=1.5pt,inner sep=2pt,fit=(f)(R3)] {};
-\end{scope}
-\end{tikzpicture}
-\caption{Hierarchical federated learning with unequal regions. Each silo clips and
-perturbs its own update before transmission, and the observer sees only the
-per-region sums. Concealment grows with the effective size of a silo's region,
-measured by the exposure ratio $\rho_r$. A single shared noise multiplier must
-satisfy region $r_3$, the most exposed, and therefore leaves $r_1$ and $r_2$
-carrying surplus noise.}
+\includegraphics[width=0.94\columnwidth]{figures/fig_architecture.png}
+\caption{Hierarchical federated learning with unequal regions. Silos report to a
+regional aggregator, which forwards only the combined update to the global
+aggregator, so an observer above the regional tier sees no silo in isolation. Each
+silo clips and perturbs its own update before transmission, which places the
+guarantee under an untrusted aggregator. Concealment grows with the effective size
+of a silo's region, measured by the exposure ratio $\rho_r$: region $r_1$ pools
+three silos and conceals most, whereas $r_3$ holds a single silo and conceals
+least. A shared noise multiplier must satisfy $r_3$, and therefore leaves $r_1$
+and $r_2$ carrying surplus noise.}
 \label{fig:arch}
 \end{figure}
 
