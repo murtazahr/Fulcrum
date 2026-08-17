@@ -62,7 +62,7 @@ governs how much concealment the region itself provides, and regions in
 operational deployments vary widely in size. Prevailing practice applies a single
 noise multiplier to every participant, calibrated for the most exposed region,
 so every other participant carries more noise than its own exposure requires.
-We show that the resulting allocation problem admits a closed-form solution.
+We show that the resulting allocation problem admits an explicit solution.
 Deriving a per-client bound on the mutual information between a participant's
 local class distribution and any estimate an observer forms of it, we take care
 that the adjacency notion used by the mechanism matches the quantity being
@@ -169,7 +169,7 @@ point.
 
 Second, we pose the allocation problem, minimising the worst-case value of that
 bound across participants subject to a fixed budget on noise entering the global
-model, and give its closed-form solution (Theorem~\ref{thm:allocation}). We
+model, and give its explicit solution (Theorem~\ref{thm:allocation}). We
 establish that the solution is min-max optimal and that it equalises the bound
 across regions. We also identify the correct utility budget, which under weighted
 averaging is the weighted sum $\sum_i w_i^2 \sigma_i^2$.
@@ -255,7 +255,7 @@ that intermediate aggregation confers additional
 protection at the central aggregator. We take the existence of this effect as
 our point of departure rather than as a contribution: our addition is the
 optimisation. We establish that selecting the per-region noise levels is a
-constrained min-max problem with a closed-form solution, and we characterise
+constrained min-max problem with an explicit solution, and we characterise
 exactly how much is gained relative to uniform allocation.
 
 The two settings differ in where noise originates, and the difference is
@@ -629,7 +629,10 @@ converts \eqref{eq:opt} into a convex program with linear objective. Slater's
 condition holds, so the Karush-Kuhn-Tucker conditions are necessary and
 sufficient, and they yield \eqref{eq:alloc} directly. Uniqueness of $K^{\star}$
 follows because $g$ is continuous and strictly decreasing on the relevant
-interval, diverges at its left endpoint, and vanishes at infinity.
+interval, diverges at its left endpoint, and vanishes at infinity. The per-region
+allocation \eqref{eq:alloc} is explicit given $K^{\star}$, and $K^{\star}$ itself is
+the root of a scalar equation rather than an expression in the inputs, except when
+the floors coincide, where it reduces to $\ell + a\sum_r W_r / U$.
 Appendix~\ref{app:alloc} gives the argument in full. Computing $K^\star$ by
 bisection to tolerance $\epsilon$ costs $O(|\Reg| \log(1/\epsilon))$ operations
 and is performed once, before training begins.
