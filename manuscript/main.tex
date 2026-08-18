@@ -87,11 +87,13 @@ noise multiplier to every participant, calibrated for the most exposed region,
 so every other participant carries more noise than its own exposure requires.
 We show that the resulting allocation problem admits an explicit solution.
 Deriving a per-client bound on the mutual information between a participant's
-local class distribution and any estimate an observer forms of it, we take care
-that the adjacency notion used by the mechanism matches the quantity being
-protected, then solve for the allocation that minimises the worst-case value of
-this bound under a fixed utility budget, show that it is min-max optimal, and call
-the resulting mechanism \Fulcrum. The
+local class distribution and any estimate formed by an observer positioned above
+the regional tier, taking care that the adjacency used by the mechanism matches the
+quantity being protected, then solve for the allocation that minimises the
+worst-case value of this bound under a fixed utility budget, show that it is
+min-max optimal, and call the resulting mechanism \Fulcrum. The allocation
+redistributes budget that uniform noise spends on over-protecting well concealed
+silos, rather than creating new amplification. The
 improvement over uniform allocation is exactly $\delta = 1 - \langle \rho
 \rangle_V / \rho_{\max}$, where $\rho_r$ is the inverse participation ratio of
 region $r$. Because this quantity depends solely on the deployment's
@@ -534,9 +536,92 @@ dataset rather than of any individual record.
 \section{Privacy Analysis}
 \label{sec:theory}
 
-The observer just described has two sources of information about $p_i$: what
-neighbouring silos already reveal about it, and what the mechanism itself
-leaks. We bound each in turn, beginning with the former.
+This section establishes two results about the mechanism of
+Section~\ref{sec:model}, and it is worth separating them at the outset because
+they answer different questions and rest on different assumptions.
+
+The first is a differential privacy guarantee. It concerns the participation of a
+silo as such, holds for every dataset and every prior, and is what a deployment
+reports as its $(\varepsilon, \delta_{\mathrm{DP}})$ budget. The second bounds how
+much an observer learns about one designated quantity, the sensitive-class
+concentration $p_i$, and is stated relative to a declared generative model,
+because part of that quantity is fixed by the other silos before the mechanism
+acts at all. The allocation of Section~\ref{sec:allocation} minimises the second;
+the first is computed from the resulting noise scales and reported alongside.
+Neither is derived from the other.
+
+\subsection{Adjacency and the two observers}
+
+Both results use \emph{silo-level} adjacency: two deployments are adjacent when one
+silo's dataset $D_i$ is replaced in its entirety. This is the granularity at which
+the protected quantity lives, since $p_i$ is a property of $D_i$ as a whole and is
+not controlled by a guarantee over individual records. Because each transmitted
+update is clipped to $\|\Delta\| \le C$ before perturbation, replacing $D_i$ moves
+that update by at most $2C$, however different the two datasets are.
+
+Who observes matters as much as what is protected, and the mechanism admits two
+positions. An observer \emph{above} the regional tier sees the sums $Y_r^{(t)}$ and
+never an individual update. Silo $i$'s contribution enters $Y_{A(i)}^{(t)}$ scaled
+by $w_i$ and is masked by the noise of every silo in the region, so its effective
+noise multiplier is
+\begin{equation}
+\sigma^{\mathrm{ab}}_i \;=\; \frac{\sqrt{S_r}}{w_i},
+\qquad S_r \;=\; \sum_{j \in r} w_j^2 \sigma_j^2 .
+\label{eq:sigmaeff}
+\end{equation}
+An observer \emph{within} the region, of which the regional aggregator is the
+natural instance, sees $\tilde{\Delta}_i^{(t)}$ directly; no pooling applies and
+the effective multiplier is $\sigma_i$. We carry both through the analysis rather
+than only the first, because the allocation moves them in opposite directions and
+reporting one alone would misstate what is gained.
+
+\subsection{Differential privacy of the mechanism}
+
+\begin{theorem}[Silo-level differential privacy]
+\label{thm:dp}
+Fix $\delta_{\mathrm{DP}} \in (0,1)$ and let $\sigma^{\ast}_i$ be the effective
+multiplier for the observer under consideration, namely $\sigma^{\mathrm{ab}}_i$
+of \eqref{eq:sigmaeff} above the regional tier and $\sigma_i$ within the region.
+Over $T$ rounds the mechanism satisfies $(\varepsilon_i,
+\delta_{\mathrm{DP}})$-differential privacy at silo-level adjacency against that
+observer, with
+\begin{equation}
+\varepsilon_i \;=\; \inf_{\alpha > 1}
+\left[\, \frac{2 T \alpha}{(\sigma^{\ast}_i)^2}
+\;+\; \log\!\Big(\tfrac{\alpha - 1}{\alpha}\Big)
+\;-\; \frac{\log \delta_{\mathrm{DP}} + \log \alpha}{\alpha - 1} \,\right].
+\label{eq:dpeps}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+One release perturbs a quantity of $\ell_2$ sensitivity $2C$ with Gaussian noise of
+scale $\sigma^{\ast}_i C$. The Gaussian mechanism with sensitivity $\Delta$ and
+scale $s$ satisfies $(\alpha, \alpha \Delta^2 / 2s^2)$-R\'enyi differential privacy
+\cite{mironov2017rdp}, which here is $\alpha (2C)^2 / (2 (\sigma^{\ast}_i C)^2) =
+2\alpha/(\sigma^{\ast}_i)^2$ per round. R\'enyi differential privacy composes
+additively over the $T$ rounds, giving $2 T \alpha/(\sigma^{\ast}_i)^2$, and
+\eqref{eq:dpeps} is the tightened R\'enyi-to-$(\varepsilon,
+\delta_{\mathrm{DP}})$ conversion of Canonne et al.\ \cite{canonne2020discrete},
+optimised over the order $\alpha$.
+\end{proof}
+
+Three points of scope. The guarantee is distribution-free: no property of the data
+and no prior enters \eqref{eq:dpeps}. It counts $T$ releases rather than $T$ times
+the number of local optimisation steps, because a silo transmits one clipped and
+perturbed update per round however much local computation produced it. And it
+claims no subsampling amplification, since every silo participates in every round.
+Values of $\varepsilon$ reported in Section~\ref{sec:eval} come from
+\eqref{eq:dpeps} by one-dimensional search over $\alpha$ at $\delta_{\mathrm{DP}} =
+10^{-5}$.
+
+\subsection{Leakage about the sensitive-class concentration}
+
+Theorem~\ref{thm:dp} bounds what participation reveals, which is the standard
+currency of a privacy budget, but it does not answer the question the threat model
+poses. An observer interested in $p_i$ has two sources for it: what neighbouring
+silos already reveal, and what the mechanism itself leaks. We bound each in turn,
+beginning with the former.
 
 \subsection{The lateral floor}
 
@@ -577,10 +662,12 @@ remains well below the entropy of the target.}
 \label{fig:leverage}
 \end{figure}
 
-\subsection{The per-client bound}
+\subsection{The information bound}
 
-With the lateral floor characterised, we can state the full bound on what an
-observer learns, combining that floor with what the mechanism itself controls.
+With the lateral floor characterised, the second result follows. Where
+Theorem~\ref{thm:dp} bounds what participation reveals, for any data and any
+prior, the bound below concerns the designated quantity $p_i$ under the stated
+prior, and it is the objective the allocation minimises.
 
 \begin{theorem}[Per-client information bound]
 \label{thm:bound}
