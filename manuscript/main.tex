@@ -104,7 +104,7 @@ across operational structures, $\delta$ ranges from $14\%$ for clinical sites
 grouped by hospital to $88\%$ for consortia organised by country, and is zero
 wherever regions are equally sized. Experiments on
 image and text classification confirm the prediction at $\varepsilon = 0.99$:
-accuracy at a matched worst-case per-client guarantee improves by up to $14.97$ percentage
+accuracy at a matched worst-case per-client guarantee improves by up to $14.84$ percentage
 points where $\delta$ is large, matches the uniform baseline exactly in a
 balanced control deployment for which the theory predicts parity, and falls
 below it for a control that preserves the noise dispersion while assigning it
@@ -1101,8 +1101,8 @@ equally sized silos and Figure~\ref{fig:gainlog} for log-normal ones.
 Budget savings match $\delta$ to three decimal places in every configuration,
 confirming the first prediction and Corollary~\ref{cor:delta}.
 
-Matching budgets is a necessary check on the theory, but what those budgets buy in accuracy is the second and more consequential prediction. The accuracy gain increases with $\delta$, reaching $14.97 \pm 2.51$ points on
-images and $13.25 \pm 1.72$ points on text in the most heterogeneous deployment,
+Matching budgets is a necessary check on the theory, but what those budgets buy in accuracy is the second and more consequential prediction. The accuracy gain increases with $\delta$, reaching $14.84 \pm 2.68$ points on
+images and $12.16 \pm 2.00$ points on text in the most heterogeneous deployment,
 quoted as means over ten seeds with the standard error of the paired difference,
 which confirms the second prediction. In the balanced deployment the gain equals zero to the
 precision of the measurement on both tasks. This is the outcome the theory
@@ -1112,13 +1112,13 @@ produce exactly zero here.
 
 The third prediction is likewise confirmed. Given the same dispersion of noise
 but assigned to the wrong regions, and rescaled to meet the same target, the
-misallocation control performs below uniform allocation, by three to four points
-in the mild configuration and by eight to nine points in the severe one. Non-uniformity alone is therefore
+misallocation control performs below uniform allocation, by roughly three points
+in the mild configuration and by eight to ten points in the severe one. Non-uniformity alone is therefore
 insufficient, and the gain depends on allocating according to the exposure
 profile.
 
-Beyond confirming the three predictions, the results show a further regularity across tasks. Agreement between the two modalities is close, at $4.25$ against $3.88$ points in
-the mild configuration and $14.97$ against $13.25$ points in the severe one. We had anticipated that the magnitudes would
+Beyond confirming the three predictions, the results show a further regularity across tasks. Agreement between the two modalities is close, at $4.25$ against $3.80$ points in
+the mild configuration and $14.84$ against $12.16$ points in the severe one. We had anticipated that the magnitudes would
 differ, since the gain depends on the local slope of accuracy against noise, which
 is a property of the task. The close agreement is most plausibly a consequence of
 having matched the head dimension and privacy target across the two tasks, and we
@@ -1153,7 +1153,7 @@ the spread. Error bars as in Figure~\ref{fig:gain}.}
 \end{figure}
 
 \begin{table}[t]
-\caption{Accuracy at a matched worst-case per-client guarantee ($\varepsilon = 0.99$, $n = 96$, $T = 10$, ten seeds). Gains are percentage points relative to uniform allocation, and the budget saved equals $\delta$ in every row. Non-private references are $0.970$ for CIFAR-10 and $0.930$ for AG News.}
+\caption{Accuracy at a matched worst-case per-client guarantee ($\varepsilon = 0.99$, $n = 96$, $T = 10$, ten seeds). Gains are percentage points relative to uniform allocation, and the budget saved equals $\delta$ in every row. Non-private references are $0.972$ for CIFAR-10 and $0.938$ for AG News.}
 \label{tab:main}
 \centering
 \footnotesize
@@ -1167,14 +1167,14 @@ Region profile & $\delta$
 & \Fulcrum & Unif. & Gain & Misall. \\
 \midrule
 Balanced, 6 regions & $0.000$
-& $0.823$ & $0.823$ & $+0.00$ & $+0.00$
-& $0.751$ & $0.751$ & $+0.00$ & $+0.00$ \\
+& $0.829$ & $0.829$ & $+0.00$ & $+0.00$
+& $0.758$ & $0.758$ & $+0.00$ & $+0.00$ \\
 Mild, $6/6/6/3/3$ & $0.375$
-& $0.836$ & $0.794$ & $+4.25$ & $-3.56$
-& $0.765$ & $0.726$ & $+3.88$ & $-3.24$ \\
+& $0.841$ & $0.798$ & $+4.25$ & $-2.97$
+& $0.773$ & $0.735$ & $+3.80$ & $-2.63$ \\
 Severe, $15/5/2/1/1$ & $0.792$
-& $0.840$ & $0.690$ & $\mathbf{+14.97}$ & $-9.33$
-& $0.770$ & $0.637$ & $\mathbf{+13.25}$ & $-8.24$ \\
+& $0.843$ & $0.695$ & $\mathbf{+14.84}$ & $-9.75$
+& $0.774$ & $0.652$ & $\mathbf{+12.16}$ & $-7.82$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1195,7 +1195,7 @@ weight, $\rho_r = W_r/V_r = 1/m_r$ exactly, so \eqref{eq:alloc} reduces to
 $\sigma_i \propto 1/\sqrt{m_r}$. The second heuristic is therefore not a rival to
 the allocation but its equal-weight special case, and the upper half of
 Table~\ref{tab:baselines} shows the two agreeing to four decimal places, at
-$+4.25$ and $+14.97$ points. Equality of weights is a knife-edge condition, and
+$+4.25$ and $+14.84$ points. Equality of weights is a knife-edge condition, and
 the identity fails as soon as silo sizes differ at all.
 
 They differ in every federation we are aware of. The lower half of
@@ -1203,9 +1203,9 @@ Table~\ref{tab:baselines} draws silo sizes log-normally, giving roughly an order
 of magnitude between largest and smallest. The balanced profile isolates what
 the allocation adds: its regions are equally sized, so a size-based rule is by
 construction indistinguishable from uniform and returns exactly zero, while the
-allocation gains $3.08$ points on images and $1.18$ on text by responding to weight
-concentration that region size cannot express. On the severe profile it roughly
-doubles the heuristic on both tasks. Across every profile and both modalities the
+allocation gains $3.29$ points on images and $1.32$ on text by responding to weight
+concentration that region size cannot express. On the severe profile it exceeds the
+heuristic by $3.96$ points on images and $4.00$ on text. Across every profile and both modalities the
 allocation is at least as accurate as the heuristic and strictly more accurate
 wherever silo sizes vary, which is what \eqref{eq:alloc} being the optimum of
 \eqref{eq:opt} requires. No regime therefore favours the heuristic: it costs the
@@ -1213,7 +1213,7 @@ same to compute and forfeits the gain precisely when the federation is
 heterogeneous.
 
 The naive $1/m$ port behaves worse than uniform in most heterogeneous
-configurations, reaching $-8.08$ points. This is the practical consequence of the
+configurations, reaching $-9.39$ points. This is the practical consequence of the
 distinction drawn in Section~\ref{sec:related}: an exponent calibrated for a
 trusted aggregator injecting once per zone is not the exponent for silos injecting
 independently, and transferring it costs more than making no adjustment at all.
@@ -1234,13 +1234,13 @@ Silo sizes & Region profile & $\delta$
 \midrule
 \multirow{3}{*}{Equal}
  & Balanced, 6 regions & $0.000$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ \\
- & Mild, $6/6/6/3/3$   & $0.375$ & $+4.25$ & $+4.25$ & $+0.84$ & $-3.56$ & $+3.88$ & $+3.88$ & $+1.06$ & $-3.24$ \\
- & Severe, $15/5/2/1/1$& $0.792$ & $\mathbf{+14.97}$ & $\mathbf{+14.97}$ & $-2.29$ & $-9.33$ & $\mathbf{+13.25}$ & $\mathbf{+13.25}$ & $-1.55$ & $-8.24$ \\
+ & Mild, $6/6/6/3/3$   & $0.375$ & $+4.25$ & $+4.25$ & $+1.24$ & $-2.97$ & $+3.80$ & $+3.80$ & $+0.94$ & $-2.63$ \\
+ & Severe, $15/5/2/1/1$& $0.792$ & $\mathbf{+14.84}$ & $\mathbf{+14.84}$ & $-3.15$ & $-9.75$ & $\mathbf{+12.16}$ & $\mathbf{+12.16}$ & $-2.79$ & $-7.82$ \\
 \midrule
 \multirow{3}{*}{Log-normal}
- & Balanced, 6 regions & $\sim\!0.31$ & $\mathbf{+3.08}$ & $+0.00$ & $+0.00$ & $-3.07$ & $\mathbf{+1.18}$ & $+0.00$ & $+0.00$ & $-0.88$ \\
- & Mild, $6/6/6/3/3$   & $\sim\!0.32$ & $\mathbf{+1.76}$ & $-0.75$ & $-2.97$ & $-1.89$ & $\mathbf{+2.04}$ & $+0.36$ & $-0.63$ & $-1.33$ \\
- & Severe, $15/5/2/1/1$& $\sim\!0.63$ & $\mathbf{+5.87}$ & $+1.79$ & $-8.08$ & $-2.67$ & $\mathbf{+6.20}$ & $+2.87$ & $-4.77$ & $-3.49$ \\
+ & Balanced, 6 regions & $\sim\!0.31$ & $\mathbf{+3.29}$ & $+0.00$ & $+0.00$ & $-2.86$ & $\mathbf{+1.32}$ & $+0.00$ & $+0.00$ & $-1.23$ \\
+ & Mild, $6/6/6/3/3$   & $\sim\!0.32$ & $\mathbf{+1.97}$ & $-0.45$ & $-2.34$ & $-1.33$ & $\mathbf{+1.64}$ & $-0.12$ & $-1.90$ & $-1.54$ \\
+ & Severe, $15/5/2/1/1$& $\sim\!0.63$ & $\mathbf{+5.72}$ & $+1.76$ & $-8.89$ & $-2.75$ & $\mathbf{+4.22}$ & $+0.22$ & $-9.39$ & $-3.28$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1289,8 +1289,8 @@ accuracy-versus-noise curve, compressing the differences between them.
 Repeating the CIFAR-10 sweep with a head of $d = 258$ against the $d = 66$ used
 elsewhere bears this out. The budget saved is unchanged to the digit, at $37.500\%$
 and $79.167\%$ on the mild and severe profiles in both cases, while the accuracy
-gain falls from $4.25$ to $3.36$ points and from $14.97$ to $11.63$ points as the
-uniform baseline itself declines from $0.794$ to $0.748$ and from $0.690$ to
+gain falls from $4.25$ to $4.04$ points and from $14.84$ to $13.51$ points as the
+uniform baseline itself declines from $0.798$ to $0.759$ and from $0.695$ to
 $0.663$. The privacy claim therefore transfers to larger heads unchanged, and the
 utility realised from it shrinks as the model moves toward the noise floor. A
 deployment tuning many parameters at silo-level granularity is constrained by that

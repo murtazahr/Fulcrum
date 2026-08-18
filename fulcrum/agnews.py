@@ -92,7 +92,10 @@ if __name__ == "__main__":
                     m = groups == r; se[m] = np.sqrt(np.sum(w[m] ** 2 * s2[m])) / w[m]
                 rows.append(dict(profile=pname, delta=delta, seed=seed, mode=mode, acc=acc, U=U,
                                  eps=eps_silo(a.T, float(se.min())), K=a.K, n=a.n, T=a.T,
-                                 d=a.fdim * 2 + 2, dataset="agnews", spread=a.spread))
+                                 d=a.fdim * 2 + 2, dataset="agnews", spread=a.spread,
+                                 sigma_eff_min=float(se.min()),
+                                 sigma_raw_min=float(np.sqrt(s2).min()),
+                                 sigma_raw_max=float(np.sqrt(s2).max())))
                 print(f"{pname:<20} d={delta:.3f} s={seed} {mode:<8} acc={acc:.4f} "
                       f"U={U:.4g} eps={rows[-1]['eps']:.2f}", flush=True)
             json.dump(rows, open(a.out, "w"), indent=1)
