@@ -1,41 +1,38 @@
-%% Fulcrum — Optimal Per-Region DP Noise Allocation for Hierarchical Federated Learning
-%% Build: latexmk -pdf main.tex
+%% Topology-Aware Differential Privacy in Hierarchical Federated Learning
+%% ACM Transactions on Privacy and Security (TOPS)
+%% Build: tectonic -X compile main.tex    (or: pdflatex; bibtex; pdflatex; pdflatex)
 
-\documentclass[letterpaper,journal]{IEEEtran}
+%% For submission: `review` adds line numbers. Add `anonymous` if the venue is
+%% double-blind. For the final version use \documentclass[acmsmall]{acmart}.
+\documentclass[acmsmall,review]{acmart}
 
-% --- Math ---
-\usepackage{amsmath,amsfonts,amssymb}
-\usepackage{amsthm}
+%% --- Rights and journal metadata (replace on acceptance) ---
+\setcopyright{acmlicensed}
+\copyrightyear{2026}
+\acmYear{2026}
+\acmDOI{XXXXXXX.XXXXXXX}
+\acmJournal{TOPS}
+\acmVolume{0}
+\acmNumber{0}
+\acmArticle{0}
+\acmMonth{1}
 
-% --- Algorithms ---
-\usepackage{algorithmic}
-\usepackage{algorithm}
-
-% --- Tables and figures ---
-\usepackage{array}
+%% --- Packages beyond those acmart already loads ---
+\usepackage{amsmath,amssymb}
+\usepackage{xspace}
 \usepackage{booktabs}
 \usepackage{multirow}
-\usepackage{graphicx}
-\usepackage{stfloats}
+\usepackage{algorithm}
+\usepackage{algorithmic}
 
-% --- Other ---
-\usepackage{textcomp}
-\usepackage{url}
-\usepackage{xcolor}
-\usepackage{orcidlink}
-\usepackage{xspace}
+%% acmart supplies theorem, lemma, corollary, proposition and definition, but it
+%% defines them at end-of-preamble, so `remark` must be added there too.
+\AtEndPreamble{%
+  \theoremstyle{acmplain}%
+  \newtheorem{remark}[theorem]{Remark}%
+}
 
-% --- Theorem environments ---
-\newtheorem{theorem}{Theorem}[section]
-\newtheorem{lemma}[theorem]{Lemma}
-\newtheorem{corollary}[theorem]{Corollary}
-\newtheorem{proposition}[theorem]{Proposition}
-\newtheorem{definition}[theorem]{Definition}
-\newtheorem{remark}[theorem]{Remark}
-
-\hyphenation{op-tical net-works semi-conduc-tor}
-
-% --- Macros ---
+%% --- Macros ---
 \newcommand{\eg}{\textit{e.g.,}\xspace}
 \newcommand{\ie}{\textit{i.e.,}\xspace}
 \newcommand{\Fulcrum}{\textsc{Fulcrum}\xspace}
@@ -44,15 +41,36 @@
 
 \begin{document}
 
-\title{Topology-Aware Differential Privacy in\\ Hierarchical Federated Learning}
+\title{Topology-Aware Differential Privacy in Hierarchical Federated Learning}
 
-\author{Murtaza Rangwala\,\orcidlink{0000-0000-0000-0000},~\IEEEmembership{Member,~IEEE,}
-        Richard O. Sinnott\,\orcidlink{0000-0000-0000-0000},
-        and~Rajkumar Buyya\,\orcidlink{0000-0000-0000-0000},~\IEEEmembership{Fellow,~IEEE}%
-\thanks{The authors are with the Quantum Cloud Computing and Distributed Systems (qCLOUDS) Lab, School of Computing and Information Systems, The University of Melbourne, Australia.}}
+\author{Murtaza Rangwala}
+\orcid{0000-0000-0000-0000}
+\affiliation{%
+  \institution{The University of Melbourne}
+  \department{School of Computing and Information Systems}
+  \city{Melbourne}
+  \country{Australia}}
+\email{rangwalam@student.unimelb.edu.au}
 
-\markboth{}{}
-\maketitle
+\author{Richard O. Sinnott}
+\orcid{0000-0000-0000-0000}
+\affiliation{%
+  \institution{The University of Melbourne}
+  \department{School of Computing and Information Systems}
+  \city{Melbourne}
+  \country{Australia}}
+\email{rsinnott@unimelb.edu.au}
+
+\author{Rajkumar Buyya}
+\orcid{0000-0000-0000-0000}
+\affiliation{%
+  \institution{The University of Melbourne}
+  \department{School of Computing and Information Systems}
+  \city{Melbourne}
+  \country{Australia}}
+\email{rbuyya@unimelb.edu.au}
+
+\renewcommand{\shortauthors}{Rangwala et al.}
 
 \begin{abstract}
 Hierarchical federated learning places regional aggregators between clients and
@@ -85,15 +103,39 @@ below it for a control that preserves the noise dispersion while assigning it
 to the wrong regions.
 \end{abstract}
 
-\begin{IEEEkeywords}
-Federated learning, differential privacy, hierarchical aggregation, noise
-allocation, privacy amplification.
-\end{IEEEkeywords}
+\begin{CCSXML}
+<ccs2012>
+   <concept>
+       <concept_id>10002978.10003006.10003013</concept_id>
+       <concept_desc>Security and privacy~Distributed systems security</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+   <concept>
+       <concept_id>10002978.10002991.10002992</concept_id>
+       <concept_desc>Security and privacy~Privacy-preserving protocols</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+   <concept>
+       <concept_id>10010147.10010257</concept_id>
+       <concept_desc>Computing methodologies~Machine learning</concept_desc>
+       <concept_significance>300</concept_significance>
+       </concept>
+ </ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Security and privacy~Distributed systems security}
+\ccsdesc[500]{Security and privacy~Privacy-preserving protocols}
+\ccsdesc[300]{Computing methodologies~Machine learning}
+
+\keywords{Federated learning, differential privacy, hierarchical aggregation,
+noise allocation, privacy amplification}
+
+\maketitle
 
 \section{Introduction}
 \label{sec:intro}
 
-\IEEEPARstart{M}{achine} learning increasingly draws on data that is distributed
+Machine learning increasingly draws on data that is distributed
 across organisational boundaries and governed by rules that restrict its
 movement. Hospitals hold patient records, banks hold transaction histories, and
 telecommunications operators hold subscriber behaviour, each subject to
@@ -375,7 +417,7 @@ $\delta$            & exposure dispersion, the achievable saving \\
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.94\columnwidth]{figures/fig_architecture.png}
+\includegraphics[width=0.60\columnwidth]{figures/fig_architecture.png}
 \caption{Hierarchical federated learning with unequal regions. Silos report to a
 regional aggregator, which forwards only the combined update to the global
 aggregator, so an observer above the regional tier sees no silo in isolation. Each
@@ -522,7 +564,7 @@ what that assumption costs for each deployment we report.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/fig_leverage.pdf}
+\includegraphics{figures/fig_leverage.pdf}
 \caption{The lateral floor $\ell_i$ as a function of organisational group size,
 under a hierarchical Beta model with within-group coupling $\kappa$. The quantity
 saturates at $I(p_i;\Phi)$, shown dotted, so it varies modestly across silos and
@@ -929,7 +971,7 @@ $50$  & $0.020$ & $3.04$ & $2.19$ & $0.030$ & yes \\
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/fig_privacy_utility.pdf}
+\includegraphics{figures/fig_privacy_utility.pdf}
 \caption{Accuracy against the per-client privacy parameter for both modalities
 under uniform allocation, with non-private references shown dotted. The evaluation
 operates at $\varepsilon = 0.99$, where accuracy retains sensitivity to the noise
@@ -969,7 +1011,7 @@ having matched the head dimension and privacy target across the two tasks, and w
 would expect divergence were either varied. Having confirmed the prediction
 experimentally, we turn next to the assumptions and scope behind it.
 
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
 \includegraphics{figures/fig_gain_equal.pdf}
 \caption{Equally sized silos. Accuracy gain over uniform allocation at a matched
@@ -980,9 +1022,9 @@ because it would otherwise be hidden beneath the optimum. The circled marker is 
 control, for which the theory predicts parity and which delivers exactly zero. Because the arms are paired within each seed, error bars give the standard
 error of the paired difference over ten seeds.}
 \label{fig:gain}
-\end{figure*}
+\end{figure}
 
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
 \includegraphics{figures/fig_gain_lognormal.pdf}
 \caption{Log-normal silo sizes, spanning roughly an order of magnitude. The
@@ -994,9 +1036,9 @@ regions still differ in $\rho_r$ once weights differ, while the severe profile
 falls, because a dominant silo pushes its region's $\rho_r$ toward one and narrows
 the spread. Error bars as in Figure~\ref{fig:gain}.}
 \label{fig:gainlog}
-\end{figure*}
+\end{figure}
 
-\begin{table*}[t]
+\begin{table}[t]
 \caption{Accuracy at a matched worst-case per-client guarantee ($\varepsilon = 0.99$, $n = 96$, $T = 10$, ten seeds). Gains are percentage points relative to uniform allocation, and the budget saved equals $\delta$ in every row. Non-private references are $0.970$ for CIFAR-10 and $0.930$ for AG News.}
 \label{tab:main}
 \centering
@@ -1021,7 +1063,7 @@ Severe, $15/5/2/1/1$ & $0.792$
 & $0.770$ & $0.637$ & $\mathbf{+13.25}$ & $-8.24$ \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 \subsection{Comparison against size-based heuristics}
 
@@ -1062,7 +1104,7 @@ distinction drawn in Section~\ref{sec:related}: an exponent calibrated for a
 trusted aggregator injecting once per zone is not the exponent for silos injecting
 independently, and transferring it costs more than making no adjustment at all.
 
-\begin{table*}[t]
+\begin{table}[t]
 \caption{Accuracy gain over uniform allocation (percentage points, paired over ten seeds) for the allocation and three alternatives, at a matched worst-case per-client guarantee. Upper half: equally sized silos, where $\rho_r = 1/m_r$ and the $1/\sqrt{m}$ heuristic coincides with the optimum. Lower half: log-normal silo sizes, where the two separate. The balanced profiles in the lower half have equally sized regions, so any size-based rule is identical to uniform there.}
 \label{tab:baselines}
 \centering
@@ -1087,7 +1129,7 @@ Silo sizes & Region profile & $\delta$
  & Severe, $15/5/2/1/1$& $\sim\!0.63$ & $\mathbf{+5.87}$ & $+1.79$ & $-8.08$ & $-2.67$ & $\mathbf{+6.20}$ & $+2.87$ & $-4.77$ & $-3.49$ \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 \section{Discussion}
 \label{sec:discussion}
@@ -1354,49 +1396,10 @@ underlying every table and figure, is available at
 The authors thank Prof. Salil Kanhere for his valuable feedback and guidance
 during the preparation of this work.
 
-\begin{thebibliography}{99}
-\bibitem{mcmahan2017fedavg} H. B. McMahan, E. Moore, D. Ramage, S. Hampson, and B. A. y Arcas, ``Communication-efficient learning of deep networks from decentralized data,'' in \textit{AISTATS}, 2017, pp. 1273--1282.
-\bibitem{hard2018keyboard} A. Hard \textit{et al.}, ``Federated learning for mobile keyboard prediction,'' \textit{arXiv:1811.03604}, 2018.
-\bibitem{sheller2020federated} M. J. Sheller \textit{et al.}, ``Federated learning in medicine: facilitating multi-institutional collaborations without sharing patient data,'' \textit{Scientific Reports}, vol. 10, no. 1, p. 12598, 2020.
-\bibitem{dayan2021federated} I. Dayan \textit{et al.}, ``Federated learning for predicting clinical outcomes in patients with COVID-19,'' \textit{Nature Medicine}, vol. 27, no. 10, pp. 1735--1743, 2021.
-\bibitem{heyndrickx2023melloddy} W. Heyndrickx \textit{et al.}, ``MELLODDY: cross-pharma federated learning at unprecedented scale unlocks benefits in QSAR without compromising proprietary information,'' \textit{J. Chem. Inf. Model.}, vol. 64, no. 7, pp. 2331--2344, 2023.
-\bibitem{zhu2019dlg} L. Zhu, Z. Liu, and S. Han, ``Deep leakage from gradients,'' in \textit{NeurIPS}, vol. 32, 2019.
-\bibitem{geiping2020inverting} J. Geiping, H. Bauermeister, H. Dr\"oge, and M. Moeller, ``Inverting gradients: how easy is it to break privacy in federated learning?'' in \textit{NeurIPS}, vol. 33, 2020, pp. 16937--16947.
-\bibitem{shokri2017membership} R. Shokri, M. Stronati, C. Song, and V. Shmatikov, ``Membership inference attacks against machine learning models,'' in \textit{IEEE S\&P}, 2017, pp. 3--18.
-\bibitem{melis2019exploiting} L. Melis, C. Song, E. De Cristofaro, and V. Shmatikov, ``Exploiting unintended feature leakage in collaborative learning,'' in \textit{IEEE S\&P}, 2019, pp. 691--706.
-\bibitem{dwork2006calibrating} C. Dwork, F. McSherry, K. Nissim, and A. Smith, ``Calibrating noise to sensitivity in private data analysis,'' in \textit{TCC}, 2006, pp. 265--284.
-\bibitem{dwork2014algorithmic} C. Dwork and A. Roth, ``The algorithmic foundations of differential privacy,'' \textit{Found. Trends Theor. Comput. Sci.}, vol. 9, no. 3--4, pp. 211--407, 2014.
-\bibitem{abadi2016dpsgd} M. Abadi \textit{et al.}, ``Deep learning with differential privacy,'' in \textit{ACM CCS}, 2016, pp. 308--318.
-\bibitem{mcmahan2018dprnn} H. B. McMahan, D. Ramage, K. Talwar, and L. Zhang, ``Learning differentially private recurrent language models,'' in \textit{ICLR}, 2018.
-\bibitem{mironov2017rdp} I. Mironov, ``R\'enyi differential privacy,'' in \textit{IEEE CSF}, 2017, pp. 263--275.
-\bibitem{wang2019subsampled} Y.-X. Wang, B. Balle, and S. P. Kasiviswanathan, ``Subsampled R\'enyi differential privacy and analytical moments accountant,'' in \textit{AISTATS}, 2019, pp. 1226--1235.
-\bibitem{wei2020nbafl} K. Wei \textit{et al.}, ``Federated learning with differential privacy: algorithms and performance analysis,'' \textit{IEEE Trans. Inf. Forensics Security}, vol. 15, pp. 3454--3469, 2020.
-\bibitem{yousefpour2021opacus} A. Yousefpour \textit{et al.}, ``Opacus: user-friendly differential privacy library in PyTorch,'' in \textit{NeurIPS Workshop on Privacy in Machine Learning}, 2021.
-\bibitem{jorgensen2015personalized} Z. Jorgensen, T. Yu, and G. Cormode, ``Conservative or liberal? Personalized differential privacy,'' in \textit{IEEE ICDE}, 2015, pp. 1023--1034.
-\bibitem{boenisch2023individualized} F. Boenisch, C. M\"uhl, A. Dziedzic, R. Rinberg, and N. Papernot, ``Have it your way: individualized privacy assignment for DP-SGD,'' in \textit{NeurIPS}, 2023.
-\bibitem{liu2020clientedgecloud} L. Liu, J. Zhang, S. H. Song, and K. B. Letaief, ``Client-edge-cloud hierarchical federated learning,'' in \textit{IEEE ICC}, 2020, pp. 1--6.
-\bibitem{abad2020hierarchical} M. S. H. Abad, E. Ozfatura, D. G\"und\"uz, and O. Ercetin, ``Hierarchical federated learning across heterogeneous cellular networks,'' in \textit{IEEE ICASSP}, 2020, pp. 8866--8870.
-\bibitem{briggs2020federated} C. Briggs, Z. Fan, and P. Andras, ``Federated learning with hierarchical clustering of local updates to improve training on non-IID data,'' in \textit{IJCNN}, 2020, pp. 1--9.
-\bibitem{chandrasekaran2022hfl} V. Chandrasekaran, S. Banerjee, D. Perino, and N. Kourtellis, ``Hierarchical federated learning with privacy,'' \textit{arXiv:2206.05209}, 2022.
-\bibitem{guo2025fedcdp} P. Guo, C. Bai, M. Zhang, and P. O. Dusadeerungsikul, ``Clustered federated learning with heterogeneous differential privacy on non-IID data,'' \textit{Computer Communications}, vol. 244, p. 108339, 2025.
-\bibitem{yin2026hdpfedcd} C. Yin, K. He, and J. Shi, ``HDP-FedCD: data-quality-driven hierarchical federated learning for optimizing privacy protection in non-IID data,'' \textit{Future Generation Computer Systems}, vol. 176, p. 108140, 2026.
-\bibitem{bonawitz2017secagg} K. Bonawitz \textit{et al.}, ``Practical secure aggregation for privacy-preserving machine learning,'' in \textit{ACM CCS}, 2017, pp. 1175--1191.
-\bibitem{cyffers2022amplification} E. Cyffers and A. Bellet, ``Privacy amplification by decentralization,'' in \textit{AISTATS}, 2022, pp. 5334--5353.
-\bibitem{cyffers2022muffliato} E. Cyffers, M. Even, A. Bellet, and L. Massouli\'e, ``Muffliato: peer-to-peer privacy amplification for decentralized optimization and averaging,'' in \textit{NeurIPS}, 2022.
-\bibitem{cuff2016mi} P. Cuff and L. Yu, ``Differential privacy as a mutual information constraint,'' in \textit{ACM CCS}, 2016, pp. 43--54.
-\bibitem{terrail2022flamby} J. Ogier du Terrail \textit{et al.}, ``FLamby: datasets and benchmarks for cross-silo federated learning in realistic healthcare settings,'' in \textit{NeurIPS Datasets and Benchmarks}, 2022.
-\bibitem{wang2017cellular} H. Wang, F. Xu, Y. Li, P. Zhang, and D. Jin, ``Understanding mobile traffic patterns of large scale cellular towers in urban environment,'' \textit{IEEE/ACM Trans. Netw.}, vol. 25, no. 2, pp. 1147--1161, 2017.
-\bibitem{krizhevsky2009cifar} A. Krizhevsky, ``Learning multiple layers of features from tiny images,'' University of Toronto, Tech. Rep., 2009.
-\bibitem{he2016resnet} K. He, X. Zhang, S. Ren, and J. Sun, ``Deep residual learning for image recognition,'' in \textit{IEEE CVPR}, 2016, pp. 770--778.
-\bibitem{deng2009imagenet} J. Deng, W. Dong, R. Socher, L.-J. Li, K. Li, and L. Fei-Fei, ``ImageNet: a large-scale hierarchical image database,'' in \textit{IEEE CVPR}, 2009, pp. 248--255.
-\bibitem{zhang2015agnews} X. Zhang, J. Zhao, and Y. LeCun, ``Character-level convolutional networks for text classification,'' in \textit{NeurIPS}, vol. 28, 2015.
-\bibitem{reimers2019sentencebert} N. Reimers and I. Gurevych, ``Sentence-BERT: sentence embeddings using Siamese BERT-networks,'' in \textit{EMNLP-IJCNLP}, 2019, pp. 3982--3992.
-\bibitem{wang2020minilm} W. Wang, F. Wei, L. Dong, H. Bao, N. Yang, and M. Zhou, ``MiniLM: deep self-attention distillation for task-agnostic compression of pre-trained transformers,'' in \textit{NeurIPS}, vol. 33, 2020, pp. 5776--5788.
-\bibitem{cover2006elements} T. M. Cover and J. A. Thomas, \textit{Elements of Information Theory}, 2nd ed. Wiley, 2006.
-\bibitem{boyd2004convex} S. Boyd and L. Vandenberghe, \textit{Convex Optimization}. Cambridge University Press, 2004.
-\end{thebibliography}
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
 
-\appendices
+\appendix
 
 \section{Proof of Theorem~\ref{thm:bound}}
 \label{app:bound}

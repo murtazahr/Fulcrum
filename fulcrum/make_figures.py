@@ -26,14 +26,14 @@ OUT = os.path.join(ROOT, "manuscript", "figures")
 DATA = os.path.join(ROOT, "analysis", "v2")
 os.makedirs(OUT, exist_ok=True)
 
-COL, TEXT = 3.5, 7.16          # IEEE column and text-block widths, inches
+COL, TEXT = 5.48, 5.48         # acmart acmsmall is single column: 395.82pt = 5.48in
 
 plt.rcParams.update({
     "font.family": "serif",
     "font.serif": ["Times New Roman", "Nimbus Roman", "DejaVu Serif"],
     "mathtext.fontset": "stix",
-    "font.size": 8, "axes.labelsize": 8, "axes.titlesize": 8,
-    "legend.fontsize": 7, "xtick.labelsize": 7, "ytick.labelsize": 7,
+    "font.size": 9, "axes.labelsize": 9, "axes.titlesize": 9,
+    "legend.fontsize": 8, "xtick.labelsize": 8, "ytick.labelsize": 8,
     "axes.linewidth": 0.6, "grid.linewidth": 0.4, "lines.linewidth": 1.3,
     "xtick.major.width": 0.6, "ytick.major.width": 0.6,
     "xtick.major.size": 2.5, "ytick.major.size": 2.5,
@@ -86,7 +86,7 @@ def _pick(base):
 
 def _gain_panels(files, outname, note):
     """One full-width figure, two panels (modality), for a single weight regime."""
-    fig, axes = plt.subplots(1, 2, figsize=(TEXT, 2.5), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(TEXT, 2.3), sharey=True)
     series = [("random",  C_R, "s", "--", 1.3, "Misallocated"),
               ("sqrt_m",  C_H, "^", "-",  3.2, r"Heuristic $\sigma\propto 1/\sqrt{m}$"),
               ("fulcrum", C_F, "o", "-",  1.5, "Optimal allocation")]
@@ -165,7 +165,7 @@ def fig_privacy_utility():
     The earlier version sampled CIFAR-10 at nine noise levels and AG News at three, which
     made the two curves look arbitrarily different where they were merely measured differently."""
     grid = _load("pu_grid.json")
-    fig, ax = plt.subplots(figsize=(COL, 2.35))
+    fig, ax = plt.subplots(figsize=(COL, 2.9))
     for key, lbl, col, mk in [("cifar", "CIFAR-10", C_F, "o"), ("agnews", "AG News", C_U, "s")]:
         pts = grid[key]
         ref = [p["acc"] for p in pts if p["sigma"] == 0][0]
@@ -187,7 +187,7 @@ def fig_privacy_utility():
 
 def fig_leverage():
     from lateral_mi import ell, saturation
-    fig, ax = plt.subplots(figsize=(COL, 2.35))
+    fig, ax = plt.subplots(figsize=(COL, 2.9))
     ms = [0, 1, 2, 4, 9, 19, 49]
     for kap, col, mk in [(5, "#7fb3d5", "^"), (20, C_F, "o"), (100, "#0b2545", "s")]:
         ax.plot([m + 1 for m in ms], [ell(m, kap, n_mc=8000) for m in ms],
