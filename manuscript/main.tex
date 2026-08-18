@@ -1089,6 +1089,31 @@ also where much current practice sits. The allocation result itself holds
 irrespective of this choice, since it concerns relative exposure rather than
 absolute feasibility.
 
+\subsection{Behaviour at higher model dimension}
+
+The setting evaluated here trains a compact head, and production systems often tune
+more parameters, whether fully or through adapters. Two quantities respond
+differently to that change, and separating them answers what happens.
+
+The dispersion $\delta$ is unaffected. Equation~\eqref{eq:delta} is a function of
+the aggregation weights and the region structure alone, with no dependence on the
+model, the data or the number of parameters, so the budget recovered at a fixed
+guarantee is identical at any $d$. What responds is the accuracy that budget buys,
+through the signal-to-noise ratio $\sqrt{an/d}\,/\,\sigma$ of
+Section~\ref{sec:discussion}: raising $d$ moves every arm down its own
+accuracy-versus-noise curve, compressing the differences between them.
+
+Repeating the CIFAR-10 sweep with a head of $d = 258$ against the $d = 66$ used
+elsewhere bears this out. The budget saved is unchanged to the digit, at $37.500\%$
+and $79.167\%$ on the mild and severe profiles in both cases, while the accuracy
+gain falls from $4.25$ to $3.36$ points and from $14.97$ to $11.63$ points as the
+uniform baseline itself declines from $0.794$ to $0.748$ and from $0.690$ to
+$0.663$. The privacy claim therefore transfers to larger heads unchanged, and the
+utility realised from it shrinks as the model moves toward the noise floor. A
+deployment tuning many parameters at silo-level granularity is constrained by that
+floor rather than by the allocation, which is the same conclusion
+Section~\ref{sec:discussion} draws for training from scratch.
+
 \subsection{Practical guidance}
 
 Beyond justifying the experimental setting, the same result yields direct operational guidance. The workflow it suggests is brief. A practitioner computes $\rho_r$ for
@@ -1111,6 +1136,69 @@ deployments fall into the second category. A federation seeking to reduce its
 exposure to this effect altogether has a complementary option, which is to balance
 its regions when the structure is under its control, since equally sized regions
 give $\delta = 0$ and leave nothing for reallocation to recover.
+
+\subsection{Composition with secure aggregation}
+
+Section~\ref{sec:model} assumes an observer positioned above the regional tier, and
+Section~\ref{sec:discussion} identifies the resulting trust placed in regional
+aggregators as the sharpest limitation of the scheme. Secure aggregation
+\cite{bonawitz2017secagg} is the standard means of removing it, and the allocation
+composes with it without modification.
+
+The reason is that the bound already conditions on the regional sums. Theorem
+\ref{thm:bound} bounds $I(p_i;\hat p_i)$ for an observer whose view is
+$\{Y_r^{(t)}\}$, and cryptographic masking within a region changes which parties
+are restricted to that view rather than changing the view itself. The mechanism
+term \eqref{eq:mterm}, the allocation \eqref{eq:alloc} and the dispersion
+\eqref{eq:delta} are therefore unchanged, and what masking buys is that the
+regional aggregator is now also held to the observer model, so the per-silo
+guarantee no longer degrades against it.
+
+Two qualifications follow from how masking behaves in practice. A protocol
+completing only when at least $t$ of $m$ silos report will drop rounds below that
+threshold; dropped rounds release nothing and so reduce the number of mechanism
+invocations, leaving the guarantee for completed rounds intact. More consequential
+is collusion. If a set $\mathcal{C} \subset r$ of silos shares its own masks and
+noise with the observer, their contributions can be subtracted from $Y_r^{(t)}$ and
+silo $i$ is concealed only by the honest remainder, so \eqref{eq:mterm} holds with
+$V_r$ replaced by
+\begin{equation}
+V_r^{\mathrm{hon}} \;=\; \textstyle\sum_{j \in r \setminus \mathcal{C}} w_j^2 .
+\end{equation}
+The allocation is structurally identical under this substitution, since only the
+definition of the exposure ratio changes, to
+$\rho_r = W_r / V_r^{\mathrm{hon}}$. A deployment provisioning against a coalition
+of up to $c$ silos per region therefore computes $\delta$ from the honest remainder
+and obtains a smaller but still explicit saving. In the limiting case where all but
+one member of a region may collude, $\rho_r \to 1$ for every region and $\delta \to
+0$, which is the flat-federation regime of Section~\ref{sec:allocation}.
+
+\subsection{Sensitivity to the assumed coupling}
+
+The lateral floor is computed under a stated generative model, and a deployment
+whose correlation structure departs from it realises a different floor. The effect
+on the achieved guarantee is exact and does not compound. Allocating with
+$\ell_r(\kappa_{\mathrm{a}})$ while the deployment realises $\ell_r(\kappa_{\mathrm{t}})$
+gives $S_r = aW_r/(K - \ell_r(\kappa_{\mathrm{a}}))$, so the bound actually attained is
+\begin{equation}
+\frac{aW_r}{S_r} + \ell_r(\kappa_{\mathrm{t}})
+\;=\; K + \big[\ell_r(\kappa_{\mathrm{t}}) - \ell_r(\kappa_{\mathrm{a}})\big].
+\label{eq:missp}
+\end{equation}
+The target is overshot by exactly the error in the floor, entering additively; the
+allocation neither amplifies nor attenuates it.
+
+Three consequences are worth stating. Overestimating the coupling is free, since
+$\ell_r(\kappa_{\mathrm{t}}) \le \ell_r(\kappa_{\mathrm{a}})$ makes the bracket
+non-positive and the target is met. Underestimating it costs the gap and no more:
+assuming $\kappa = 5$ where the deployment realises $\kappa = 100$ overshoots
+$K = 2.2$ nats by $1.14$ nats on the severe profile, and assuming $\kappa = 20$
+under the same conditions overshoots by $0.70$. The overshoot is bounded in all
+cases by $\max_\kappa I(p_i;\Phi)$, which is $1.62$ nats for the family considered
+here, because the floor cannot exceed its own saturation ceiling. A practitioner
+uncertain about the correlation structure should therefore assume the strongest
+coupling considered plausible, which costs nothing when it is an overestimate and
+bounds the exposure when it is not.
 
 \subsection{Limitations}
 
