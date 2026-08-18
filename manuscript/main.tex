@@ -21,7 +21,7 @@
 \acmMonth{1}
 
 %% --- Packages beyond those acmart already loads ---
-\usepackage{amsmath,amssymb}
+\usepackage{amsmath}
 \usepackage{xspace}
 \usepackage{booktabs}
 \usepackage{multirow}
@@ -85,27 +85,28 @@ governs how much concealment the region itself provides, and regions in
 operational deployments vary widely in size. Prevailing practice applies a single
 noise multiplier to every participant, calibrated for the most exposed region,
 so every other participant carries more noise than its own exposure requires.
-We show that the resulting allocation problem admits an explicit solution.
-Deriving a per-client bound on the mutual information between a participant's
-local class distribution and any estimate formed by an observer positioned above
-the regional tier, taking care that the adjacency used by the mechanism matches the
-quantity being protected, then solve for the allocation that minimises the
-worst-case value of this bound under a fixed utility budget, show that it is
-min-max optimal, and call the resulting mechanism \Fulcrum. The allocation
+We show that the resulting allocation problem admits an explicit solution. We
+first give a differential privacy guarantee for the mechanism, then bound the
+mutual information between a participant's local class distribution and any
+estimate formed by an observer positioned above the regional tier, taking care
+that the adjacency used by the mechanism matches the quantity being protected. We
+then solve for the allocation minimising the worst-case value of that bound under
+a fixed utility budget, show it is min-max optimal, and call the resulting
+mechanism \Fulcrum. The allocation
 redistributes budget that uniform noise spends on over-protecting well concealed
-silos, rather than creating new amplification. The
-improvement over uniform allocation is exactly $\delta = 1 - \langle \rho
-\rangle_V / \rho_{\max}$, where $\rho_r$ is the inverse participation ratio of
-region $r$. Because this quantity depends solely on the deployment's
-region-size profile, a practitioner can evaluate it before training begins; it
-vanishes precisely when all regions share the same effective size. Measured
+silos, rather than creating new amplification. Where the lateral floors agree across regions, the improvement over uniform
+allocation is exactly $\delta = 1 - \langle \rho \rangle_V / \rho_{\max}$, with
+$\rho_r$ the inverse participation ratio of region $r$. Because this quantity depends solely on the deployment's
+exposure profile, which follows from the region structure together with the
+aggregation weights, a practitioner can evaluate it before training begins; it
+vanishes precisely when all regions are equally exposed. Measured
 across operational structures, $\delta$ ranges from $14\%$ for clinical sites
 grouped by hospital to $88\%$ for consortia organised by country, and is zero
 wherever regions are equally sized. Experiments on
 image and text classification confirm the prediction at $\varepsilon = 0.99$:
 accuracy at a matched worst-case per-client guarantee improves by up to $14.97$ percentage
-points where $\delta$ is large, matches the uniform baseline exactly in two
-balanced control deployments for which the theory predicts parity, and falls
+points where $\delta$ is large, matches the uniform baseline exactly in a
+balanced control deployment for which the theory predicts parity, and falls
 below it for a control that preserves the noise dispersion while assigning it
 to the wrong regions.
 \end{abstract}
@@ -135,7 +136,7 @@ to the wrong regions.
 \ccsdesc[300]{Computing methodologies~Machine learning}
 
 \keywords{Federated learning, differential privacy, hierarchical aggregation,
-noise allocation, privacy amplification}
+noise allocation, privacy budget allocation}
 
 \maketitle
 
@@ -207,8 +208,13 @@ We show the question has an explicit answer, and we call the resulting mechanism
 \Fulcrum, since it balances the federation's privacy burden about the point where
 every region carries an equal share of it. Our contributions are as follows.
 
-First, we derive a per-client bound on the information an observer can recover
-about a participant's local class distribution (Theorem~\ref{thm:bound}). The
+First, we give two privacy results and keep them separate. Theorem~\ref{thm:dp}
+is a distribution-free silo-level differential privacy guarantee for the mechanism,
+stated with its accountant, and is what a deployment reports as its budget.
+Theorem~\ref{thm:bound} bounds the information an observer positioned above the
+regional tier can recover about a participant's local class distribution, under a
+declared prior, and is the quantity the allocation minimises. Neither is derived
+from the other. The
 bound is stated for silo-level adjacency, meaning the mechanism protects a
 participant's dataset as a whole rather than any individual record within it.
 This alignment matters because the protected quantity, the proportion of a
@@ -227,24 +233,26 @@ averaging is the weighted sum $\sum_i w_i^2 \sigma_i^2$.
 Third, we characterise the improvement in closed form (Corollary~\ref{cor:delta}).
 Writing $\rho_r$ for the inverse participation ratio of region $r$, the fraction of
 the noise budget saved at equal per-client privacy is $\delta = 1 - \langle \rho
-\rangle_V / \rho_{\max}$. Because $\delta$ follows from the region-size profile
-alone, a practitioner evaluates it before training and decides on that basis
-whether to adopt the method. It equals zero exactly when all regions share the
-same effective size, which gives an explicit applicability test.
+\rangle_V / \rho_{\max}$. Because $\delta$ follows from the region structure and the
+aggregation weights alone, a practitioner evaluates it before training and decides
+on that basis whether to adopt the method. It equals zero exactly when all regions
+are equally exposed, which gives an explicit applicability test.
 
 Fourth, we measure $\delta$ for operational deployment structures, finding values
 of $88\%$ for consortia organised by country and $83$ to $88\%$ for cellular edge
 federations, and we validate the prediction experimentally on two modalities while
-reporting achieved privacy parameters throughout. The evaluation includes two
-deployments for which the theory predicts parity with the uniform baseline, and a
-control preserving the noise dispersion while assigning it to the wrong regions.
+reporting achieved privacy parameters throughout. The evaluation includes a
+deployment for which the theory predicts parity with the uniform baseline, and
+controls that preserve the noise dispersion while misassigning it or that follow a
+size-based heuristic.
 
 The remainder of this paper is organised as follows.
 Section~\ref{sec:related} positions the work relative to differentially private
 federated learning, heterogeneous privacy budgets, hierarchical private training,
 and amplification results. Section~\ref{sec:model} presents the system model, the
-mechanism, and the adversary. Section~\ref{sec:theory} develops the per-client
-information bound and discusses when it is informative. Section~\ref{sec:allocation}
+mechanism, and the adversary. Section~\ref{sec:theory} gives the differential
+privacy guarantee, develops the per-client information bound, and discusses when
+that bound is informative. Section~\ref{sec:allocation}
 poses and solves the allocation problem, derives the closed form for the
 achievable improvement, and reports that quantity for operational deployments.
 Section~\ref{sec:eval} describes the experimental design and results.
@@ -772,9 +780,9 @@ The allocation problem is therefore
 \label{eq:opt}
 \end{equation}
 
-\subsection{Closed-form solution}
+\subsection{Solving the allocation problem}
 
-The problem in \eqref{eq:opt} turns out to admit an exact solution.
+The problem in \eqref{eq:opt} turns out to admit an explicit solution.
 
 \begin{theorem}[Min-max optimal allocation]
 \label{thm:allocation}
@@ -837,14 +845,19 @@ participation ratio of the weights within region $r$. For $m$ equally weighted s
 region's effective size, and it accounts correctly for a region dominated by one
 large participant. Three consequences follow.
 
-First, the dispersion $\delta$ is determined entirely by the region-size
-profile. It is independent of the dataset, the model, the number of rounds, and
-the privacy target, so a practitioner can compute it from the deployment
-description before training and decide on that basis whether to adopt the
-method.
+First, the dispersion $\delta$ is determined entirely by the exposure profile
+$\{\rho_r\}$, which the region structure and the aggregation weights fix between
+them. Region sizes alone do not determine it: two deployments partitioned
+identically differ in $\delta$ when their silos differ in size, as
+Section~\ref{sec:eval} shows. What matters is that $\delta$ is independent of the
+dataset, the model, the number of rounds and the privacy target, so a practitioner
+can compute it from the deployment description before training and decide on that
+basis whether to adopt the method.
 
 Second, it equals zero exactly when $\rho_r$ agrees across regions, that is when
-all regions share the same effective size. The optimal allocation then coincides
+all regions are equally exposed. We use \emph{effective size} for $1/\rho_r$
+throughout, since for equally weighted silos it is the region's membership count,
+and exposure and effective size are therefore the same statement inverted. The optimal allocation then coincides
 with the uniform one, and we present this as an applicability test to be stated
 in advance.
 
@@ -949,7 +962,7 @@ we turn next to testing that prediction directly.
 
 Corollary~\ref{cor:delta} makes a prediction that experiment can contradict, and
 we designed the evaluation around that possibility in preference to a favourable
-configuration. We sweep the region-size profile across the range of $\delta$,
+configuration. We sweep the exposure profile across the range of $\delta$,
 including a balanced deployment at $\delta = 0$ for which the theory predicts
 parity with the baseline. A second balanced configuration, at four regions rather
 than six, was run throughout and reproduced the same values; we report one of the
@@ -1439,21 +1452,23 @@ written accordingly, while the value of $\delta$ in Corollary~\ref{cor:delta} is
 derived for the untrusted case treated here. Having situated the result against
 its assumptions and its alternatives, we close by drawing the argument together.
 
-\section{Conclusion}
+\section{Conclusions and Future Work}
 \label{sec:conclusion}
 
 In hierarchical federated learning a participant is concealed by the region it is
 aggregated with, and regions in operational deployments differ substantially in
 effective size. A single shared noise multiplier must be calibrated for the most
-exposed region and therefore leaves the remainder carrying surplus noise. We derived a
-per-client information bound whose adjacency matches the property being protected,
-solved the resulting allocation problem in closed form to obtain \Fulcrum, and
-established that its saving relative to uniform allocation is exactly $\delta = 1 - \langle \rho
-\rangle_V / \rho_{\max}$, a quantity computable from the deployment in advance of
-training and equal to zero precisely when regions share the same effective size.
+exposed region and therefore leaves the remainder carrying surplus noise. We gave a silo-level differential privacy guarantee for the mechanism, derived a
+separate per-client information bound whose adjacency matches the property being
+protected,
+solved the resulting allocation problem explicitly to obtain \Fulcrum, and
+established that where the lateral floors agree its saving relative to uniform
+allocation is exactly $\delta = 1 - \langle \rho \rangle_V / \rho_{\max}$, a
+quantity computable from the deployment in advance of training and equal to zero
+precisely when all regions are equally exposed.
 Measured across operational structures, $\delta$ reaches $88\%$. Experiments on
 image and text classification confirmed the prediction at $\varepsilon = 0.99$,
-including two control deployments for which the theory predicts parity and which
+including a control deployment for which the theory predicts parity and which
 delivered it.
 
 Three directions follow naturally. An allocation combining structural exposure
@@ -1465,11 +1480,11 @@ the aggregator while preserving the structure of the result.
 
 \section*{Data and Code Availability}
 
-The \Fulcrum reference implementation, together with the analysis artefacts
-underlying every table and figure, is publicly archived under a permanent
-identifier.
+The \Fulcrum implementation and the analysis artefacts underlying every table and
+figure are publicly archived under a permanent identifier, withheld here for
+anonymous review.
 \begin{anonsuppress}
-It is available at \url{https://doi.org/10.5281/zenodo.20507155}.
+They are available at \url{https://doi.org/10.5281/zenodo.20507155}.
 \end{anonsuppress}
 
 \begin{acks}
