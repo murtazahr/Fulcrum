@@ -952,13 +952,15 @@ experimentally, we turn next to the assumptions and scope behind it.
 \begin{figure*}[t]
 \centering
 \includegraphics{figures/fig_gain_vs_delta.pdf}
-\caption{Accuracy gain over uniform allocation at a matched worst-case per-client guarantee,
-plotted against exposure dispersion, for both modalities. Circled markers are the
-two balanced control deployments, for which the theory predicts parity. The dashed
-series is the misallocation control, which preserves the noise dispersion while
-assigning it to the wrong regions. Because the arms are paired, sharing a data
-partition and an initialisation within each seed, error bars give the standard
-error of the paired difference.}
+\caption{Accuracy gain over uniform allocation at a matched worst-case per-client
+guarantee, against exposure dispersion, for both modalities and both weight
+regimes. Top row: equally sized silos, where $\rho_r = 1/m_r$ and the size
+heuristic coincides with the optimal allocation; circled markers are the balanced
+controls, for which the theory predicts parity. Bottom row: log-normal silo sizes,
+where the two separate, and where the balanced profiles no longer have $\delta = 0$
+because equally sized regions still differ in $\rho_r$ once weights differ. Because
+the arms are paired within each seed, error bars give the standard error of the
+paired difference over ten seeds.}
 \label{fig:gain}
 \end{figure*}
 

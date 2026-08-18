@@ -84,43 +84,72 @@ def _pick(base):
 
 
 def fig_gain_vs_delta():
-    """Key result. Authored at full text width and placed in a figure* environment."""
-    fig, axes = plt.subplots(1, 2, figsize=(TEXT, 2.55), sharey=True)
-    panels = [(_pick("probe_K0.88.json"), "(a) CIFAR-10, frozen ResNet-18"),
-              (_pick("agnews_K0.88.json"), "(b) AG News, frozen MiniLM")]
-    for ax, (fn, title) in zip(axes, panels):
-        rec = _paired(fn)
-        d = np.array([r[0] for r in rec])
-        g, ge = np.array([r[1] for r in rec]), np.array([r[2] for r in rec])
-        m, me = np.array([r[3] for r in rec]), np.array([r[4] for r in rec])
+    """Key result, 2x2: modality by weight regime.
+
+    Top row (equal silo weights) shows the allocation and the sqrt(m) heuristic
+    coinciding, which is the identity rho_r = 1/m_r. Bottom row (log-normal silo
+    sizes) shows them separating, which is what the optimisation contributes.
+    """
+    fig, axes = plt.subplots(2, 2, figsize=(TEXT, 4.5), sharex=True, sharey="row")
+    panels = [
+        (0, 0, "probe_base_sp0.0.json",  "(a) CIFAR-10, equal silo sizes"),
+        (0, 1, "agnews_base_sp0.0.json", "(b) AG News, equal silo sizes"),
+        (1, 0, "probe_base_sp0.6.json",  "(c) CIFAR-10, log-normal silo sizes"),
+        (1, 1, "agnews_base_sp0.6.json", "(d) AG News, log-normal silo sizes"),
+    ]
+    series = [("random",    C_R, "s", "--", "Misallocated"),
+              ("sqrt_m",    C_U, "^", "-.", r"Heuristic $\sigma\propto 1/\sqrt{m}$"),
+              ("fulcrum",   C_F, "o", "-",  "Optimal allocation")]
+    for r, c, fn, title in panels:
+        ax = axes[r][c]
+        rec = _by_profile(fn)
+        d = np.array([x[0] for x in rec])
         ax.axhline(0, color="0.35", lw=0.7, zorder=1)
-        ax.errorbar(d, m, yerr=me, marker="s", ms=3.6, ls="--", color=C_R, lw=1.1,
-                    capsize=2, elinewidth=0.8, zorder=2, label="Misallocated, equal dispersion")
-        ax.errorbar(d, g, yerr=ge, marker="o", ms=4.4, color=C_F, lw=1.5,
-                    capsize=2, elinewidth=0.9, zorder=3, label="Exposure-aware allocation")
-        nul = d < 1e-9
-        ax.scatter(d[nul], g[nul], s=78, facecolors="none", edgecolors=C_F, lw=1.2, zorder=4)
-        ax.set_xlabel(r"exposure dispersion $\delta$")
+        for k, (mode, col, mk, ls, lab) in enumerate(series):
+            y = np.array([x[1][mode] for x in rec])
+            e = np.array([x[2][mode] for x in rec])
+            ax.errorbar(d, y, yerr=e, marker=mk, ms=3.8, ls=ls, color=col, lw=1.3,
+                        capsize=2, elinewidth=0.8, zorder=2 + k, label=lab)
+        if r == 0:
+            nul = d < 1e-9
+            ax.scatter(d[nul], np.array([x[1]["fulcrum"] for x in rec])[nul],
+                       s=74, facecolors="none", edgecolors=C_F, lw=1.2, zorder=9)
         ax.set_title(title, pad=3)
-        ax.set_xlim(-0.06, 0.96)
-        ax.set_xticks([0.0, 0.2, 0.4, 0.6, 0.8])
-        for x, lbl in DEPLOY:                      # real deployments on the same axis
-            ax.axvline(x, color="0.6", lw=0.5, ls=(0, (2.5, 2.5)), zorder=0)
-            if ax is axes[1]:                      # label once, in the emptier panel
-                ax.annotate(lbl, xy=(x, 0.02), xycoords=("data", "axes fraction"),
-                            xytext=(3, 0), textcoords="offset points",
-                            fontsize=5.8, ha="left", va="bottom", color="0.4",
-                            rotation=90)
-    axes[0].set_ylabel("accuracy gain over\nuniform allocation (pp)")
-    axes[0].annotate("balanced controls,\n" r"$\delta=0$", xy=(0.01, 0.0), xytext=(0.12, -6.0),
-                     fontsize=6.6, ha="left", va="center",
-                     arrowprops=dict(arrowstyle="->", lw=0.6, color="0.4",
-                                     shrinkA=0, shrinkB=3))
-    axes[0].legend(loc="upper left", handlelength=1.9)
-    fig.subplots_adjust(wspace=0.06)
+        if r == 1:
+            ax.set_xlabel(r"exposure dispersion $\delta$")
+        if c == 0:
+            ax.set_ylabel("accuracy gain over\nuniform allocation (pp)")
+    axes[0][0].legend(loc="upper left", handlelength=2.1)
+    axes[0][0].annotate("balanced controls", xy=(0.02, 0.0), xytext=(0.15, -4.2),
+                        fontsize=6.4, ha="left", va="center",
+                        arrowprops=dict(arrowstyle="->", lw=0.6, color="0.4",
+                                        shrinkA=0, shrinkB=3))
+    fig.subplots_adjust(wspace=0.07, hspace=0.24)
     fig.savefig(os.path.join(OUT, "fig_gain_vs_delta.pdf"))
     plt.close(fig)
-    print("wrote fig_gain_vs_delta.pdf  (full text width, figure*)")
+    print("wrote fig_gain_vs_delta.pdf  (2x2: modality x weight regime)")
+
+
+def _by_profile(fn):
+    """-> [(mean delta, {mode: mean gain pp}, {mode: sem})] ordered by delta."""
+    rows = _load(fn)
+    by = {}
+    for r in rows:
+        by.setdefault(r["profile"], {}).setdefault(r["mode"], {})[r["seed"]] = r["acc"]
+    deltas = {}
+    for r in rows:
+        deltas.setdefault(r["profile"], []).append(r["delta"])
+    out = []
+    for p, modes in by.items():
+        seeds = sorted(set.intersection(*(set(v) for v in modes.values())))
+        u = np.array([modes["uniform"][s] for s in seeds])
+        mean, sem = {}, {}
+        for m in modes:
+            g = 100 * (np.array([modes[m][s] for s in seeds]) - u)
+            mean[m] = float(g.mean())
+            sem[m] = float(g.std(ddof=1) / np.sqrt(len(g))) if len(g) > 1 else 0.0
+        out.append((float(np.mean(deltas[p])), mean, sem))
+    return sorted(out, key=lambda x: x[0])
 
 
 def fig_privacy_utility():
