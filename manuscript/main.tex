@@ -264,9 +264,9 @@ of its zone, the noise required per client scales as $1/m$ in a region of $m$
 equally weighted participants. Where each participant contributes its own noise
 prior to transmission, as we assume, the region's noise accumulates across $m$
 independent draws and the requirement scales as $1/\sqrt{m}$. The factor
-$\sqrt{m}$ separating these regimes measures what a deployment pays for operating
-with an untrusted aggregator, and we state the assumption explicitly rather than
-leaving it implicit in the mechanism.
+$\sqrt{m}$ separating these regimes measures what a deployment pays for declining to
+rely on the aggregator to inject noise on its behalf, and we state the assumption
+explicitly rather than leaving it implicit in the mechanism.
 
 Other recent work in this space likewise treats structure as given and asks how to allocate against it, without characterising the achievable gain. Guo et al.~\cite{guo2025fedcdp} study clustered federated learning with
 heterogeneous differential privacy. Their clusters group clients of similar
@@ -405,7 +405,8 @@ Three aspects of \eqref{eq:mechanism} deserve comment. Clipping applies to the
 silo's entire update rather than to per-example gradients, so the mechanism
 protects participation of a whole silo, matching the granularity of the quantity
 we set out to protect. Each silo contributes its own noise prior to transmission,
-so the guarantee holds under an untrusted aggregator. Finally, the volume of local
+so the aggregator need not be relied upon to perturb anything. Section~\ref{sec:model}
+sets out what this does and does not assume about the aggregator itself. Finally, the volume of local
 computation performed between communications leaves the privacy accounting
 unchanged: each silo releases exactly one clipped and perturbed update per round
 irrespective of how many local optimisation steps produced it, so the number of
@@ -442,6 +443,18 @@ rounds. Individual silo updates remain hidden from it, which is the property the
 aggregation tier provides. This model is standard in the property-inference
 literature \cite{melis2019exploiting} and reflects an infrastructure operator or a
 curious coordinator.
+
+The position of the observer is a substantive assumption rather than a
+presentational one, because the concealment the allocation exploits is supplied by
+the regional sum. A regional aggregator observes the individual updates of its own
+members, so a silo facing a curious aggregator is protected by $\sigma_i$ alone,
+with no contribution from its neighbours. The allocation lowers $\sigma_i$ in the
+larger regions, which is where it recovers budget, so it weakens that guarantee
+exactly where it strengthens the regional one. Section~\ref{sec:discussion}
+quantifies the effect. We therefore assume regional aggregators are trusted to see
+what they aggregate, while assuming nothing about the central aggregator or any
+observer above the regional tier, and while requiring no party to inject noise on a
+silo's behalf.
 
 The observer's objective is to infer, for a target silo $i$, the sensitive-class
 concentration
@@ -723,14 +736,43 @@ Consortium by country & $0$--$0.907$ & $88.0\%$ & $83.1\%$ \\
 
 Since $\delta$ is a property of a deployment rather than of an experiment, it can
 be measured directly for real federations, without reference to any model or
-dataset. Cellular edge deployments over sixty base stations give $\delta$ between
-$82.8\%$ and $87.6\%$ across sampled load distributions; a consortium grouped by
-country, with sites distributed $30/10/5/3/1/1$, gives $88.0\%$; and clinical sites
-grouped by their parent hospital, in the $3/1/1/1$ arrangement of a public
-federated benchmark, give $14.4\%$. Federations whose regions are equally sized
-give exactly zero, as do flat federations with no aggregation tier. These values
-are marked on the horizontal axis of Figure~\ref{fig:gain}, so a practitioner can
-locate a deployment and read off the improvement it admits.
+dataset. Table~\ref{tab:realdelta} states each structure completely, since $\delta$
+depends on the silo weights as well as the region sizes and the two must be given
+together.
+
+One special case is worth recording, because it explains the magnitudes. When all
+silos carry equal weight, $\rho_r = 1/m_r$ and \eqref{eq:delta} reduces to
+\begin{equation}
+\delta \;=\; 1 - \frac{|\Reg| \, m_{\min}}{n},
+\label{eq:deltaequal}
+\end{equation}
+with $m_{\min}$ the smallest region. The saving is then governed by the presence of
+one small region alongside a large federation, and approaches one as $n$ grows with
+$|\Reg|$ fixed. The consortium and cellular entries are equal-weight structures and
+follow \eqref{eq:deltaequal} directly; the clinical entry uses the measured site
+sizes of a public benchmark, which is why it is far lower than its region profile
+alone would suggest. Federations whose regions are equally sized give exactly zero,
+as do flat federations with no aggregation tier. These values are marked on the
+horizontal axis of Figure~\ref{fig:gain}.
+
+\begin{table}[t]
+\caption{Exposure dispersion for operational structures, with the weights each is computed from. Equal-weight rows follow \eqref{eq:deltaequal}; the clinical row uses measured site sizes, and its $\delta$ would be $33.3\%$ were those sites equally sized.}
+\label{tab:realdelta}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{0.30\columnwidth}p{0.24\columnwidth}p{0.20\columnwidth}c@{}}
+\toprule
+Structure & Regions & Silo weights & $\delta$ \\
+\midrule
+Consortium by country & $30/10/5/3/1/1$ & equal & $88.0\%$ \\
+Cellular edge, 60 base stations & lognormal, $\mu{=}1.2$, $s{=}1.3$, floor 1 & equal & $82.8$--$87.6\%$ \\
+Clinical sites by hospital (Fed-ISIC2019) & $3/1/1/1$ & $9930$, $3163$, $2691$, $1807$, $655$, $351$ & $14.4\%$ \\
+Equally sized regions & any, equal & any & $0\%$ \\
+Flat federation & one silo each & any & $0\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 These figures follow directly from how each deployment is organised. Cellular
 deployments sit high on the scale because base station loads are long tailed,
@@ -1098,7 +1140,19 @@ varies modestly across silos, so the allocation is governed by the mechanism ter
 and we would expect the ordering of regions to persist under moderate
 misspecification. Establishing that formally remains open.
 
-The threat model is similarly bounded. We assume a passive observer. Active adversaries that manipulate the protocol, and
+The threat model is similarly bounded. The trust placed in regional aggregators is the sharpest of these limitations.
+Because the regional sum supplies the concealment, a silo facing a curious
+aggregator within its own region retains only the protection of $\sigma_i$. On the
+severe profile the allocation reduces $\sigma_i$ in the largest region to $0.26$ of
+its uniform value, which moves that region's guarantee against its own aggregator
+from $\varepsilon = 2.12$ to $\varepsilon = 10.06$, while the guarantee against an
+observer above the tier is unchanged at $0.99$. A deployment that regards its
+regional aggregators as adversarial should not reallocate on this basis, and should
+treat $\sigma_i$ rather than $S_r$ as the quantity to hold fixed. Composing the
+allocation with secure aggregation within regions would remove the assumption, and
+is the most useful extension we can identify.
+
+We assume a passive observer. Active adversaries that manipulate the protocol, and
 aggregators that misreport the sums they compute, fall outside the model. Because
 each silo perturbs its own update before transmission, the guarantee holds without
 trusting the aggregator to add noise; it does, however, assume that the
