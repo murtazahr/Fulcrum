@@ -97,19 +97,29 @@ def fig_gain_vs_delta():
         (1, 0, "probe_base_sp0.6.json",  "(c) CIFAR-10, log-normal silo sizes"),
         (1, 1, "agnews_base_sp0.6.json", "(d) AG News, log-normal silo sizes"),
     ]
-    series = [("random",    C_R, "s", "--", "Misallocated"),
-              ("sqrt_m",    C_U, "^", "-.", r"Heuristic $\sigma\propto 1/\sqrt{m}$"),
-              ("fulcrum",   C_F, "o", "-",  "Optimal allocation")]
+    # The heuristic coincides EXACTLY with the optimum under equal weights, so drawing
+    # it as a normal line hides it beneath the optimum. Draw it as a wide translucent
+    # halo instead: where the two agree the halo shows as a band around the optimal
+    # line, and where they diverge it separates as an ordinary series.
+    series = [("random",  C_R, "s", "--", 1.3, "Misallocated"),
+              ("sqrt_m",  C_U, "^", "-",  3.4, r"Heuristic $\sigma\propto 1/\sqrt{m}$"),
+              ("fulcrum", C_F, "o", "-",  1.5, "Optimal allocation")]
     for r, c, fn, title in panels:
         ax = axes[r][c]
         rec = _by_profile(fn)
         d = np.array([x[0] for x in rec])
         ax.axhline(0, color="0.35", lw=0.7, zorder=1)
-        for k, (mode, col, mk, ls, lab) in enumerate(series):
+        for k, (mode, col, mk, ls, lw, lab) in enumerate(series):
             y = np.array([x[1][mode] for x in rec])
             e = np.array([x[2][mode] for x in rec])
-            ax.errorbar(d, y, yerr=e, marker=mk, ms=3.8, ls=ls, color=col, lw=1.3,
-                        capsize=2, elinewidth=0.8, zorder=2 + k, label=lab)
+            if mode == "sqrt_m":
+                ax.plot(d, y, ls=ls, color=col, lw=lw, alpha=0.40,
+                        solid_capstyle="round", zorder=2, label=lab)
+                ax.plot(d, y, marker=mk, ms=3.4, ls="none", color=col,
+                        alpha=0.95, zorder=2.5)
+            else:
+                ax.errorbar(d, y, yerr=e, marker=mk, ms=3.8, ls=ls, color=col, lw=lw,
+                            capsize=2, elinewidth=0.8, zorder=2 + k, label=lab)
         if r == 0:
             nul = d < 1e-9
             ax.scatter(d[nul], np.array([x[1]["fulcrum"] for x in rec])[nul],
@@ -124,6 +134,10 @@ def fig_gain_vs_delta():
                         fontsize=6.4, ha="left", va="center",
                         arrowprops=dict(arrowstyle="->", lw=0.6, color="0.4",
                                         shrinkA=0, shrinkB=3))
+    for c in (0, 1):                      # say plainly why only one line is visible
+        axes[0][c].annotate("heuristic coincides\nwith optimum", xy=(0.79, 0.86),
+                            xycoords="axes fraction", fontsize=6.2, ha="right",
+                            va="top", color=C_U)
     fig.subplots_adjust(wspace=0.07, hspace=0.24)
     fig.savefig(os.path.join(OUT, "fig_gain_vs_delta.pdf"))
     plt.close(fig)
