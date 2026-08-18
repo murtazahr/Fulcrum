@@ -1160,14 +1160,38 @@ aggregators as the sharpest limitation of the scheme. Secure aggregation
 \cite{bonawitz2017secagg} is the standard means of removing it, and the allocation
 composes with it without modification.
 
-The reason is that the bound already conditions on the regional sums. Theorem
-\ref{thm:bound} bounds $I(p_i;\hat p_i)$ for an observer whose view is
-$\{Y_r^{(t)}\}$, and cryptographic masking within a region changes which parties
-are restricted to that view rather than changing the view itself. The mechanism
-term \eqref{eq:mterm}, the allocation \eqref{eq:alloc} and the dispersion
-\eqref{eq:delta} are therefore unchanged, and what masking buys is that the
-regional aggregator is now also held to the observer model, so the per-silo
-guarantee no longer degrades against it.
+Where the masking sits determines whether anything changes, and it is worth
+separating two placements that are easily conflated.
+
+Masking \emph{within} a region, so that only $Y_r^{(t)}$ is recoverable from its
+members, maps onto the framework exactly. Theorem~\ref{thm:bound} already
+conditions on the view $\{Y_r^{(t)}\}$, and this form of masking changes which
+parties are restricted to that view rather than changing the view itself. Every
+input to the optimisation is therefore untouched: the per-region weight statistics
+$W_r$ and $V_r$ are computed from the same membership, the mechanism term
+\eqref{eq:mterm} keeps the same denominator, and the allocation \eqref{eq:alloc},
+the budget equation and the dispersion \eqref{eq:delta} are unchanged. Numerically
+nothing moves, because the masks cancel within each region and the aggregate is
+identical with and without them. What the deployment gains is that the regional
+aggregator is now held to the observer model as well, so the per-silo guarantee
+stops degrading against it, which is the liability identified in
+Section~\ref{sec:model}.
+
+Masking \emph{across} regions, so that the central aggregator recovers only the
+global sum $\sum_r Y_r^{(t)}$, is a different proposition and does change the
+inputs. The concealment set becomes the entire federation rather than one region,
+so the mechanism term reduces to $m_i(\sigma) = 2w_i^2 / \sum_{j} w_j^2 \sigma_j^2$
+with the denominator running over all $n$ silos. The bound then depends on the
+noise only through the global total, every allocation carrying the same total is
+optimal, and $\delta = 0$ by the argument that gives $\delta = 0$ for a flat
+federation. The federation behaves as a single region.
+
+Taken together these delimit where the allocation is informative. It requires an
+observer that resolves per-region sums and no finer: a flat federation exposes each
+silo individually and leaves nothing to pool, while global masking pools everything
+and leaves nothing to distribute. The intended composition is therefore
+within-region masking, which retains the structure the allocation acts on while
+removing the trust the structure would otherwise demand.
 
 Two qualifications follow from how masking behaves in practice. A protocol
 completing only when at least $t$ of $m$ silos report will drop rounds below that
