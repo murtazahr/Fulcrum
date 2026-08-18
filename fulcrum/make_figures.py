@@ -84,29 +84,13 @@ def _pick(base):
     return s10 if os.path.exists(os.path.join(DATA, s10)) else base
 
 
-def fig_gain_vs_delta():
-    """Key result, 2x2: modality by weight regime.
-
-    Top row (equal silo weights) shows the allocation and the sqrt(m) heuristic
-    coinciding, which is the identity rho_r = 1/m_r. Bottom row (log-normal silo
-    sizes) shows them separating, which is what the optimisation contributes.
-    """
-    fig, axes = plt.subplots(2, 2, figsize=(TEXT, 4.5), sharex=True, sharey="row")
-    panels = [
-        (0, 0, "probe_base_sp0.0.json",  "(a) CIFAR-10, equal silo sizes"),
-        (0, 1, "agnews_base_sp0.0.json", "(b) AG News, equal silo sizes"),
-        (1, 0, "probe_base_sp0.6.json",  "(c) CIFAR-10, log-normal silo sizes"),
-        (1, 1, "agnews_base_sp0.6.json", "(d) AG News, log-normal silo sizes"),
-    ]
-    # The heuristic coincides EXACTLY with the optimum under equal weights, so drawing
-    # it as a normal line hides it beneath the optimum. Draw it as a wide translucent
-    # halo instead: where the two agree the halo shows as a band around the optimal
-    # line, and where they diverge it separates as an ordinary series.
+def _gain_panels(files, outname, note):
+    """One full-width figure, two panels (modality), for a single weight regime."""
+    fig, axes = plt.subplots(1, 2, figsize=(TEXT, 2.5), sharey=True)
     series = [("random",  C_R, "s", "--", 1.3, "Misallocated"),
               ("sqrt_m",  C_H, "^", "-",  3.2, r"Heuristic $\sigma\propto 1/\sqrt{m}$"),
               ("fulcrum", C_F, "o", "-",  1.5, "Optimal allocation")]
-    for r, c, fn, title in panels:
-        ax = axes[r][c]
+    for ax, (fn, title) in zip(axes, files):
         rec = _by_profile(fn)
         d = np.array([x[0] for x in rec])
         ax.axhline(0, color="0.35", lw=0.7, zorder=1)
@@ -114,27 +98,38 @@ def fig_gain_vs_delta():
             y = np.array([x[1][mode] for x in rec])
             e = np.array([x[2][mode] for x in rec])
             if mode == "sqrt_m":
+                # Drawn as a wide translucent band: under equal weights it coincides
+                # with the optimum exactly and would otherwise be hidden beneath it.
                 ax.plot(d, y, ls=ls, color=col, lw=lw, alpha=0.32,
                         solid_capstyle="round", zorder=2, label=lab)
-                ax.plot(d, y, marker=mk, ms=3.4, ls="none", color=col,
-                        alpha=0.95, zorder=2.5)
+                ax.plot(d, y, marker=mk, ms=3.4, ls="none", color=col, alpha=0.95, zorder=2.5)
             else:
                 ax.errorbar(d, y, yerr=e, marker=mk, ms=3.8, ls=ls, color=col, lw=lw,
                             capsize=2, elinewidth=0.8, zorder=2 + k, label=lab)
-        if r == 0:
+        if note == "equal":
             nul = d < 1e-9
             ax.scatter(d[nul], np.array([x[1]["fulcrum"] for x in rec])[nul],
                        s=74, facecolors="none", edgecolors=C_F, lw=1.2, zorder=9)
+        ax.set_xlabel(r"exposure dispersion $\delta$")
         ax.set_title(title, pad=3)
-        if r == 1:
-            ax.set_xlabel(r"exposure dispersion $\delta$")
-        if c == 0:
-            ax.set_ylabel("accuracy gain over\nuniform allocation (pp)")
-    axes[0][0].legend(loc="upper left", handlelength=2.1)
-    fig.subplots_adjust(wspace=0.07, hspace=0.24)
-    fig.savefig(os.path.join(OUT, "fig_gain_vs_delta.pdf"))
+    axes[0].set_ylabel("accuracy gain over\nuniform allocation (pp)")
+    axes[0].legend(loc="upper left", handlelength=2.1)
+    fig.subplots_adjust(wspace=0.07)
+    fig.savefig(os.path.join(OUT, outname))
     plt.close(fig)
-    print("wrote fig_gain_vs_delta.pdf  (2x2: modality x weight regime)")
+    print("wrote", outname)
+
+
+def fig_gain_equal():
+    _gain_panels([("probe_base_sp0.0.json",  "(a) CIFAR-10, frozen ResNet-18"),
+                  ("agnews_base_sp0.0.json", "(b) AG News, frozen MiniLM")],
+                 "fig_gain_equal.pdf", "equal")
+
+
+def fig_gain_lognormal():
+    _gain_panels([("probe_base_sp0.6.json",  "(a) CIFAR-10, frozen ResNet-18"),
+                  ("agnews_base_sp0.6.json", "(b) AG News, frozen MiniLM")],
+                 "fig_gain_lognormal.pdf", "lognormal")
 
 
 def _by_profile(fn):
@@ -206,6 +201,6 @@ def fig_leverage():
 if __name__ == "__main__":
     sys.path.insert(0, HERE)
     which = sys.argv[1:] or ["gain", "pu", "lev"]
-    if "gain" in which: fig_gain_vs_delta()
+    if "gain" in which: fig_gain_equal(); fig_gain_lognormal()
     if "pu" in which: fig_privacy_utility()
     if "lev" in which: fig_leverage()
