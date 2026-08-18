@@ -74,8 +74,9 @@ improvement over uniform allocation is exactly $\delta = 1 - \langle \rho
 region $r$. Because this quantity depends solely on the deployment's
 region-size profile, a practitioner can evaluate it before training begins; it
 vanishes precisely when all regions share the same effective size. Measured
-across operational structures, $\delta$ reaches $88\%$ for consortia organised
-by country and $83$ to $88\%$ for cellular edge deployments. Experiments on
+across operational structures, $\delta$ ranges from $14\%$ for clinical sites
+grouped by hospital to $88\%$ for consortia organised by country, and is zero
+wherever regions are equally sized. Experiments on
 image and text classification confirm the prediction at $\varepsilon = 0.99$:
 accuracy at a matched worst-case per-client guarantee improves by up to $14.97$ percentage
 points where $\delta$ is large, matches the uniform baseline exactly in two
@@ -121,7 +122,7 @@ standard defence. Differentially private stochastic gradient descent
 \cite{abadi2016dpsgd} bounds the influence any single contribution exerts on a
 released update by clipping and then adding calibrated noise, and its federated
 instantiation \cite{mcmahan2018dprnn} applies the same construction to client
-updates. Accounting across training rounds is performed with Rényi differential
+updates. Accounting across training rounds is performed with R\'enyi differential
 privacy \cite{mironov2017rdp} or the moments accountant, and mature tooling makes
 the mechanism straightforward to deploy \cite{yousefpour2021opacus}.
 
@@ -153,7 +154,7 @@ raises the question this paper addresses: given a deployment's region structure,
 how should noise be distributed across regions, and how much is gained by
 distributing it well?
 
-We show the question has a closed-form answer, and we call the resulting mechanism
+We show the question has an explicit answer, and we call the resulting mechanism
 \Fulcrum, since it balances the federation's privacy burden about the point where
 every region carries an equal share of it. Our contributions are as follows.
 
@@ -219,7 +220,7 @@ moments accountant to track cumulative loss across many steps. McMahan et
 al.~\cite{mcmahan2018dprnn} applied the construction at client granularity within
 federated averaging \cite{mcmahan2017fedavg}, clipping the client update and
 thereby protecting participation of an entire client rather than of a single
-record. Rényi differential privacy \cite{mironov2017rdp} yields tighter
+record. R\'enyi differential privacy \cite{mironov2017rdp} yields tighter
 composition, and subsampling amplification \cite{wang2019subsampled} strengthens
 the guarantee when each round touches a random subset. Wei et
 al.~\cite{wei2020nbafl} analysed the convergence consequences of noise addition in
@@ -355,9 +356,15 @@ Symbol & Meaning \\
 $n$, $T$            & number of silos, number of rounds \\
 $D_i$, $w_i$        & local dataset and aggregation weight of silo $i$ \\
 $A(i)$, $\Reg$      & aggregation region of silo $i$, set of regions \\
+$m_r$, $m_{\min}$   & number of silos in region $r$, in the smallest region \\
 $C$, $\sigma_i$     & clipping bound, noise multiplier of silo $i$ \\
+$Y_r^{(t)}$         & observation: the round-$t$ sum over region $r$, \eqref{eq:observation} \\
 $p_i$, $R$          & sensitive-class concentration, quantisation levels \\
+$H(p_i)$            & entropy of the quantised target, the vacuity ceiling \\
 $\ell_i$            & lateral floor, $I(p_i; D_{-i})$ \\
+$\kappa$, $\Phi_g$  & within-group coupling and group parameter of the prior \\
+$m_i(\sigma)$       & per-round mechanism term, \eqref{eq:mterm} \\
+$a$                 & composition coefficient, $a = 2T$ \\
 $S_r$, $V_r$, $W_r$ & region noise, weight mass, and peak squared weight \\
 $\rho_r$            & exposure ratio $W_r / V_r$ of region $r$ \\
 $U$, $K$            & utility budget, worst-case per-client bound \\
@@ -373,7 +380,8 @@ $\delta$            & exposure dispersion, the achievable saving \\
 regional aggregator, which forwards only the combined update to the global
 aggregator, so an observer above the regional tier sees no silo in isolation. Each
 silo clips and perturbs its own update before transmission, which places the
-guarantee under an untrusted aggregator. Concealment grows with the effective size
+guarantee without relying on the aggregator to perturb anything. Concealment grows
+with the effective size
 of a silo's region, measured by the exposure ratio $\rho_r$: region $r_1$ pools
 three silos and conceals most, whereas $r_3$ holds a single silo and conceals
 least. A shared noise multiplier must satisfy $r_3$, and therefore leaves $r_1$
@@ -673,8 +681,16 @@ saved by \eqref{eq:alloc} relative to uniform allocation at the same target is
 \end{equation}
 \end{corollary}
 
-The quantity $\rho_r$ is the inverse participation ratio of the weights within
-region $r$. For $m$ equally weighted silos it equals $1/m$, so it measures the
+Appendix~\ref{app:delta} gives the derivation. One point of interpretation is worth
+fixing immediately, since $\delta$ is a fraction of a \emph{variance} budget and is
+easily read as a fraction of a noise level. A saving of $\delta$ corresponds to a
+reduction in noise scale of $1/\sqrt{1-\delta}$, so the $88\%$ recorded below for a
+consortium is a factor of $2.9$ in $\sigma$, and the $79.2\%$ of the severe profile
+is a factor of $2.2$. We quote $\delta$ in variance terms throughout, because that
+is the quantity the budget constrains.
+
+The quantity $\rho_r$ is the inverse
+participation ratio of the weights within region $r$. For $m$ equally weighted silos it equals $1/m$, so it measures the
 region's effective size, and it accounts correctly for a region dominated by one
 large participant. Three consequences follow.
 
@@ -767,8 +783,8 @@ report the gain.
 Structure & Regions & Silo weights & $\delta$ \\
 \midrule
 Consortium by country & $30/10/5/3/1/1$ & equal & $88.0\%$ \\
-Cellular edge, 60 base stations & lognormal, $\mu{=}1.2$, $s{=}1.3$, floor 1 & equal & $82.8$--$87.6\%$ \\
-Clinical sites by hospital (Fed-ISIC2019) & $3/1/1/1$ & $9930$, $3163$, $2691$, $1807$, $655$, $351$ & $14.4\%$ \\
+Cellular edge, 60 base stations \cite{wang2017cellular} & lognormal, $\mu{=}1.2$, $s{=}1.3$, floor 1 & equal & $82.8$--$87.6\%$ \\
+Clinical sites by hospital (Fed-ISIC2019 \cite{terrail2022flamby}) & $3/1/1/1$ & $9930$, $3163$, $2691$, $1807$, $655$, $351$ & $14.4\%$ \\
 Equally sized regions & any, equal & any & $0\%$ \\
 Flat federation & one silo each & any & $0\%$ \\
 \bottomrule
@@ -791,8 +807,10 @@ we turn next to testing that prediction directly.
 Corollary~\ref{cor:delta} makes a prediction that experiment can contradict, and
 we designed the evaluation around that possibility in preference to a favourable
 configuration. We sweep the region-size profile across the range of $\delta$,
-including two deployments at $\delta = 0$ for which the theory predicts parity
-with the baseline. Three predictions are stated in advance.
+including a balanced deployment at $\delta = 0$ for which the theory predicts
+parity with the baseline. A second balanced configuration, at four regions rather
+than six, was run throughout and reproduced the same values; we report one of the
+two, since under equal weights both are identically zero. Three predictions are stated in advance.
 
 The first prediction is that the budget saved at a matched privacy target equals
 $\delta$. The second is that the accuracy gain at matched privacy increases with
@@ -930,7 +948,7 @@ confirming the first prediction and Corollary~\ref{cor:delta}.
 Matching budgets is a necessary check on the theory, but what those budgets buy in accuracy is the second and more consequential prediction. The accuracy gain increases with $\delta$, reaching $14.97 \pm 2.51$ points on
 images and $13.25 \pm 1.72$ points on text in the most heterogeneous deployment,
 quoted as means over ten seeds with the standard error of the paired difference,
-which confirms the second prediction. In the two balanced deployments the gain equals zero to the
+which confirms the second prediction. In the balanced deployment the gain equals zero to the
 precision of the measurement on both tasks. This is the outcome the theory
 requires, and we regard it as the most informative row in the table, since a
 method acting on some quantity other than the one we claim would be unlikely to
@@ -958,9 +976,8 @@ experimentally, we turn next to the assumptions and scope behind it.
 worst-case per-client guarantee, against exposure dispersion. Here $\rho_r = 1/m_r$,
 so the size heuristic and the optimal allocation are the same rule and agree to
 machine precision on every seed; the heuristic is drawn as a wide translucent band
-because it would otherwise be hidden beneath the optimum. Circled markers are the
-balanced controls, for which the theory predicts parity and which deliver exactly
-zero. Because the arms are paired within each seed, error bars give the standard
+because it would otherwise be hidden beneath the optimum. The circled marker is the balanced
+control, for which the theory predicts parity and which delivers exactly zero. Because the arms are paired within each seed, error bars give the standard
 error of the paired difference over ten seeds.}
 \label{fig:gain}
 \end{figure*}
@@ -972,7 +989,7 @@ error of the paired difference over ten seeds.}
 identity $\rho_r = 1/m_r$ no longer holds, and the optimal allocation separates
 from the size heuristic. Exposure dispersion is recomputed from the realised
 weights, so the same region profiles sit at different $\delta$ than in
-Figure~\ref{fig:gain}: the balanced profiles rise above zero, because equally sized
+Figure~\ref{fig:gain}: the balanced profile rises above zero, because equally sized
 regions still differ in $\rho_r$ once weights differ, while the severe profile
 falls, because a dominant silo pushes its region's $\rho_r$ toward one and narrows
 the spread. Error bars as in Figure~\ref{fig:gain}.}
@@ -993,9 +1010,6 @@ Region profile & $\delta$
 & \Fulcrum & Uniform & Gain & Misalloc.
 & \Fulcrum & Uniform & Gain & Misalloc. \\
 \midrule
-Balanced, 4 regions (control) & $0.000$
-& $0.860$ & $0.860$ & $+0.00$ & $+0.00$
-& $0.784$ & $0.784$ & $+0.00$ & $+0.00$ \\
 Balanced, 6 regions (control) & $0.000$
 & $0.823$ & $0.823$ & $+0.00$ & $+0.00$
 & $0.751$ & $0.751$ & $+0.00$ & $+0.00$ \\
@@ -1030,10 +1044,10 @@ the identity fails as soon as silo sizes differ at all.
 
 They differ in every federation we are aware of. The lower half of
 Table~\ref{tab:baselines} draws silo sizes log-normally, giving roughly an order
-of magnitude between largest and smallest. The two balanced profiles isolate what
-the allocation adds: their regions are equally sized, so a size-based rule is by
+of magnitude between largest and smallest. The balanced profile isolates what
+the allocation adds: its regions are equally sized, so a size-based rule is by
 construction indistinguishable from uniform and returns exactly zero, while the
-allocation gains between $1.18$ and $3.08$ points by responding to weight
+allocation gains $3.08$ points on images and $1.18$ on text by responding to weight
 concentration that region size cannot express. On the severe profile it roughly
 doubles the heuristic on both tasks. Across every profile and both modalities the
 allocation is at least as accurate as the heuristic and strictly more accurate
@@ -1062,14 +1076,12 @@ Silo sizes & Region profile & $\delta$
 & \Fulcrum & $\sigma\!\propto\!\tfrac{1}{\sqrt{m}}$ & $\sigma\!\propto\!\tfrac{1}{m}$ & Misalloc.
 & \Fulcrum & $\sigma\!\propto\!\tfrac{1}{\sqrt{m}}$ & $\sigma\!\propto\!\tfrac{1}{m}$ & Misalloc. \\
 \midrule
-\multirow{4}{*}{Equal}
- & Balanced, 4 regions & $0.000$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ \\
+\multirow{3}{*}{Equal}
  & Balanced, 6 regions & $0.000$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ \\
  & Mild, $6/6/6/3/3$   & $0.375$ & $+4.25$ & $+4.25$ & $+0.84$ & $-3.56$ & $+3.88$ & $+3.88$ & $+1.06$ & $-3.24$ \\
  & Severe, $15/5/2/1/1$& $0.792$ & $\mathbf{+14.97}$ & $\mathbf{+14.97}$ & $-2.29$ & $-9.33$ & $\mathbf{+13.25}$ & $\mathbf{+13.25}$ & $-1.55$ & $-8.24$ \\
 \midrule
-\multirow{4}{*}{Log-normal}
- & Balanced, 4 regions & $\sim\!0.28$ & $\mathbf{+2.56}$ & $+0.00$ & $+0.00$ & $-1.00$ & $\mathbf{+1.22}$ & $+0.00$ & $+0.00$ & $+0.52$ \\
+\multirow{3}{*}{Log-normal}
  & Balanced, 6 regions & $\sim\!0.31$ & $\mathbf{+3.08}$ & $+0.00$ & $+0.00$ & $-3.07$ & $\mathbf{+1.18}$ & $+0.00$ & $+0.00$ & $-0.88$ \\
  & Mild, $6/6/6/3/3$   & $\sim\!0.32$ & $\mathbf{+1.76}$ & $-0.75$ & $-2.97$ & $-1.89$ & $\mathbf{+2.04}$ & $+0.36$ & $-0.63$ & $-1.33$ \\
  & Severe, $15/5/2/1/1$& $\sim\!0.63$ & $\mathbf{+5.87}$ & $+1.79$ & $-8.08$ & $-2.67$ & $\mathbf{+6.20}$ & $+2.87$ & $-4.77$ & $-3.49$ \\
@@ -1224,8 +1236,9 @@ gives $S_r = aW_r/(K - \ell_r(\kappa_{\mathrm{a}}))$, so the bound actually atta
 \;=\; K + \big[\ell_r(\kappa_{\mathrm{t}}) - \ell_r(\kappa_{\mathrm{a}})\big].
 \label{eq:missp}
 \end{equation}
-The target is overshot by exactly the error in the floor, entering additively; the
-allocation neither amplifies nor attenuates it.
+The bracket in \eqref{eq:missp} is the whole of the effect: the target is overshot
+by exactly the error in the floor, entering additively, and the allocation neither
+amplifies nor attenuates it.
 
 Three consequences are worth stating. Overestimating the coupling is free, since
 $\ell_r(\kappa_{\mathrm{t}}) \le \ell_r(\kappa_{\mathrm{a}})$ makes the bracket
@@ -1371,6 +1384,8 @@ during the preparation of this work.
 \bibitem{cyffers2022amplification} E. Cyffers and A. Bellet, ``Privacy amplification by decentralization,'' in \textit{AISTATS}, 2022, pp. 5334--5353.
 \bibitem{cyffers2022muffliato} E. Cyffers, M. Even, A. Bellet, and L. Massouli\'e, ``Muffliato: peer-to-peer privacy amplification for decentralized optimization and averaging,'' in \textit{NeurIPS}, 2022.
 \bibitem{cuff2016mi} P. Cuff and L. Yu, ``Differential privacy as a mutual information constraint,'' in \textit{ACM CCS}, 2016, pp. 43--54.
+\bibitem{terrail2022flamby} J. Ogier du Terrail \textit{et al.}, ``FLamby: datasets and benchmarks for cross-silo federated learning in realistic healthcare settings,'' in \textit{NeurIPS Datasets and Benchmarks}, 2022.
+\bibitem{wang2017cellular} H. Wang, F. Xu, Y. Li, P. Zhang, and D. Jin, ``Understanding mobile traffic patterns of large scale cellular towers in urban environment,'' \textit{IEEE/ACM Trans. Netw.}, vol. 25, no. 2, pp. 1147--1161, 2017.
 \bibitem{krizhevsky2009cifar} A. Krizhevsky, ``Learning multiple layers of features from tiny images,'' University of Toronto, Tech. Rep., 2009.
 \bibitem{he2016resnet} K. He, X. Zhang, S. Ren, and J. Sun, ``Deep residual learning for image recognition,'' in \textit{IEEE CVPR}, 2016, pp. 770--778.
 \bibitem{deng2009imagenet} J. Deng, W. Dong, R. Socher, L.-J. Li, K. Li, and L. Fei-Fei, ``ImageNet: a large-scale hierarchical image database,'' in \textit{IEEE CVPR}, 2009, pp. 248--255.

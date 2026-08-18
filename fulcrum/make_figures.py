@@ -132,9 +132,15 @@ def fig_gain_lognormal():
                  "fig_gain_lognormal.pdf", "lognormal")
 
 
+# The four-region balanced configuration duplicates the six-region one under equal
+# weights (both identically zero), so the paper reports one of the two. Excluded here
+# as well, to keep figures and tables over the same profile set.
+DROP = {"null: balanced 4 eq"}
+
+
 def _by_profile(fn):
     """-> [(mean delta, {mode: mean gain pp}, {mode: sem})] ordered by delta."""
-    rows = _load(fn)
+    rows = [r for r in _load(fn) if r["profile"] not in DROP]
     by = {}
     for r in rows:
         by.setdefault(r["profile"], {}).setdefault(r["mode"], {})[r["seed"]] = r["acc"]
