@@ -1053,14 +1053,15 @@ across a wider range and marks the operating point.
 
 Remark~\ref{rem:informative} requires $T \cdot m_i(\sigma) < H(p_i) - \ell_i$ for the
 guarantee to convey anything, and we verify it here. Over the $3840$ silo
-instances across all profiles and seeds, the concentrations $p_i$ span $[0.178,
-0.827]$, giving $H(p_i) = 2.23$ nats at $R = 20$ and a margin $H(p_i) - \ell_i =
+instances per task across all profiles and seeds, the concentrations $p_i$ span
+$[0.173, 0.827]$, giving $H(p_i) = 2.23$ nats at $R = 20$ and a margin $H(p_i) - \ell_i =
 1.38$ nats. The mechanism term reaches $K - \ell_i = 0.030$ nats at its largest,
 which is $2.2\%$ of that margin, so the condition holds with two orders of
 magnitude to spare at every operating point and under every allocation.
 
 Because $H(p_i)$ grows with $R$, the test would pass trivially at fine resolution,
-so Table~\ref{tab:informative} reports it across $R$. The condition holds at every
+so Table~\ref{tab:informative} reports it across $R$ for CIFAR-10, with AG News agreeing
+to within $0.02$ nats at every resolution. The condition holds at every
 resolution down to $R = 4$, where the target is resolved only to quartiles and
 $H(p_i) = 1.33$ nats still exceeds $K$. The verification therefore does not depend
 on the choice of $R$.
@@ -1087,7 +1088,8 @@ $50$  & $0.020$ & $3.04$ & $2.19$ & $0.030$ & yes \\
 \centering
 \includegraphics{figures/fig_privacy_utility.pdf}
 \caption{Accuracy against the per-client privacy parameter for both modalities
-under uniform allocation, with non-private references shown dotted. The evaluation
+under uniform allocation on the balanced six-region deployment, with non-private
+references shown dotted. Error bars give the standard error over ten seeds. The evaluation
 operates at $\varepsilon = 0.99$, where accuracy retains sensitivity to the noise
 level and the comparison between allocations is therefore meaningful.}
 \label{fig:pu}
@@ -1265,8 +1267,9 @@ The consequence is sharp. A convolutional network trained from scratch in our
 setting carries $d$ on the order of $5 \times 10^5$ against $n = 96$ silos, and at
 noise levels for which the bound remains informative the model stays at chance
 accuracy. Fine-tuning a compact head on a frozen backbone reduces $d$ by roughly
-four orders of magnitude and attains full non-private accuracy at the same privacy
-target, as Figure~\ref{fig:pu} shows. We therefore present silo-level differential
+four orders of magnitude and recovers most of the non-private accuracy, reaching
+$85\%$ of it on images and $81\%$ on text at the operating point and converging to it
+by $\varepsilon \approx 10$, as Figure~\ref{fig:pu} shows. We therefore present silo-level differential
 privacy as suited to federated fine-tuning of pretrained representations, which is
 also where much current practice sits. The allocation result itself holds
 irrespective of this choice, since it concerns relative exposure rather than
