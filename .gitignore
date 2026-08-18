@@ -34,7 +34,11 @@ experiments.db-journal
 experiments.db-wal
 experiments.db-shm
 /runs/
-/analysis/
+# Experimental artefacts backing every table and figure are TRACKED: make_figures.py
+# reads analysis/v2, and the paper's availability statement refers to them. Only
+# bulk run directories are excluded.
+/runs/
+/data/
 
 # Datasets (large, externally hosted) — anchored to repo root so source files
 # under fulcrum/data/ are still tracked.
@@ -63,3 +67,13 @@ coverage.xml
 # Worktrees and local reference PDFs
 .claude/
 references/
+manuscript/main.pdf
+fulcrum/lev.log
+manuscript/*.aux
+manuscript/*.bbl
+manuscript/*.blg
+manuscript/*.log
+manuscript/*.out
+
+# Submission bundle: a build artefact that goes stale the moment main.tex changes
+manuscript.zip
