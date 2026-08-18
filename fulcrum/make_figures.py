@@ -43,6 +43,7 @@ plt.rcParams.update({
     "figure.dpi": 300, "savefig.bbox": "tight", "savefig.pad_inches": 0.01,
 })
 C_F, C_U, C_R = "#1b4f72", "#a93226", "#7f8c8d"
+C_H = "#b9770e"   # heuristic series
 
 # Exposure dispersion of real deployment structures (see fulcrum/real_delta.py).
 # These are marked on the same axis along which the gain is measured, so a reader can
@@ -102,7 +103,7 @@ def fig_gain_vs_delta():
     # halo instead: where the two agree the halo shows as a band around the optimal
     # line, and where they diverge it separates as an ordinary series.
     series = [("random",  C_R, "s", "--", 1.3, "Misallocated"),
-              ("sqrt_m",  C_U, "^", "-",  3.4, r"Heuristic $\sigma\propto 1/\sqrt{m}$"),
+              ("sqrt_m",  C_H, "^", "-",  3.2, r"Heuristic $\sigma\propto 1/\sqrt{m}$"),
               ("fulcrum", C_F, "o", "-",  1.5, "Optimal allocation")]
     for r, c, fn, title in panels:
         ax = axes[r][c]
@@ -113,7 +114,7 @@ def fig_gain_vs_delta():
             y = np.array([x[1][mode] for x in rec])
             e = np.array([x[2][mode] for x in rec])
             if mode == "sqrt_m":
-                ax.plot(d, y, ls=ls, color=col, lw=lw, alpha=0.40,
+                ax.plot(d, y, ls=ls, color=col, lw=lw, alpha=0.32,
                         solid_capstyle="round", zorder=2, label=lab)
                 ax.plot(d, y, marker=mk, ms=3.4, ls="none", color=col,
                         alpha=0.95, zorder=2.5)
@@ -130,14 +131,6 @@ def fig_gain_vs_delta():
         if c == 0:
             ax.set_ylabel("accuracy gain over\nuniform allocation (pp)")
     axes[0][0].legend(loc="upper left", handlelength=2.1)
-    axes[0][0].annotate("balanced controls", xy=(0.02, 0.0), xytext=(0.15, -4.2),
-                        fontsize=6.4, ha="left", va="center",
-                        arrowprops=dict(arrowstyle="->", lw=0.6, color="0.4",
-                                        shrinkA=0, shrinkB=3))
-    for c in (0, 1):                      # say plainly why only one line is visible
-        axes[0][c].annotate("heuristic coincides\nwith optimum", xy=(0.79, 0.86),
-                            xycoords="axes fraction", fontsize=6.2, ha="right",
-                            va="top", color=C_U)
     fig.subplots_adjust(wspace=0.07, hspace=0.24)
     fig.savefig(os.path.join(OUT, "fig_gain_vs_delta.pdf"))
     plt.close(fig)
