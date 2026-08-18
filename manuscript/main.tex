@@ -2,9 +2,12 @@
 %% ACM Transactions on Privacy and Security (TOPS)
 %% Build: tectonic -X compile main.tex    (or: pdflatex; bibtex; pdflatex; pdflatex)
 
-%% For submission: `review` adds line numbers. Add `anonymous` if the venue is
-%% double-blind. For the final version use \documentclass[acmsmall]{acmart}.
-\documentclass[acmsmall,review]{acmart}
+%% TOPS reviews double-anonymous, so `anonymous` is required for submission and
+%% `review` adds line numbers. For the camera-ready, drop both:
+%%   \documentclass[acmsmall]{acmart}
+%% Under `anonymous`, acmart suppresses the author block, the acks environment and
+%% anything wrapped in anonsuppress; check the compiled PDF before submitting.
+\documentclass[acmsmall,review,anonymous]{acmart}
 
 %% --- Rights and journal metadata (replace on acceptance) ---
 \setcopyright{acmlicensed}
@@ -1388,13 +1391,16 @@ the aggregator while preserving the structure of the result.
 \section*{Data and Code Availability}
 
 The \Fulcrum reference implementation, together with the analysis artefacts
-underlying every table and figure, is available at
-\url{https://doi.org/10.5281/zenodo.20507155}.
+underlying every table and figure, is publicly archived under a permanent
+identifier.
+\begin{anonsuppress}
+It is available at \url{https://doi.org/10.5281/zenodo.20507155}.
+\end{anonsuppress}
 
-\section*{Acknowledgement}
-
+\begin{acks}
 The authors thank Prof. Salil Kanhere for his valuable feedback and guidance
 during the preparation of this work.
+\end{acks}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}

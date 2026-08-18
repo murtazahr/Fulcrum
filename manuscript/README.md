@@ -25,8 +25,14 @@ pdflatex main && bibtex main && pdflatex main && pdflatex main
 
 ## Notes
 
-`\documentclass[acmsmall,review]{acmart}` gives line numbers for review. Add
-`anonymous` if the venue is double-blind; drop `review` for the camera-ready.
+TOPS reviews **double-anonymous**, so submission uses
+`\documentclass[acmsmall,review,anonymous]{acmart}`: `anonymous` suppresses the
+author block, and `review` adds line numbers. Drop both for the camera-ready.
+
+Under `anonymous`, acmart also excludes the `acks` environment and anything inside
+`anonsuppress`. The acknowledgement and the artefact DOI are wrapped accordingly,
+since both would otherwise identify the authors. Verify with a text search of the
+compiled PDF before submitting.
 
 Figures are authored at exactly the `acmsmall` text width (395.82pt = 5.48in) and
 included at natural size, so they must be regenerated if the class or format
