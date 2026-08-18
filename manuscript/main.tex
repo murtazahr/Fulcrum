@@ -387,6 +387,15 @@ containing silo $i$ and index regions by $r$. Training proceeds for $T$ rounds o
 federated averaging \cite{mcmahan2017fedavg}. Table~\ref{tab:notation} collects
 the notation.
 
+Three properties of this structure are assumed throughout. Regions are disjoint, so
+each silo contributes to exactly one aggregate; membership is fixed for the
+duration of training; and silo datasets are disjoint, so no record is held by two
+participants. The first two make the observer's view decomposable region by region,
+which is what Section~\ref{sec:theory} relies on, and the third makes silo-level
+adjacency well defined. Deployments in which a silo feeds several aggregates, or in
+which membership changes between rounds, need the accounting extended and are not
+treated here.
+
 The region structure is a property of the deployment rather than a parameter we
 select. It follows the physical network where clients report to the base station
 serving them, and the organisational structure where clinical sites report through
@@ -1388,58 +1397,35 @@ bounds the exposure when it is not.
 
 \subsection{Limitations}
 
-The guidance above is optimistic about when the method helps. Several limitations bound the scope of the claims underlying it.
+The guidance above is optimistic about when the method helps. Three limitations
+bound it, beyond the assumptions already stated where they are used: disjoint
+regions with fixed membership and disjoint silo datasets
+(Section~\ref{sec:model}), the trust the concealment places in regional
+aggregators (Sections~\ref{sec:model} and~\ref{sec:discussion}), and the
+requirement that regions differ in effective size, which $\delta$ tests in advance
+(Section~\ref{sec:allocation}).
 
-Regions must differ in effective size for the improvement to materialise, and
-$\delta$ quantifies this in advance. Deployments with balanced regions, and flat
-federations lacking an aggregation tier, attain parity with existing practice
-rather than improvement. We regard the explicitness of this condition as a virtue,
-though it does confine the applicable setting.
+The bound is not tight. Theorem~\ref{thm:bound} is an upper bound with slack in at
+least two places: the chain rule discards a non-negative term, and the per-round
+divergence is a worst case over adjacent inputs. Tightening either would reduce the
+noise needed at a given target. The allocation is unaffected, since it depends on
+the relative exposure of regions rather than on the absolute level of the bound,
+but the reported $\varepsilon$ would improve.
 
-A further assumption concerns the structure itself. The analysis assumes regions are disjoint, that membership is fixed for the
-duration of training, and that silo datasets are disjoint. Deployments in which a
-silo contributes to several aggregates would require the observer's view to be
-modelled jointly across regions, and dynamic reconfiguration would require the
-accounting to track membership over time. Both lie outside the present treatment.
+The adversary is passive. Active manipulation of the protocol, and an aggregator
+that misreports the sum it computed, both fall outside the model; local
+perturbation removes the need to trust the aggregator to add noise, but not the
+need to trust it to report honestly. Section~\ref{sec:discussion} sets out how
+secure aggregation closes this, and at what cost under collusion.
 
-Separately, the bound itself is not tight. Theorem~\ref{thm:bound} states an upper bound, and slack remains in it in at
-least two places: the chain rule step discards a non-negative term, and the
-per-round divergence is a worst case over adjacent inputs. Tightening either would
-reduce the noise required at a given target. The allocation itself is unaffected,
-since it depends on the relative exposure of regions rather than on the absolute
-level of the bound.
-
-The bound's other structural input carries its own assumption: $\ell_i$ is defined relative to a stated generative model, and a
-deployment whose true correlation structure departs from that model would yield a
-different floor. Our calibration indicates that $\ell_i$ saturates quickly and
-varies modestly across silos, so the allocation is governed by the mechanism term,
-and we would expect the ordering of regions to persist under moderate
-misspecification. Establishing that formally remains open.
-
-The threat model is similarly bounded. The trust placed in regional aggregators is the sharpest of these limitations.
-Because the regional sum supplies the concealment, a silo facing a curious
-aggregator within its own region retains only the protection of $\sigma_i$. On the
-severe profile the allocation reduces $\sigma_i$ in the largest region to $0.26$ of
-its uniform value, which moves that region's guarantee against its own aggregator
-from $\varepsilon = 2.12$ to $\varepsilon = 10.06$, while the guarantee against an
-observer above the tier is unchanged at $0.99$. A deployment that regards its
-regional aggregators as adversarial should not reallocate on this basis, and should
-treat $\sigma_i$ rather than $S_r$ as the quantity to hold fixed. Composing the
-allocation with secure aggregation within regions would remove the assumption, and
-is the most useful extension we can identify.
-
-We assume a passive observer. Active adversaries that manipulate the protocol, and
-aggregators that misreport the sums they compute, fall outside the model. Because
-each silo perturbs its own update before transmission, the guarantee holds without
-trusting the aggregator to add noise; it does, however, assume that the
-aggregator reports the sum it computed. Combining the allocation with secure
-aggregation
-\cite{bonawitz2017secagg} would address the latter assumption and is a natural
-extension.
-
-Finally, our experiments cover two modalities at one federation scale, with a
-linear head on frozen representations. Behaviour at substantially larger silo
-counts, and with larger trainable heads, remains to be characterised.
+The evaluation is narrow. Two modalities at one federation scale, with a linear
+head on frozen representations, at $T = 10$ rounds. Section~\ref{sec:discussion}
+shows the budget saving is invariant to model dimension while the accuracy it buys
+compresses, so we expect the ordering to persist at larger heads; behaviour at
+substantially larger silo counts, over longer training, and under dynamic
+membership remains to be characterised. Composition is linear in $T$, which is
+looser than the R\'enyi accounting used for the reported $\varepsilon$, so the
+information bound degrades faster with round count than the privacy budget does.
 
 \subsection{Relation to trusted-aggregator schemes}
 
