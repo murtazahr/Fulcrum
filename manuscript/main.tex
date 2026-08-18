@@ -30,8 +30,10 @@
 
 %% acmart supplies theorem, lemma, corollary, proposition and definition, but it
 %% defines them at end-of-preamble, so `remark` must be added there too.
+%% The ACM guide (acmguide.pdf, sec. 2.11) specifies acmdefinition for remark-like
+%% constructs: upright body text, unlike the italic acmplain used for theorems.
 \AtEndPreamble{%
-  \theoremstyle{acmplain}%
+  \theoremstyle{acmdefinition}%
   \newtheorem{remark}[theorem]{Remark}%
 }
 
@@ -1045,17 +1047,17 @@ the spread. Error bars as in Figure~\ref{fig:gain}.}
 \caption{Accuracy at a matched worst-case per-client guarantee ($\varepsilon = 0.99$, $n = 96$, $T = 10$, ten seeds). Gains are percentage points relative to uniform allocation, and the budget saved equals $\delta$ in every row. Non-private references are $0.970$ for CIFAR-10 and $0.930$ for AG News.}
 \label{tab:main}
 \centering
-\small
-\setlength{\tabcolsep}{4.5pt}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lc cccc cccc@{}}
 \toprule
-& & \multicolumn{4}{c}{CIFAR-10, frozen ResNet-18} & \multicolumn{4}{c}{AG News, frozen MiniLM} \\
+& & \multicolumn{4}{c}{CIFAR-10 (ResNet-18)} & \multicolumn{4}{c}{AG News (MiniLM)} \\
 \cmidrule(lr){3-6}\cmidrule(lr){7-10}
 Region profile & $\delta$
-& \Fulcrum & Uniform & Gain & Misalloc.
-& \Fulcrum & Uniform & Gain & Misalloc. \\
+& \Fulcrum & Unif. & Gain & Misall.
+& \Fulcrum & Unif. & Gain & Misall. \\
 \midrule
-Balanced, 6 regions (control) & $0.000$
+Balanced, 6 regions & $0.000$
 & $0.823$ & $0.823$ & $+0.00$ & $+0.00$
 & $0.751$ & $0.751$ & $+0.00$ & $+0.00$ \\
 Mild, $6/6/6/3/3$ & $0.375$
@@ -1111,15 +1113,15 @@ independently, and transferring it costs more than making no adjustment at all.
 \caption{Accuracy gain over uniform allocation (percentage points, paired over ten seeds) for the allocation and three alternatives, at a matched worst-case per-client guarantee. Upper half: equally sized silos, where $\rho_r = 1/m_r$ and the $1/\sqrt{m}$ heuristic coincides with the optimum. Lower half: log-normal silo sizes, where the two separate. The balanced profiles in the lower half have equally sized regions, so any size-based rule is identical to uniform there.}
 \label{tab:baselines}
 \centering
-\small
-\setlength{\tabcolsep}{5pt}
+\footnotesize
+\setlength{\tabcolsep}{2.6pt}
 \begin{tabular}{@{}llc cccc cccc@{}}
 \toprule
-& & & \multicolumn{4}{c}{CIFAR-10, frozen ResNet-18} & \multicolumn{4}{c}{AG News, frozen MiniLM} \\
+& & & \multicolumn{4}{c}{CIFAR-10 (ResNet-18)} & \multicolumn{4}{c}{AG News (MiniLM)} \\
 \cmidrule(lr){4-7}\cmidrule(lr){8-11}
 Silo sizes & Region profile & $\delta$
-& \Fulcrum & $\sigma\!\propto\!\tfrac{1}{\sqrt{m}}$ & $\sigma\!\propto\!\tfrac{1}{m}$ & Misalloc.
-& \Fulcrum & $\sigma\!\propto\!\tfrac{1}{\sqrt{m}}$ & $\sigma\!\propto\!\tfrac{1}{m}$ & Misalloc. \\
+& \Fulcrum & $1/\sqrt{m}$ & $1/m$ & Misall.
+& \Fulcrum & $1/\sqrt{m}$ & $1/m$ & Misall. \\
 \midrule
 \multirow{3}{*}{Equal}
  & Balanced, 6 regions & $0.000$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ \\
