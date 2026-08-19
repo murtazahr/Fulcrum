@@ -20,10 +20,19 @@ from evaluate import rho_stats
 ELL, K, A = 0.85, 0.88, 20.0          # a = 2T at T = 10, matching the evaluation
 REPS = 200
 
-# Per-silo dataset sizes as published in FLamby (Terrail et al.), the two federations there
-# for which per-centre volumes are reported.
-FLAMBY = {"Fed-ISIC2019": np.array([9930, 3163, 2691, 1807, 655, 351], float),
-          "Fed-Heart-Disease": np.array([199, 172, 30, 85], float)}
+# Per-centre dataset sizes for all seven federations in FLamby (Terrail et al., Table 1).
+# These are measurements, not assumptions: every one of the seven is unbalanced, which is
+# the point. Fed-ISIC2019 is quoted at its training split elsewhere in the code; the totals
+# are used here because the dispersion is what matters and it is unaffected.
+FLAMBY = {
+    "Fed-Camelyon16":    np.array([239, 150], float),
+    "Fed-LIDC-IDRI":     np.array([670, 205, 69, 74], float),
+    "Fed-IXI":           np.array([311, 181, 74], float),
+    "Fed-TCGA-BRCA":     np.array([311, 196, 206, 162, 162, 51], float),
+    "Fed-KiTS2019":      np.array([12, 14, 12, 12, 16, 30], float),
+    "Fed-ISIC2019":      np.array([12413, 3954, 3363, 2259, 819, 439], float),
+    "Fed-Heart-Disease": np.array([303, 261, 46, 130], float),
+}
 
 
 def budgets(w, groups):
@@ -58,11 +67,17 @@ if __name__ == "__main__":
     print(f"Fed-ISIC2019 as deployed: delta = {100*d:.1f}%, heuristic needs {uh/uf:.2f}x the "
           f"optimal budget\n  (largest region holds 3 silos, so there is little room for a "
           f"size-based rule to err)\n")
+    print(f"{'federation':<20}{'clients':>8}{'max/min':>9}{'sd(log)':>9}")
     for nm, v in FLAMBY.items():
-        print(f"{nm}: {len(v)} silos, max/min = {v.max()/v.min():.1f}x, "
-              f"sd(log size) = {np.std(np.log(v)):.2f}")
-    spreads = [("equal weights (Table 4)", 0.0)] + \
-              [(f"weights at the {k} spread", float(np.std(np.log(v)))) for k, v in FLAMBY.items()]
+        print(f"{nm:<20}{len(v):>8}{v.max()/v.min():>8.1f}x{np.std(np.log(v)):>9.2f}")
+    print()
+    sds = {k: float(np.std(np.log(v))) for k, v in FLAMBY.items()}
+    med, mx = float(np.median(list(sds.values()))), max(sds.values())
+    print(f"across the seven: sd(log size) from {min(sds.values()):.2f} to {mx:.2f}, "
+          f"median {med:.2f}; the evaluation's log-normal arm uses 0.60\n")
+    spreads = [("equal weights (Table 4)", 0.0),
+               (f"weights at the FLamby median (sd={med:.2f})", med),
+               (f"weights at the most skewed (sd={mx:.2f})", mx)]
     rng = np.random.default_rng(0)
     cell = np.maximum(1, np.round(rng.lognormal(1.2, 1.3, 60)).astype(int))
     STRUCT = {"Consortium by country 30/10/5/3/1/1":
@@ -74,4 +89,4 @@ if __name__ == "__main__":
         for lbl, s in spreads:
             d, ratio = sweep(groups, s)
             print(f"   {lbl:<36} delta = {100*d:5.1f}%   heuristic needs {ratio:.2f}x the optimal budget")
-    print("\nThe evaluation's log-normal arm uses sd(log) = 0.6, below both measured federations.")
+    print("\nThe evaluation's log-normal arm sits at the median of the seven, not at an extreme.")

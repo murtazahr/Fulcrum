@@ -1223,23 +1223,30 @@ distinction drawn in Section~\ref{sec:related}: an exponent calibrated for a
 trusted aggregator injecting once per zone is not the exponent for silos injecting
 independently, and transferring it costs more than making no adjustment at all.
 
-Table~\ref{tab:realdelta} reports the consortium and cellular structures with equal silo
-weights, since the sources describe how many sites belong to each region without recording
-how much data each site holds. The Fed-ISIC2019 entry instead uses the per-centre volumes
-published with the benchmark \cite{terrail2022flamby}, and those volumes span a factor of
-$28.3$, so weight dispersion of the kind that separates the allocation from the heuristic
-occurs in practice. Its consequence depends on the size of the federation. On Fed-ISIC2019
-itself, whose largest region holds three silos, meeting the same guarantee through $\sigma
-\propto 1/\sqrt{m}$ costs $1.06$ times the optimal budget, a margin of no practical
-interest. Imposing the same dispersion on the consortium and cellular structures, which
-place tens and hundreds of silos in a region, costs between $2.4$ and $2.7$ times and
-between $4.1$ and $4.5$ times the optimal budget, while $\delta$ itself falls from
-$88.0\%$ to between $44.0\%$ and $58.5\%$, and from $85.6\%$ to between $34.4\%$ and
-$52.2\%$. Equal weights therefore maximise $\delta$ and are the case in which the heuristic
-attains it, whereas dispersed weights lower $\delta$ and leave the allocation as the only
-rule reaching what remains. Since the allocation costs no more to compute and is never less
-accurate, the question a practitioner faces is not which rule to prefer but how much the
-choice matters, and that grows with the size and the heterogeneity of the deployment.
+Silo weights vary in practice, and by how much is documented. Unbalanced client dataset
+sizes are treated as a defining feature of the federated setting rather than an incidental
+one \cite{kairouz2021advances}, and the seven healthcare federations assembled in FLamby
+\cite{terrail2022flamby} bear that out without exception. Per-centre sample counts there
+differ by factors between $1.6$ and $28.3$, with log standard deviations from $0.23$ to
+$1.09$ and a median of $0.59$. The log-normal arm evaluated above draws silo sizes at a log
+standard deviation of $0.60$, which places it at the median of the seven rather than at a
+favourable extreme.
+
+Table~\ref{tab:realdelta} nonetheless reports the consortium and cellular structures with
+equal weights, since their sources describe how many sites belong to each region without
+recording how much data each site holds, whereas the Fed-ISIC2019 entry uses the published
+per-centre volumes. What that dispersion costs a size-based rule depends on how many silos
+share a region. Fed-ISIC2019 places at most three silos in a region, and meeting the same
+guarantee there through $\sigma \propto 1/\sqrt{m}$ costs $1.06$ times the optimal budget,
+a margin of no practical interest. Applying the median and the most skewed of the seven
+dispersions to the consortium and cellular structures, which place tens and hundreds of
+silos in a region, costs $2.20$ to $2.65$ times and $3.71$ to $4.50$ times the optimal
+budget, while $\delta$ falls from $88.0\%$ to between $44.0\%$ and $66.0\%$ and from
+$85.6\%$ to between $34.4\%$ and $61.0\%$. Equal weights maximise $\delta$ and are the case
+in which the heuristic attains it, whereas dispersed weights lower $\delta$ and leave the
+allocation as the only rule reaching what remains. Since the allocation costs no more to
+compute and is never less accurate, what varies is not which rule to prefer but how much
+the choice matters, and that grows with the size of the federation.
 
 \begin{table}[t]
 \caption{Accuracy gain over uniform allocation (percentage points, paired over ten seeds) for the allocation and three alternatives, at a matched worst-case per-client guarantee. Upper half: equally sized silos, where $\rho_r = 1/m_r$ and the $1/\sqrt{m}$ heuristic coincides with the optimum. Lower half: log-normal silo sizes, where the two separate. The balanced profiles in the lower half have equally sized regions, so any size-based rule is identical to uniform there.}
