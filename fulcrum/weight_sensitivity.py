@@ -48,7 +48,16 @@ def sweep(groups, s_log, reps=REPS):
     return float(np.mean(d)), float(np.mean(ratio))
 
 
+ISIC_W = np.array([9930, 3163, 2691, 1807, 655, 351], float)   # Fed-ISIC2019, as in Table 4
+ISIC_G = np.array([0, 0, 0, 1, 2, 3])                          # natural hospital regions 3/1/1/1
+
+
 if __name__ == "__main__":
+    # The one Table 4 entry whose per-silo volumes are published, so nothing is assumed.
+    d, uf, uh = budgets(ISIC_W / ISIC_W.sum(), ISIC_G)
+    print(f"Fed-ISIC2019 as deployed: delta = {100*d:.1f}%, heuristic needs {uh/uf:.2f}x the "
+          f"optimal budget\n  (largest region holds 3 silos, so there is little room for a "
+          f"size-based rule to err)\n")
     for nm, v in FLAMBY.items():
         print(f"{nm}: {len(v)} silos, max/min = {v.max()/v.min():.1f}x, "
               f"sd(log size) = {np.std(np.log(v)):.2f}")
