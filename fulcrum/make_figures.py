@@ -19,6 +19,7 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter, NullFormatter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -54,6 +55,23 @@ C_H = "#b9770e"   # heuristic series
 DEPLOY = [(0.144, "clinical sites"), (0.868, "cellular edge,\nconsortium")]
 
 
+
+def _plain_log_ticks(ax, ticks):
+    """Keep the log spacing, but label the axis with ordinary numbers.
+
+    A log axis defaults to 10^0 / 10^1 exponent labels, which are hard to read off when
+    the interesting range spans less than two decades. The spacing still needs to be
+    logarithmic here (group size runs 1 to 50, epsilon 0.2 to 25), so only the labelling
+    changes: ticks are pinned to the values actually measured and drawn as plain numbers.
+    """
+    ax.set_xticks(ticks)
+    # %g drops trailing zeros, so the axis reads 0.2, 0.5, 1, 2 rather than 0.2, 0.5,
+    # 1.0, 2.0 -- mixing the two looks like differing precision.
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+    ax.xaxis.set_minor_formatter(NullFormatter())
+    ax.xaxis.set_minor_locator(plt.NullLocator())
+
+
 def _load(fn):
     with open(os.path.join(DATA, fn)) as f:
         return json.load(f)
@@ -76,12 +94,6 @@ def _paired(fn):
         sem = lambda v: float(np.std(v, ddof=1) / np.sqrt(n)) if n > 1 else 0.0
         out.append((d, float(gd.mean()), sem(gd), float(md.mean()), sem(md), n))
     return out
-
-
-def _pick(base):
-    """Prefer the 10-seed artefact when present."""
-    s10 = base.replace(".json", "_s10.json")
-    return s10 if os.path.exists(os.path.join(DATA, s10)) else base
 
 
 def _gain_panels(files, outname, note):
@@ -161,21 +173,38 @@ def _by_profile(fn):
 
 
 def fig_privacy_utility():
-    """Both modalities on a COMMON sigma grid, so the two series are sampled identically.
-    The earlier version sampled CIFAR-10 at nine noise levels and AG News at three, which
-    made the two curves look arbitrarily different where they were merely measured differently."""
-    grid = _load("pu_grid.json")
+    """Privacy-utility curve measured through the SAME code path as the main table.
+
+    The earlier version of this figure swept the RAW injected sigma and labelled the axis
+    with eps_silo(T, sigma_raw). That is the wrong accounting basis -- a client is concealed
+    by the TOTAL noise in its region, so its effective multiplier is sqrt(S_r)/w_i -- and it
+    overstated eps by roughly 4.5x at m=16, so the curve did not pass through the operating
+    point reported in Table 5. It also had no generator in the repo. fulcrum/pu_curve.py now
+    produces these artefacts by driving sigmas_for_target(..., "uniform") on the balanced
+    profile with the same seeds, so the eps=0.99 point reproduces the table by construction.
+    """
     fig, ax = plt.subplots(figsize=(COL, 2.9))
-    for key, lbl, col, mk in [("cifar", "CIFAR-10", C_F, "o"), ("agnews", "AG News", C_U, "s")]:
-        pts = grid[key]
-        ref = [p["acc"] for p in pts if p["sigma"] == 0][0]
-        xy = sorted((p["eps"], p["acc"]) for p in pts if p["eps"] is not None)
-        ax.plot([x for x, _ in xy], [y for _, y in xy], marker=mk, ms=3.4, color=col, label=lbl)
+    for fn, lbl, col, mk in [("pu_curve_cifar.json", "CIFAR-10", C_F, "o"),
+                             ("pu_curve_agnews.json", "AG News", C_U, "s")]:
+        rows = _load(fn)
+        by = {}
+        for r in rows:
+            by.setdefault(r["target_eps"], {})[r["seed"]] = (r["acc"], r["eps"])
+        ref = float(np.mean([a for a, _ in by.pop(None).values()]))
+        pts = []
+        for _, d in sorted(by.items(), key=lambda kv: kv[0]):
+            acc = np.array([a for a, _ in d.values()])
+            pts.append((float(np.mean([e for _, e in d.values()])), acc.mean(),
+                        acc.std(ddof=1) / np.sqrt(len(acc)) if len(acc) > 1 else 0.0))
+        x, y, e = (np.array(v) for v in zip(*pts))
+        ax.errorbar(x, y, yerr=e, marker=mk, ms=3.4, color=col, lw=1.3,
+                    capsize=2, elinewidth=0.7, label=lbl)
         ax.axhline(ref, color=col, lw=0.7, ls=":", alpha=0.8)
     ax.axvline(0.99, color="0.35", lw=0.8, ls="--")
     ax.annotate(r"$\varepsilon=0.99$", xy=(0.99, 0.40), xytext=(1.9, 0.365),
                 fontsize=6.8, arrowprops=dict(arrowstyle="->", lw=0.6, color="0.4"))
     ax.set_xscale("log")
+    _plain_log_ticks(ax, [0.2, 0.5, 1, 2, 5, 10, 25])
     ax.set_xlabel(r"privacy parameter $\varepsilon$  ($\delta_{\mathrm{DP}}=10^{-5}$)")
     ax.set_ylabel("test accuracy")
     ax.set_ylim(0.30, 1.02)
@@ -194,6 +223,7 @@ def fig_leverage():
                 marker=mk, ms=3.6, color=col, label=fr"$\kappa={kap}$")
         ax.axhline(saturation(kap, n_mc=60000), color=col, lw=0.7, ls=":", alpha=0.85)
     ax.set_xscale("log")
+    _plain_log_ticks(ax, [1, 2, 3, 5, 10, 20, 50])
     ax.set_xlabel(r"organisational group size $|G_i|$")
     ax.set_ylabel(r"lateral floor $\ell_i$ (nats)")
     ax.set_xlim(0.9, 60)

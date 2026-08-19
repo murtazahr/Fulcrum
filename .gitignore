@@ -33,16 +33,17 @@ experiments.db
 experiments.db-journal
 experiments.db-wal
 experiments.db-shm
-/runs/
 # Experimental artefacts backing every table and figure are TRACKED: make_figures.py
 # reads analysis/v2, and the paper's availability statement refers to them. Only
 # bulk run directories are excluded.
 /runs/
 /data/
 
-# Datasets (large, externally hosted) — anchored to repo root so source files
-# under fulcrum/data/ are still tracked.
+# Datasets and derived feature caches (large, externally hosted, reproducible).
+# /cifar/ holds the CIFAR-10 download plus the frozen-backbone feature caches that
+# probe.py and agnews.py build on first run; ~370MB and regenerated automatically.
 /data/
+/cifar/
 .flamby_src/
 
 # Test / coverage
@@ -77,3 +78,5 @@ manuscript/*.out
 
 # Submission bundle: a build artefact that goes stale the moment main.tex changes
 manuscript.zip
+manuscript/cover_letter.pdf
+manuscript/main_polished.pdf
