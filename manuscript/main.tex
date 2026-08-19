@@ -78,37 +78,28 @@
 \renewcommand{\shortauthors}{Rangwala et al.}
 
 \begin{abstract}
-Hierarchical federated learning places regional aggregators between clients and
-the cloud, so that each participant's update is observed only after it has been
-combined with those of its neighbours. The size of that aggregation region
-governs how much concealment the region itself provides, and regions in
-operational deployments vary widely in size. Prevailing practice applies a single
-noise multiplier to every participant, calibrated for the most exposed region,
-so every other participant carries more noise than its own exposure requires.
-We show that the resulting allocation problem admits an explicit solution. We
-first give a differential privacy guarantee for the mechanism, then bound the
-mutual information between a participant's local class distribution and any
-estimate formed by an observer positioned above the regional tier, taking care
-that the adjacency used by the mechanism matches the quantity being protected. We
-then solve for the allocation minimising the worst-case value of that bound under
-a fixed utility budget, show it is min-max optimal, and call the resulting
-mechanism \Fulcrum. The allocation
-redistributes budget that uniform noise spends on over-protecting well concealed
-silos, rather than creating new amplification. Where the lateral floors agree across regions, the improvement over uniform
-allocation is exactly $\delta = 1 - \langle \rho \rangle_V / \rho_{\max}$, with
-$\rho_r$ the inverse participation ratio of region $r$. Because this quantity depends solely on the deployment's
-exposure profile, which follows from the region structure together with the
-aggregation weights, a practitioner can evaluate it before training begins; it
-vanishes precisely when all regions are equally exposed. Measured
-across operational structures, $\delta$ ranges from $14\%$ for clinical sites
-grouped by hospital to $88\%$ for consortia organised by country, and is zero
-wherever regions are equally sized. Experiments on
-image and text classification confirm the prediction at $\varepsilon = 0.99$:
-accuracy at a matched worst-case per-client guarantee improves by up to $14.84$ percentage
-points where $\delta$ is large, matches the uniform baseline exactly in a
-balanced control deployment for which the theory predicts parity, and falls
-below it for a control that preserves the noise dispersion while assigning it
-to the wrong regions.
+Hierarchical federated learning places regional aggregators between clients and the
+cloud, so a participant's update is observed only after it has been combined with
+those of its neighbours. How much concealment this provides depends on the size of
+the aggregation region, and regions in operational deployments vary widely.
+Prevailing practice applies a single noise multiplier to every participant,
+calibrated for the most exposed region, so every other participant carries more
+noise than its own exposure requires.
+
+We show that the resulting allocation problem admits an explicit solution. We give a
+silo-level differential privacy guarantee for the mechanism, then bound the mutual
+information between a participant's local class distribution and any estimate formed
+by an observer positioned above the regional tier, taking care that the adjacency
+used by the mechanism matches the quantity being protected. Minimising the worst-case
+bound under a fixed utility budget yields a min-max optimal allocation, which we call
+\Fulcrum. The budget it recovers is $\delta = 1 - \langle \rho \rangle_V /
+\rho_{\max}$, with $\rho_r$ the inverse participation ratio of region $r$. Because
+$\delta$ follows from the region structure and the aggregation weights alone, a
+practitioner can evaluate it before training begins, and it vanishes precisely when
+all regions are equally exposed. On image and text classification at $\varepsilon =
+0.99$, accuracy at a matched worst-case per-client guarantee improves by up to
+$14.84$ and $12.16$ percentage points where $\delta$ is large, and is exactly zero on
+a balanced control deployment for which the theory predicts parity.
 \end{abstract}
 
 \begin{CCSXML}
@@ -482,7 +473,7 @@ Three aspects of \eqref{eq:mechanism} deserve comment. Clipping applies to the
 silo's entire update rather than to per-example gradients, so the mechanism
 protects participation of a whole silo, matching the granularity of the quantity
 we set out to protect. Each silo contributes its own noise prior to transmission,
-so the aggregator need not be relied upon to perturb anything. Section~\ref{sec:model}
+so the aggregator need not be relied upon to perturb anything. Section~\ref{sec:adversary}
 sets out what this does and does not assume about the aggregator itself. Finally, the volume of local
 computation performed between communications leaves the privacy accounting
 unchanged: each silo releases exactly one clipped and perturbed update per round
@@ -512,6 +503,7 @@ respect, since there every local step constitutes a separate release.
 \end{algorithm}
 
 \subsection{Adversary}
+\label{sec:adversary}
 
 What can an observer positioned above the aggregation tier do with what it sees? We consider a passive observer that follows the protocol while examining what it
 can see. It knows the region structure, the aggregation weights, and the noise
@@ -662,9 +654,10 @@ prior making $p_i$ a deterministic function of a neighbour's data, giving $\ell_
 constant across silos and any allocation derived from it would coincide with the
 uniform one.
 
-To see that $\ell_i$ can be computed rather than merely defined, consider a hierarchical model in which a group-level parameter $\Phi_g$ is drawn
-first and each member's concentration is drawn conditionally on it, $\ell_i$ is
-computable and depends on the number of other members of $i$'s group. It increases
+That $\ell_i$ can be computed rather than merely defined is seen in a hierarchical
+model where a group-level parameter $\Phi_g$ is drawn first and each member's
+concentration is drawn conditionally on it. There $\ell_i$ is computable and depends
+on the number of other members of $i$'s group. It increases
 with that number and saturates at $I(p_i ; \Phi_g)$, which lies strictly below
 $H(p_i)$. Figure~\ref{fig:leverage} shows the behaviour. Saturation is rapid: the
 first group member contributes roughly two thirds of the eventual total, and the
@@ -882,14 +875,14 @@ $S_r$ than the common-floor calculation implies.
 Solving \eqref{eq:alloc} numerically with region-dependent $\ell_r$ taken from the
 model of Figure~\ref{fig:leverage} at $\kappa = 20$ and $K = 2.2$ nats gives the
 comparison in Table~\ref{tab:ellgap}. The common-floor value overstates the
-attainable saving by $2.8$ to $6.9$ percentage points, with the largest error on
+attainable saving by $0.6$ to $4.8$ percentage points, with the largest error on
 the most heterogeneous profile. The ordering of deployments is preserved, so the
 common-floor expression remains serviceable for ranking structures and for the
 $\delta = 0$ applicability test, and the numerical solution should be preferred
 whenever the saving itself is being quoted.
 
 \begin{table}[t]
-\caption{Saving attainable under the common-floor assumption of Corollary~\ref{cor:delta}, against a numerical solution carrying region-dependent $\ell_r$ ($\kappa = 20$, $K = 2.2$ nats).}
+\caption{Saving attainable under the common-floor assumption of Corollary~\ref{cor:delta}, against a numerical solution carrying region-dependent $\ell_r$ ($\kappa = 20$, $K = 2.2$ nats). Region profiles are instantiated at the evaluated federation size $n = 96$, since $\ell_r$ depends on the absolute number of silos sharing a region while $\delta$ does not.}
 \label{tab:ellgap}
 \centering
 \footnotesize
@@ -900,9 +893,9 @@ whenever the saving itself is being quoted.
 \cmidrule(lr){3-4}
 Region profile & $\ell_r$ range & common floor & solved for $\ell_r$ \\
 \midrule
-Mild, $6/6/6/3/3$ & $0.735$--$0.836$ & $37.5\%$ & $34.7\%$ \\
-Severe, $15/5/2/1/1$ & $0$--$0.889$ & $79.2\%$ & $72.3\%$ \\
-Consortium by country & $0$--$0.907$ & $88.0\%$ & $83.1\%$ \\
+Mild, $6/6/6/3/3$ & $0.875$--$0.895$ & $37.5\%$ & $36.9\%$ \\
+Severe, $15/5/2/1/1$ & $0.777$--$0.908$ & $79.2\%$ & $78.2\%$ \\
+Consortium by country & $0$--$0.899$ & $88.0\%$ & $83.2\%$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1283,6 +1276,7 @@ frozen representation, and that choice is deliberate. We explain why it is
 appropriate before turning to guidance, scope, and limitations.
 
 \subsection{Why fine-tuning is the appropriate setting}
+\label{sec:finetune}
 
 The noise entering the aggregate has norm proportional to $C \sigma \sqrt{d
 \sum_i w_i^2}$, where $d$ counts trainable parameters, while the aggregate signal
@@ -1304,6 +1298,7 @@ irrespective of this choice, since it concerns relative exposure rather than
 absolute feasibility.
 
 \subsection{Behaviour at higher model dimension}
+\label{sec:dimension}
 
 The setting evaluated here trains a compact head, and production systems often tune
 more parameters, whether fully or through adapters. Two quantities respond
@@ -1314,7 +1309,7 @@ the aggregation weights and the region structure alone, with no dependence on th
 model, the data or the number of parameters, so the budget recovered at a fixed
 guarantee is identical at any $d$. What responds is the accuracy that budget buys,
 through the signal-to-noise ratio $\sqrt{an/d}\,/\,\sigma$ of
-Section~\ref{sec:discussion}: raising $d$ moves every arm down its own
+Section~\ref{sec:finetune}: raising $d$ moves every arm down its own
 accuracy-versus-noise curve, compressing the differences between them.
 
 Repeating the CIFAR-10 sweep with a head of $d = 258$ against the $d = 66$ used
@@ -1326,7 +1321,7 @@ $0.663$. The privacy claim therefore transfers to larger heads unchanged, and th
 utility realised from it shrinks as the model moves toward the noise floor. A
 deployment tuning many parameters at silo-level granularity is constrained by that
 floor rather than by the allocation, which is the same conclusion
-Section~\ref{sec:discussion} draws for training from scratch.
+Section~\ref{sec:finetune} draws for training from scratch.
 
 \subsection{Practical guidance}
 
@@ -1352,9 +1347,10 @@ its regions when the structure is under its control, since equally sized regions
 give $\delta = 0$ and leave nothing for reallocation to recover.
 
 \subsection{Composition with secure aggregation}
+\label{sec:secagg}
 
-Section~\ref{sec:model} assumes an observer positioned above the regional tier, and
-Section~\ref{sec:discussion} identifies the resulting trust placed in regional
+Section~\ref{sec:adversary} assumes an observer positioned above the regional tier, and
+Section~\ref{sec:limitations} identifies the resulting trust placed in regional
 aggregators as the sharpest limitation of the scheme. Secure aggregation
 \cite{bonawitz2017secagg} is the standard means of removing it, and the allocation
 composes with it without modification.
@@ -1431,7 +1427,7 @@ Three consequences are worth stating. Overestimating the coupling is free, since
 $\ell_r(\kappa_{\mathrm{t}}) \le \ell_r(\kappa_{\mathrm{a}})$ makes the bracket
 non-positive and the target is met. Underestimating it costs the gap and no more:
 assuming $\kappa = 5$ where the deployment realises $\kappa = 100$ overshoots
-$K = 2.2$ nats by $1.14$ nats on the severe profile, and assuming $\kappa = 20$
+$K = 2.2$ nats by $1.13$ nats on the severe profile, and assuming $\kappa = 20$
 under the same conditions overshoots by $0.70$. The overshoot is bounded in all
 cases by $\max_\kappa I(p_i;\Phi)$, which is $1.62$ nats for the family considered
 here, because the floor cannot exceed its own saturation ceiling. A practitioner
@@ -1440,12 +1436,13 @@ coupling considered plausible, which costs nothing when it is an overestimate an
 bounds the exposure when it is not.
 
 \subsection{Limitations}
+\label{sec:limitations}
 
 The guidance above is optimistic about when the method helps. Three limitations
 bound it, beyond the assumptions already stated where they are used: disjoint
 regions with fixed membership and disjoint silo datasets
 (Section~\ref{sec:model}), the trust the concealment places in regional
-aggregators (Sections~\ref{sec:model} and~\ref{sec:discussion}), and the
+aggregators (Sections~\ref{sec:adversary} and~\ref{sec:secagg}), and the
 requirement that regions differ in effective size, which $\delta$ tests in advance
 (Section~\ref{sec:allocation}).
 
@@ -1459,11 +1456,11 @@ but the reported $\varepsilon$ would improve.
 The adversary is passive. Active manipulation of the protocol, and an aggregator
 that misreports the sum it computed, both fall outside the model; local
 perturbation removes the need to trust the aggregator to add noise, but not the
-need to trust it to report honestly. Section~\ref{sec:discussion} sets out how
+need to trust it to report honestly. Section~\ref{sec:secagg} sets out how
 secure aggregation closes this, and at what cost under collusion.
 
 The evaluation is narrow. Two modalities at one federation scale, with a linear
-head on frozen representations, at $T = 10$ rounds. Section~\ref{sec:discussion}
+head on frozen representations, at $T = 10$ rounds. Section~\ref{sec:dimension}
 shows the budget saving is invariant to model dimension while the accuracy it buys
 compresses, so we expect the ordering to persist at larger heads; behaviour at
 substantially larger silo counts, over longer training, and under dynamic
