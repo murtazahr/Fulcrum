@@ -29,48 +29,33 @@ ATHENE $|$ TU Darmstadt $|$ Fraunhofer SIT
 \medskip
 \noindent\today
 
-\bigskip
-\noindent Dear Professor Waidner,
-
 \medskip
+\noindent Dear Professor Waidner,
 
 We submit \emph{Topology-Aware Differential Privacy in Hierarchical Federated Learning} for
 consideration as a regular paper in \emph{ACM Transactions on Privacy and Security}.
 
 \lhead{The problem.}
 Hierarchical federated learning places regional aggregators between clients and the cloud, so
-that a participant's update reaches any observer above that tier only after it has been
-combined with those of its neighbours. The concealment this provides is not uniform. It
-depends on the effective size of the aggregation region, and regions in operational
-deployments differ by an order of magnitude. Prevailing practice nevertheless applies a single
-noise multiplier to every participant, calibrated for the most exposed region. Every other
-participant then carries more noise than its own exposure requires, and the federation pays
-for that surplus in accuracy.
+a participant is concealed by the region it is aggregated with. Regions in operational
+deployments differ by an order of magnitude in effective size, yet prevailing practice applies
+a single noise multiplier to every participant, calibrated for the most exposed region. The
+rest of the federation then carries more noise than its own exposure requires, and pays for
+that surplus in accuracy.
 
 \lhead{What we contribute.}
-We give a silo-level differential privacy guarantee for the mechanism, and separately bound
-the mutual information between a participant's local class distribution and any estimate an
-observer above the regional tier can form. The two results are kept apart deliberately: they
-rest on different assumptions and answer different questions, and neither is derived from the
-other. Throughout, the adjacency used by the mechanism is matched to the granularity of the
-property being protected, which is a property of a participant's dataset as a whole rather
-than of any individual record.
-
-Minimising the worst-case value of that bound under a fixed utility budget yields an explicit,
-min-max optimal allocation. The budget it recovers relative to uniform noise has a closed
-form, $\delta = 1 - \langle \rho \rangle_V / \rho_{\max}$, which depends only on the region
-structure and the aggregation weights. A practitioner can therefore determine before training
-whether the method will help, and $\delta$ is exactly zero when all regions are equally
-exposed, which supplies an explicit applicability test in place of a claim of universal
-benefit. Experiments on image and text classification confirm the prediction at
-$\varepsilon = 0.99$, including a balanced control deployment for which the theory predicts
-parity with the baseline and which delivers it.
+We give a silo-level differential privacy guarantee for the mechanism and, separately, bound
+what an observer positioned above the regional tier can learn about a participant's local
+class distribution. Minimising that bound under a fixed utility budget yields an explicit,
+min-max optimal allocation whose saving over uniform noise has a closed form depending only on
+the region structure and the aggregation weights. That saving is exactly zero when all regions
+are equally exposed, so the method carries its own applicability test, and experiments on
+image and text classification confirm the prediction, including a balanced control deployment
+for which the theory predicts parity and which delivers it.
 
 \lhead{Why this belongs in TOPS.}
 Two lines of work in the journal bear directly on this paper, and to our reading they have so
-far run in parallel.
-
-The first is differentially private mechanism design with formal guarantees, represented by
+far run in parallel. The first is differentially private mechanism design with formal guarantees, represented by
 Zhang et al.\ on real-time release of sequential data \cite{zhang2023sequential} and by
 Clifton et al.\ on private $k$-nearest-neighbour imputation \cite{clifton2022knn}. That work
 treats calibration rigorously, but outside federated settings.
@@ -82,13 +67,11 @@ journal: poisoning conducted under the cover of differential privacy
 federated learning for private data publication \cite{xun2026vflgan}. That work is
 predominantly adversarial, and treats the calibration of the noise as given.
 
-Our paper joins the two. It asks how differentially private noise should be calibrated to the
-structure of a federated deployment, and answers in closed form. The relationship to
-Zheng et al.\ \cite{zheng2025dppoison} is the most direct. DP-Poison shows that an adversary
-can conceal a poisoning attack within the noise that differential privacy introduces, treating
-the magnitude of that noise as a fixed quantity. We ask the prior question of how much noise
-each participant should carry, and show that the prevailing answer systematically
-over-protects most of the federation.
+Our paper joins the two: it asks how differentially private noise should be calibrated to the
+structure of a federated deployment, and answers in closed form. The relationship to DP-Poison
+\cite{zheng2025dppoison} is the most direct, since that work conceals an attack within the
+noise differential privacy introduces while treating its magnitude as fixed, where we ask how
+much noise each participant should carry in the first place.
 
 \lhead{Originality and prior dissemination.}
 The manuscript is original, is not under review at any other venue, and has not been published
@@ -98,24 +81,22 @@ in whole or in part.
 % identifier and delete this comment. If none is posted, delete this comment only.
 
 \lhead{Reproducibility.}
-Every experimental artefact is archived, and each table and figure in the paper is regenerated
-by a script in the accompanying repository. A verification script re-derives every reported
-privacy parameter from the mechanism itself rather than reading a stored value, so the
-guarantees we report can be checked independently of our own tooling.
+Every experimental artefact is archived, and each table and figure is regenerated by a script
+in the accompanying repository. A verification script re-derives every reported privacy
+parameter from the mechanism rather than reading a stored value.
 
 \medskip
 We look forward to the reviewers' assessment.
 
-\bigskip
-\noindent Sincerely,
+\medskip
+\noindent Sincerely,\nopagebreak
 
 \medskip
 \noindent
 Murtaza Rangwala, Richard O. Sinnott, and Rajkumar Buyya\\
-School of Computing and Information Systems\\
-The University of Melbourne, Australia
+School of Computing and Information Systems, The University of Melbourne, Australia
 
-\bigskip
+\medskip
 \bibliographystyle{unsrtnat}
 \bibliography{cover_letter}
 
