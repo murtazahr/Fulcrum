@@ -30,8 +30,8 @@ fulcrum/
 └── agnews.py        AG News experiment: frozen MiniLM -> PCA -> linear head.
 
 analysis/v2/         Result JSONs for the confirmed runs.
-analysis/*.parquet   v1 run records. RETAINED as the evidence base for the epsilon and
-                     batch-size corrections documented for v2.
+analysis/*.parquet   Archived run records retained as the evidence base for documented
+                     epsilon and batch-size corrections.
 ```
 
 ## The three allocation modes (`evaluate.sigmas_for_target`)
@@ -52,14 +52,6 @@ python fulcrum/probe.py  --K 0.88 --n 96 --T 10 --fdim 32 --seeds 3 --out probe_
 python fulcrum/agnews.py --K 0.88 --n 96 --T 10 --fdim 32 --seeds 3 --out agnews_K0.88.json
 ```
 
-Both at eps = 0.99. Expected (see REVISION_PLAN.md for full tables): exactly 0.000 pp gain at
+Both at eps = 0.99. Expected: exactly 0.000 pp gain at
 the two `delta = 0` null controls, +4 pp at `delta = 0.375`, +13.5 pp at `delta = 0.792`, and a
 *negative* gain for the `random` control in every non-null cell.
-
-## Removed in v2
-
-The v1 pipeline (Murmura runner, FLamby settings, TADI attack, leverage proxies, Opacus
-record-level DP-SGD) has been deleted. It backed the v1 preprint (arXiv:2506.19260), which is
-separately archived under its own DOI. Two v1 claims do not carry over and should not be
-restated: that topology acts as an information channel, and that per-client noise heterogeneity
-is itself novel.
