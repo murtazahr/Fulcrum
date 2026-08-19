@@ -187,10 +187,28 @@ The arrangement is adopted for systems reasons, and it also alters the privacy
 situation, because an observer positioned above the aggregation tier never sees an
 individual participant's update in isolation.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.60\columnwidth]{figures/fig_architecture.png}
+\caption{Hierarchical federated learning with unequal regions, shown for a
+consortium of banks grouped by country. Silos report to a regional aggregator,
+which forwards only the combined update to the global aggregator, so an observer
+above the regional tier sees no silo in isolation. Each silo clips and perturbs its
+own update before transmission, which places the guarantee without relying on the
+aggregator to perturb anything. Concealment grows with the effective size of a
+silo's region, measured by the exposure ratio $\rho_r$ of
+Section~\ref{sec:model}: region $r_1$ pools three silos and conceals most, whereas
+$r_3$ holds a single silo and conceals least. A shared noise multiplier must
+satisfy $r_3$, and therefore leaves $r_1$ and $r_2$ carrying surplus noise.}
+\label{fig:arch}
+\end{figure}
+
 This alteration is uneven across participants. A silo aggregated with twenty peers
 is concealed by the combined noise of twenty contributions, whereas a silo sharing
 its region with a single other participant receives markedly less concealment from
-the structure. Operational deployments are heterogeneous in exactly this respect.
+the structure. Figure~\ref{fig:arch} shows the arrangement, with one region pooling
+three institutions and another holding a single one. Operational deployments are
+heterogeneous in exactly this respect.
 Cellular load distributions are long tailed, with dense urban cells serving many
 devices and rural cells serving very few. Multinational consortia contribute
 uneven numbers of sites per country, and clinical federations frequently pair one
@@ -407,7 +425,8 @@ treated here.
 The region structure is a property of the deployment rather than a parameter we
 select. It follows the physical network where clients report to the base station
 serving them, and the organisational structure where clinical sites report through
-a national coordinator. Figure~\ref{fig:arch} illustrates the arrangement.
+a national coordinator, or where member banks report through a country-level
+entity as in Figure~\ref{fig:arch}.
 
 \begin{table}[t]
 \caption{Notation.}
@@ -438,22 +457,6 @@ $\delta$            & exposure dispersion, the achievable saving \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.60\columnwidth]{figures/fig_architecture.png}
-\caption{Hierarchical federated learning with unequal regions. Silos report to a
-regional aggregator, which forwards only the combined update to the global
-aggregator, so an observer above the regional tier sees no silo in isolation. Each
-silo clips and perturbs its own update before transmission, which places the
-guarantee without relying on the aggregator to perturb anything. Concealment grows
-with the effective size
-of a silo's region, measured by the exposure ratio $\rho_r$: region $r_1$ pools
-three silos and conceals most, whereas $r_3$ holds a single silo and conceals
-least. A shared noise multiplier must satisfy $r_3$, and therefore leaves $r_1$
-and $r_2$ carrying surplus noise.}
-\label{fig:arch}
-\end{figure}
 
 \subsection{Mechanism}
 
