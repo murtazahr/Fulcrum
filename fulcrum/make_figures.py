@@ -19,6 +19,7 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter, NullFormatter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -52,6 +53,23 @@ C_H = "#b9770e"   # heuristic series
 # The cellular and consortium structures sit at 0.856 and 0.880, too close to label
 # separately at this scale, so they share one marker spanning the pair.
 DEPLOY = [(0.144, "clinical sites"), (0.868, "cellular edge,\nconsortium")]
+
+
+
+def _plain_log_ticks(ax, ticks):
+    """Keep the log spacing, but label the axis with ordinary numbers.
+
+    A log axis defaults to 10^0 / 10^1 exponent labels, which are hard to read off when
+    the interesting range spans less than two decades. The spacing still needs to be
+    logarithmic here (group size runs 1 to 50, epsilon 0.2 to 25), so only the labelling
+    changes: ticks are pinned to the values actually measured and drawn as plain numbers.
+    """
+    ax.set_xticks(ticks)
+    # %g drops trailing zeros, so the axis reads 0.2, 0.5, 1, 2 rather than 0.2, 0.5,
+    # 1.0, 2.0 -- mixing the two looks like differing precision.
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+    ax.xaxis.set_minor_formatter(NullFormatter())
+    ax.xaxis.set_minor_locator(plt.NullLocator())
 
 
 def _load(fn):
@@ -186,6 +204,7 @@ def fig_privacy_utility():
     ax.annotate(r"$\varepsilon=0.99$", xy=(0.99, 0.40), xytext=(1.9, 0.365),
                 fontsize=6.8, arrowprops=dict(arrowstyle="->", lw=0.6, color="0.4"))
     ax.set_xscale("log")
+    _plain_log_ticks(ax, [0.2, 0.5, 1, 2, 5, 10, 25])
     ax.set_xlabel(r"privacy parameter $\varepsilon$  ($\delta_{\mathrm{DP}}=10^{-5}$)")
     ax.set_ylabel("test accuracy")
     ax.set_ylim(0.30, 1.02)
@@ -204,6 +223,7 @@ def fig_leverage():
                 marker=mk, ms=3.6, color=col, label=fr"$\kappa={kap}$")
         ax.axhline(saturation(kap, n_mc=60000), color=col, lw=0.7, ls=":", alpha=0.85)
     ax.set_xscale("log")
+    _plain_log_ticks(ax, [1, 2, 3, 5, 10, 20, 50])
     ax.set_xlabel(r"organisational group size $|G_i|$")
     ax.set_ylabel(r"lateral floor $\ell_i$ (nats)")
     ax.set_xlim(0.9, 60)
