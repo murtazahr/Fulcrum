@@ -207,34 +207,37 @@ distributing it well?
 
 We show the question has an explicit answer, and we call the resulting mechanism
 \Fulcrum, since it balances the federation's privacy burden about the point where
-every region carries an equal share of it. Our contributions are as follows.
+every region carries an equal share of it. Our contributions are as follows:
 
-First, we give two privacy results and keep them apart. Theorem~\ref{thm:dp} is a
-distribution-free silo-level differential privacy guarantee, and is what a deployment
-reports as its budget. Theorem~\ref{thm:bound} bounds what an observer positioned above
-the regional tier recovers about a participant's local class distribution under a declared
-prior, and is the quantity the allocation minimises. Neither is derived from the other.
-Both use silo-level adjacency, matching the granularity of the property at risk, and the
+\begin{itemize}
+\item We give two privacy results. Theorem~\ref{thm:dp} is a distribution-free
+silo-level differential privacy guarantee, and is what a deployment reports as its
+budget. Theorem~\ref{thm:bound} bounds what an observer positioned above the regional
+tier recovers about a participant's local class distribution under a declared prior,
+and is the quantity the allocation minimises. Neither is derived from the other. Both
+use silo-level adjacency, matching the granularity of the property at risk, and the
 bound is capped at the entropy of that property, so whether a stated guarantee conveys
 anything is itself checkable.
 
-Second, we pose the allocation problem, minimising the worst-case value of that bound
+\item We pose the allocation problem, minimising the worst-case value of that bound
 subject to a fixed budget on noise entering the global model, and give its explicit
-solution (Theorem~\ref{thm:allocation}). The solution is min-max optimal and equalises the
-bound across regions. We also correct the utility budget, which under weighted averaging is
-not the sum of the noise variances.
+solution (Theorem~\ref{thm:allocation}). The solution is min-max optimal and equalises
+the bound across regions. We also correct the utility budget, which under weighted
+averaging is not the sum of the noise variances.
 
-Third, we characterise the improvement in closed form (Corollary~\ref{cor:delta}). The
+\item We characterise the improvement in closed form (Corollary~\ref{cor:delta}). The
 saving is fixed by the deployment's exposure profile alone, which we term its exposure
 dispersion, so a practitioner can evaluate it before training and decide on that basis
-whether to adopt the method. It is zero exactly when all regions are equally exposed, which
-gives an explicit applicability test.
+whether to adopt the method. It is zero exactly when all regions are equally exposed,
+which gives an explicit applicability test.
 
-Fourth, we measure the exposure dispersion for operational structures, finding $88\%$ for
+\item We measure the exposure dispersion for operational structures, finding $88\%$ for
 consortia organised by country and $83$ to $88\%$ for cellular edge federations, and
 validate the prediction on two modalities while reporting achieved privacy parameters
-throughout. The evaluation includes a deployment for which the theory predicts parity with
-the uniform baseline, and controls that separate exposure from non-uniformity alone.
+throughout. The evaluation includes a deployment for which the theory predicts parity
+with the uniform baseline, and controls that separate exposure from non-uniformity
+alone.
+\end{itemize}
 
 The remainder of this paper is organised as follows.
 Section~\ref{sec:related} positions the work relative to differentially private
