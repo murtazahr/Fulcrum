@@ -65,18 +65,7 @@ coverage.xml
 *.log
 *.tmp
 
-# Worktrees and local reference PDFs
+# Worktrees and local reference files
 .claude/
 references/
-manuscript/main.pdf
 fulcrum/lev.log
-manuscript/*.aux
-manuscript/*.bbl
-manuscript/*.blg
-manuscript/*.log
-manuscript/*.out
-
-# Submission bundle: a build artefact that goes stale the moment main.tex changes
-manuscript.zip
-manuscript/cover_letter.pdf
-manuscript/main_polished.pdf

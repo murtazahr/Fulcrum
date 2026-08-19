@@ -1,5 +1,1 @@
-# Keep the manuscript out of released archives. GitHub builds its automatic
-# "Source code" assets with git archive, which honours export-ignore, so this
-# excludes the paper from downloads without removing it from the repository.
-manuscript/ export-ignore
 .gitattributes export-ignore
