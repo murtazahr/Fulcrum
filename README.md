@@ -60,8 +60,7 @@ python fulcrum/probe.py  --K 0.88 --n 96 --T 10 --fdim 32 --seeds 3 --out probe_
 python fulcrum/agnews.py --K 0.88 --n 96 --T 10 --fdim 32 --seeds 3 --out agnews_K0.88.json
 ```
 
-See [CODE_LAYOUT.md](CODE_LAYOUT.md) for module structure and
-[manuscript/](manuscript/) for the theory, revision plan, and positioning.
+See [CODE_LAYOUT.md](CODE_LAYOUT.md) for module structure.
 
 ## Relation to v1
 
@@ -69,5 +68,4 @@ This supersedes the v1 preprint, *Topology-Aware Differential Privacy in Federat
 (arXiv:2506.19260), which is separately archived under its own DOI. The v1 pipeline has been
 removed. Two v1 claims do **not** carry over: that communication topology acts as an information
 channel, and that per-client noise heterogeneity is itself novel. v1 run records are retained in
-`analysis/v1/` as the evidence base for the corrections documented in
-[manuscript/REVISION_PLAN.md](manuscript/REVISION_PLAN.md).
+`analysis/v1/` as the evidence base for the documented corrections.

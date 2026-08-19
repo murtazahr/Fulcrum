@@ -29,14 +29,9 @@ fulcrum/
 ├── probe.py         CIFAR-10 experiment: frozen ResNet18 -> PCA -> linear head.
 └── agnews.py        AG News experiment: frozen MiniLM -> PCA -> linear head.
 
-manuscript/
-├── THEORY_V2.md     Corrected theory and proofs.
-├── REVISION_PLAN.md Section-by-section plan + confirmed results.
-└── NOVELTY_DELTA.md Positioning against the four adjacent lines of work.
-
 analysis/v2/         Result JSONs for the confirmed runs.
 analysis/*.parquet   v1 run records. RETAINED as the evidence base for the epsilon and
-                     batch-size corrections documented in REVISION_PLAN.md.
+                     batch-size corrections documented for v2.
 ```
 
 ## The three allocation modes (`evaluate.sigmas_for_target`)
