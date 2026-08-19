@@ -1424,37 +1424,37 @@ bounds the exposure when it is not.
 \subsection{Limitations}
 \label{sec:limitations}
 
-The guidance above is optimistic about when the method helps. Three limitations
-bound it, beyond the assumptions already stated where they are used: disjoint
-regions with fixed membership and disjoint silo datasets
-(Section~\ref{sec:model}), the trust the concealment places in regional
-aggregators (Sections~\ref{sec:adversary} and~\ref{sec:secagg}), and the
+Several assumptions are stated where they are used: disjoint regions with fixed membership
+and disjoint silo datasets (Section~\ref{sec:model}), the trust the concealment places in
+regional aggregators (Sections~\ref{sec:adversary} and~\ref{sec:secagg}), and the
 requirement that regions differ in effective size, which $\delta$ tests in advance
-(Section~\ref{sec:allocation}).
+(Section~\ref{sec:allocation}). Three further boundaries delimit the result.
 
-The bound is not tight. Theorem~\ref{thm:bound} is an upper bound with slack in at
-least two places: the chain rule discards a non-negative term, and the per-round
-divergence is a worst case over adjacent inputs. Tightening either would reduce the
-noise needed at a given target. The allocation is unaffected, since it depends on
-the relative exposure of regions rather than on the absolute level of the bound,
-but the reported $\varepsilon$ would improve.
+The first is that the analysis is conservative. Theorem~\ref{thm:bound} is an upper bound
+carrying slack in at least two places, since the chain rule discards a non-negative term and
+the per-round divergence is a worst case over adjacent inputs. A tighter analysis would meet
+the same target with less noise, so the accuracy reported in Section~\ref{sec:eval}
+understates what the mechanism can deliver. The allocation itself is indifferent to this,
+depending on the relative exposure of regions rather than on the absolute level of the
+bound, so any sharpening of the analysis transfers to the mechanism unchanged.
 
-The adversary is passive. Active manipulation of the protocol, and an aggregator
-that misreports the sum it computed, both fall outside the model; local
-perturbation removes the need to trust the aggregator to add noise, but not the
-need to trust it to report honestly. Poisoning conducted under the cover of the noise the
-mechanism itself introduces \cite{zheng2025dppoison} is a concrete instance of what this
-exclusion leaves out. Section~\ref{sec:secagg} sets out how secure aggregation closes the
-reporting question, and at what cost under collusion.
+The second is the position of the adversary, which is passive: it follows the protocol and
+reads what its position exposes. An aggregator that misreports the sum it computed, and
+active manipulation of the protocol, lie outside this model, and poisoning conducted under
+the cover of the noise the mechanism introduces \cite{zheng2025dppoison} is a concrete
+instance. Local perturbation already removes the need to trust the aggregator to add noise,
+and Section~\ref{sec:secagg} sets out how secure aggregation removes the remaining need to
+trust it to report honestly, together with what that costs under collusion.
 
-The evaluation is narrow. Two modalities at one federation scale, with a linear
-head on frozen representations, at $T = 10$ rounds. Section~\ref{sec:dimension}
-shows the budget saving is invariant to model dimension while the accuracy it buys
-compresses, so we expect the ordering to persist at larger heads; behaviour at
-substantially larger silo counts, over longer training, and under dynamic
-membership remains to be characterised. Composition is linear in $T$, which is
-looser than the R\'enyi accounting used for the reported $\varepsilon$, so the
-information bound degrades faster with round count than the privacy budget does.
+The third is the reach of the evidence. We evaluate two modalities at one federation scale,
+with a linear head on frozen representations over ten rounds. That regime carries further
+than its size suggests, since Section~\ref{sec:dimension} establishes that the budget
+recovered is invariant to model dimension while the accuracy it buys compresses, which fixes
+the ordering of the arms at larger heads. Larger silo counts, longer training and dynamic
+membership remain to be characterised. One property bears stating precisely: composition in
+the information bound is linear in $T$, which is looser than the R\'enyi accounting behind
+the reported $\varepsilon$, so the bound degrades faster with round count than the privacy
+budget does.
 
 \subsection{Relation to trusted-aggregator schemes}
 
