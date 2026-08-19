@@ -90,7 +90,9 @@ def check_agreement(all_rows):
     groups = {}
     for name, rows in all_rows.items():
         for r in rows:
-            if r.get("dataset") is None:
+            # Accuracy-bearing rows only. The attack artefacts describe adversary error
+            # rather than utility, so they have no comparable accuracy field.
+            if r.get("dataset") is None or "acc" not in r:
                 continue
             groups.setdefault(key(r), {}).setdefault(name, []).append(r["acc"])
     n_cmp = 0
@@ -127,6 +129,8 @@ def check_provenance(datadir, files):
         # emit it by argument; we detect the generic writers explicitly
         if any(k in b for k in ("probe", "agnews", "pu_curve")):
             written_by[b] = "probe.py / agnews.py / pu_curve.py"
+        if b.startswith("attack_"):
+            written_by[b] = "attack.py / attack_refit.py"
     # Artefacts that back prose rather than a figure. probe_d258 supports the
     # dimension-scaling subsection, which quotes its numbers in text and plots none.
     MANUSCRIPT_ONLY = {"probe_d258.json"}
