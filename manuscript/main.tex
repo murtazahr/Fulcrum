@@ -620,19 +620,12 @@ Values of $\varepsilon$ reported in Section~\ref{sec:eval} come from
 \eqref{eq:dpeps} by one-dimensional search over $\alpha$ at $\delta_{\mathrm{DP}} =
 10^{-5}$.
 
-\subsection{Leakage about the sensitive-class concentration}
-
-Theorem~\ref{thm:dp} bounds what participation reveals, which is the standard
-currency of a privacy budget, but it does not answer the question the threat model
-poses. An observer interested in $p_i$ has two sources for it: what neighbouring
-silos already reveal, and what the mechanism itself leaks. We bound each in turn,
-beginning with the former.
-
 \subsection{The lateral floor}
 
-Part of what an observer knows about $p_i$ is available without reference to any
-model update, because silos within an organisational group tend to have correlated
-distributions. We write this floor as
+An observer interested in $p_i$ draws on two sources: what neighbouring silos
+already reveal, and what the mechanism itself leaks. We bound each in turn. The
+first is available without reference to any model update, because silos within an
+organisational group tend to have correlated distributions. We write this floor as
 \begin{equation}
 \ell_i = I\big(p_i ; D_{-i}\big),
 \end{equation}
@@ -640,23 +633,23 @@ evaluated under the deployment's stated generative model, where $D_{-i}$ denotes
 the datasets of the remaining silos. This term flows around the mechanism rather
 than through it, so noise added to silo $i$'s updates leaves it unchanged.
 
-Defining $\ell_i$ relative to a stated prior is essential. Were it defined as a
-supremum over all priors consistent with the structure, one could always select a
-prior making $p_i$ a deterministic function of a neighbour's data, giving $\ell_i
-= H(p_i)$ for every silo with at least one neighbour. The quantity would then be
-constant across silos and any allocation derived from it would coincide with the
-uniform one.
+The floor can be computed, not merely defined. Take a hierarchical model in which a
+group-level parameter $\Phi_g$ is drawn first and each member's concentration is drawn
+conditionally on it. There $\ell_i$ depends on the number of other members of $i$'s
+group, increasing with that number and saturating at $I(p_i ; \Phi_g)$, which lies
+strictly below $H(p_i)$. Figure~\ref{fig:leverage} shows the behaviour. Saturation is
+rapid: the first group member contributes roughly two thirds of the eventual total,
+and the difference between a group of twenty and a group of fifty is slight. The floor
+is nonetheless not constant across regions, whereas Corollary~\ref{cor:delta} assumes
+that it is, and Section~\ref{sec:allocation} quantifies what that assumption costs for
+each deployment we report.
 
-That $\ell_i$ can be computed rather than merely defined is seen in a hierarchical
-model where a group-level parameter $\Phi_g$ is drawn first and each member's
-concentration is drawn conditionally on it. There $\ell_i$ is computable and depends
-on the number of other members of $i$'s group, increasing with that number and
-saturating at $I(p_i ; \Phi_g)$, which lies strictly below $H(p_i)$. Figure~\ref{fig:leverage}
-shows the behaviour. Saturation is rapid: the
-first group member contributes roughly two thirds of the eventual total, and the
-difference between a group of twenty and a group of fifty is slight. The floor is nonetheless not constant across regions, whereas
-Corollary~\ref{cor:delta} assumes that it is. Section~\ref{sec:allocation} quantifies
-what that assumption costs for each deployment we report.
+Evaluating $\ell_i$ under a stated prior, rather than as a supremum over all priors
+consistent with the structure, is what makes it informative. Under a supremum one
+could always select a prior making $p_i$ a deterministic function of a neighbour's
+data, giving $\ell_i = H(p_i)$ for every silo with at least one neighbour. The
+quantity would then be constant across silos, and any allocation derived from it
+would coincide with the uniform one.
 
 \begin{figure}[t]
 \centering
@@ -670,10 +663,8 @@ remains well below the entropy of the target.}
 
 \subsection{The information bound}
 
-With the lateral floor characterised, the second result follows. Where
-Theorem~\ref{thm:dp} bounds what participation reveals, for any data and any
-prior, the bound below concerns the designated quantity $p_i$ under the stated
-prior, and it is the objective the allocation minimises.
+With the lateral floor characterised, the second result follows. It is the objective
+the allocation minimises.
 
 \begin{theorem}[Per-client information bound]
 \label{thm:bound}

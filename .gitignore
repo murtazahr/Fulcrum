@@ -79,3 +79,4 @@ manuscript/*.out
 # Submission bundle: a build artefact that goes stale the moment main.tex changes
 manuscript.zip
 manuscript/cover_letter.pdf
+manuscript/main_polished.pdf
