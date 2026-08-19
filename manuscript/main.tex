@@ -90,13 +90,14 @@ information between a participant's local class distribution and any estimate fo
 by an observer positioned above the regional tier, taking care that the adjacency
 used by the mechanism matches the quantity being protected. Minimising the worst-case
 bound under a fixed utility budget yields a min-max optimal allocation, which we call
-\Fulcrum. The budget it recovers is $\delta = 1 - \langle \rho \rangle_V /
-\rho_{\max}$, with $\rho_r$ the inverse participation ratio of region $r$. Because
-$\delta$ follows from the region structure and the aggregation weights alone, a
+\Fulcrum. The budget it recovers has a closed form, which we call the exposure
+dispersion of the deployment: a measure of how unevenly aggregation weight is
+concentrated within regions, relative to the most exposed region in the federation.
+Because it follows from the region structure and the aggregation weights alone, a
 practitioner can evaluate it before training begins, and it vanishes precisely when
 all regions are equally exposed. On image and text classification at $\varepsilon =
 0.99$, accuracy at a matched worst-case per-client guarantee improves by up to
-$14.84$ and $12.16$ percentage points where $\delta$ is large, and is exactly zero on
+$14.84$ and $12.16$ percentage points where the dispersion is large, and is exactly zero on
 a balanced control deployment for which the theory predicts parity.
 \end{abstract}
 
@@ -178,7 +179,7 @@ which forwards only the combined update to the global aggregator, so an observer
 above the regional tier sees no silo in isolation. Each silo clips and perturbs its
 own update before transmission, which places the guarantee without relying on the
 aggregator to perturb anything. Concealment grows with the effective size of a
-silo's region, measured by the exposure ratio $\rho_r$ of
+silo's region, measured by the exposure ratio defined in
 Section~\ref{sec:model}: region $r_1$ pools three silos and conceals most, whereas
 $r_3$ holds a single silo and conceals least. A shared noise multiplier must
 satisfy $r_3$, and therefore leaves $r_1$ and $r_2$ carrying surplus noise.}
@@ -190,13 +191,15 @@ is concealed by the combined noise of twenty contributions, whereas a silo shari
 its region with a single other participant receives markedly less concealment from
 the structure. Figure~\ref{fig:arch} shows the arrangement, with one region pooling
 three institutions and another holding a single one. Operational deployments are
-heterogeneous in exactly this respect.
-Cellular load distributions are long tailed, with dense urban cells serving many
-devices and rural cells serving very few. Multinational consortia contribute
-uneven numbers of sites per country, and clinical federations frequently pair one
-large tertiary centre with several small clinics.
+heterogeneous in exactly this respect \cite{kairouz2021advances}.
+Cellular load distributions are long tailed \cite{wang2017cellular}, with dense urban
+cells serving many devices and rural cells serving very few. Multinational consortia
+contribute uneven numbers of sites per country \cite{heyndrickx2023melloddy}, and
+clinical federations frequently pair one large tertiary centre with several small
+clinics \cite{terrail2022flamby}.
 
-Current practice smooths over this heterogeneity: it applies a single noise multiplier across the federation. That
+Current practice smooths over this heterogeneity: it applies a single noise multiplier
+across the federation \cite{mcmahan2018dprnn,wei2020nbafl}. That
 multiplier must satisfy the participant with the least structural concealment, so
 every participant in a larger region carries more noise than its own requirement
 calls for. The entire federation pays for that surplus in model accuracy, which
@@ -208,7 +211,7 @@ We show the question has an explicit answer, and we call the resulting mechanism
 \Fulcrum, since it balances the federation's privacy burden about the point where
 every region carries an equal share of it. Our contributions are as follows.
 
-First, we give two privacy results and keep them separate. Theorem~\ref{thm:dp}
+First, we give two privacy results. Theorem~\ref{thm:dp}
 is a distribution-free silo-level differential privacy guarantee for the mechanism,
 stated with its accountant, and is what a deployment reports as its budget.
 Theorem~\ref{thm:bound} bounds the information an observer positioned above the
@@ -217,7 +220,7 @@ declared prior, and is the quantity the allocation minimises. Neither is derived
 from the other. The
 bound is stated for silo-level adjacency, meaning the mechanism protects a
 participant's dataset as a whole rather than any individual record within it.
-This alignment matters because the protected quantity, the proportion of a
+This alignment matters because the protected quantity, that is, the proportion of a
 silo's data belonging to a sensitive class, is a property of the dataset in
 aggregate. The bound also carries an explicit cap at the entropy of the target,
 which gives a test of whether a guarantee is informative at a given operating
@@ -228,17 +231,18 @@ bound across participants subject to a fixed budget on noise entering the global
 model, and give its explicit solution (Theorem~\ref{thm:allocation}). We
 establish that the solution is min-max optimal and that it equalises the bound
 across regions. We also identify the correct utility budget, which under weighted
-averaging is the weighted sum $\sum_i w_i^2 \sigma_i^2$.
+averaging sums each silo's noise variance scaled by the square of its aggregation
+weight, rather than the variances alone.
 
 Third, we characterise the improvement in closed form (Corollary~\ref{cor:delta}).
-Writing $\rho_r$ for the inverse participation ratio of region $r$, the fraction of
-the noise budget saved at equal per-client privacy is $\delta = 1 - \langle \rho
-\rangle_V / \rho_{\max}$. Because $\delta$ follows from the region structure and the
-aggregation weights alone, a practitioner evaluates it before training and decides
+The fraction of the noise budget saved at equal per-client privacy is fixed by how
+unevenly aggregation weight is concentrated within each region, measured against the
+most exposed region in the federation. We call this quantity the exposure dispersion.
+Because it follows from the region structure and the aggregation weights alone, a practitioner evaluates it before training and decides
 on that basis whether to adopt the method. It equals zero exactly when all regions
 are equally exposed, which gives an explicit applicability test.
 
-Fourth, we measure $\delta$ for operational deployment structures, finding values
+Fourth, we measure the exposure dispersion for operational deployment structures, finding values
 of $88\%$ for consortia organised by country and $83$ to $88\%$ for cellular edge
 federations. We validate the prediction experimentally on two modalities, reporting
 achieved privacy parameters throughout. The evaluation includes a
