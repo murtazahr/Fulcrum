@@ -297,7 +297,12 @@ structural exposure is a natural extension that lies outside our present scope.
 A different source of differentiation arises not from declared preference but from position within the topology. Hierarchical federated learning introduces intermediate aggregators for
 communication efficiency and scalability \cite{liu2020clientedgecloud,
 abad2020hierarchical}, and clustering methods group participants by distributional
-similarity to train specialised models \cite{briggs2020federated}.
+similarity to train specialised models \cite{briggs2020federated}. Differential
+privacy has also been applied across tiered IoT, edge and cloud deployments in
+healthcare, combining noise mechanisms with processing at the edge
+\cite{mangala2026dphealthcare}, though the noise there is calibrated per layer
+rather than to the exposure each participant receives from its own aggregation
+group.
 
 Closest to our setting is the work of Chandrasekaran et
 al.~\cite{chandrasekaran2022hfl}, who combine hierarchical training with
@@ -1491,7 +1496,9 @@ delivered it.
 
 Three directions follow naturally. An allocation combining structural exposure
 with declared per-participant preferences would unify this work with personalised
-differential privacy. Extending the analysis to overlapping regions would cover
+differential privacy. A further step would couple it with personalisation of the
+model itself, which decentralised federated learning has approached through
+per-node uncertainty estimates \cite{rangwala2026evidential}. Extending the analysis to overlapping regions would cover
 deployments in which a silo contributes to more than one aggregate. Combining the
 allocation with secure aggregation would relax the remaining trust assumption on
 the aggregator while preserving the structure of the result.
