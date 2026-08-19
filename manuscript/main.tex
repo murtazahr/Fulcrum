@@ -79,26 +79,24 @@
 
 \begin{abstract}
 Hierarchical federated learning places regional aggregators between clients and the
-cloud, so a participant's update is observed only after it has been combined with
-those of its neighbours. How much concealment this provides depends on the size of
-the aggregation region, and regions in operational deployments vary widely.
-Prevailing practice applies a single noise multiplier to every participant,
-calibrated for the most exposed region, so every other participant carries more
-noise than its own exposure requires. We show that the resulting allocation problem admits an explicit solution. We give a
-silo-level differential privacy guarantee for the mechanism, then bound the mutual
-information between a participant's local class distribution and any estimate formed
-by an observer positioned above the regional tier, taking care that the adjacency
-used by the mechanism matches the quantity being protected. Minimising the worst-case
-bound under a fixed utility budget yields a min-max optimal allocation, which we call
-\Fulcrum. The budget it recovers has a closed form, which we call the exposure
-dispersion of the deployment: a measure of how unevenly aggregation weight is
-concentrated within regions, relative to the most exposed region in the federation.
-Because it follows from the region structure and the aggregation weights alone, a
-practitioner can evaluate it before training begins, and it vanishes precisely when
-all regions are equally exposed. On image and text classification at $\varepsilon =
-0.99$, accuracy at a matched worst-case per-client guarantee improves by up to
-$14.84$ and $12.16$ percentage points where the dispersion is large, and is exactly zero on
-a balanced control deployment for which the theory predicts parity.
+cloud, so a participant's update is observed only in combination with its neighbours'.
+The concealment this provides depends on the size of the aggregation region, and regions
+in operational deployments vary widely. Prevailing practice applies a single noise
+multiplier to every participant, calibrated for the most exposed region, so every other
+participant carries more noise than its own exposure requires. We show this allocation
+problem has an explicit solution. We give a silo-level differential privacy guarantee for
+the mechanism, then bound the mutual information between a participant's local class
+distribution and any estimate formed by an observer positioned above the regional tier,
+with adjacency matched to the quantity being protected. Minimising the worst-case bound
+under a fixed utility budget yields a min-max optimal allocation, which we call \Fulcrum.
+The budget it recovers has a closed form we call the exposure dispersion: a measure of how
+unevenly aggregation weight is concentrated within regions relative to the most exposed
+one. Because it follows from the region structure and the aggregation weights alone, a
+practitioner can evaluate it before training begins, and it vanishes precisely when all
+regions are equally exposed. On image and text classification at $\varepsilon = 0.99$,
+accuracy at a matched worst-case per-client guarantee improves by up to $14.84$ and
+$12.16$ percentage points where the dispersion is large, and is exactly zero on a balanced
+control for which the theory predicts parity.
 \end{abstract}
 
 \begin{CCSXML}
