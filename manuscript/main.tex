@@ -7,7 +7,7 @@
 %%   \documentclass[acmsmall]{acmart}
 %% Under `anonymous`, acmart suppresses the author block, the acks environment and
 %% anything wrapped in anonsuppress; check the compiled PDF before submitting.
-\documentclass[acmsmall,review,anonymous]{acmart}
+\documentclass[acmsmall,screen,review,anonymous]{acmart}
 
 %% --- Rights and journal metadata (replace on acceptance) ---
 \setcopyright{acmlicensed}
@@ -46,7 +46,7 @@
 
 \begin{document}
 
-\title[Topology-Aware DP in Hierarchical FL]{Topology-Aware Differential Privacy in Hierarchical Federated Learning}
+\title{Topology-Aware Differential Privacy in Hierarchical Federated Learning}
 
 \author{Murtaza Rangwala}
 \orcid{0000-0000-0000-0000}
@@ -84,9 +84,7 @@ those of its neighbours. How much concealment this provides depends on the size 
 the aggregation region, and regions in operational deployments vary widely.
 Prevailing practice applies a single noise multiplier to every participant,
 calibrated for the most exposed region, so every other participant carries more
-noise than its own exposure requires.
-
-We show that the resulting allocation problem admits an explicit solution. We give a
+noise than its own exposure requires. We show that the resulting allocation problem admits an explicit solution. We give a
 silo-level differential privacy guarantee for the mechanism, then bound the mutual
 information between a participant's local class distribution and any estimate formed
 by an observer positioned above the regional tier, taking care that the adjacency
@@ -110,11 +108,6 @@ a balanced control deployment for which the theory predicts parity.
        <concept_significance>500</concept_significance>
        </concept>
    <concept>
-       <concept_id>10002978.10002991.10002992</concept_id>
-       <concept_desc>Security and privacy~Privacy-preserving protocols</concept_desc>
-       <concept_significance>500</concept_significance>
-       </concept>
-   <concept>
        <concept_id>10010147.10010257</concept_id>
        <concept_desc>Computing methodologies~Machine learning</concept_desc>
        <concept_significance>300</concept_significance>
@@ -123,11 +116,9 @@ a balanced control deployment for which the theory predicts parity.
 \end{CCSXML}
 
 \ccsdesc[500]{Security and privacy~Distributed systems security}
-\ccsdesc[500]{Security and privacy~Privacy-preserving protocols}
 \ccsdesc[300]{Computing methodologies~Machine learning}
 
-\keywords{Federated learning, differential privacy, hierarchical aggregation,
-noise allocation, privacy budget allocation}
+\keywords{Federated Learning, Differential Privacy, Hierarchical Aggregation, Noise Allocation, Privacy Budget Allocation}
 
 \maketitle
 
@@ -164,7 +155,7 @@ standard defence. Differentially private stochastic gradient descent
 released update by clipping and then adding calibrated noise, and its federated
 instantiation \cite{mcmahan2018dprnn} applies the same construction to client
 updates. Accounting across training rounds is performed with R\'enyi differential
-privacy \cite{mironov2017rdp} or the moments accountant, and mature tooling makes
+privacy \cite{mironov2017rdp} or the moments accountant \cite{abadi2016dpsgd}, and mature tooling makes
 the mechanism straightforward to deploy \cite{yousefpour2021opacus}.
 
 These techniques are typically presented for a flat topology, yet realistic deployments
@@ -1461,8 +1452,10 @@ but the reported $\varepsilon$ would improve.
 The adversary is passive. Active manipulation of the protocol, and an aggregator
 that misreports the sum it computed, both fall outside the model; local
 perturbation removes the need to trust the aggregator to add noise, but not the
-need to trust it to report honestly. Section~\ref{sec:secagg} sets out how
-secure aggregation closes this, and at what cost under collusion.
+need to trust it to report honestly. Poisoning conducted under the cover of the noise the
+mechanism itself introduces \cite{zheng2025dppoison} is a concrete instance of what this
+exclusion leaves out. Section~\ref{sec:secagg} sets out how secure aggregation closes the
+reporting question, and at what cost under collusion.
 
 The evaluation is narrow. Two modalities at one federation scale, with a linear
 head on frozen representations, at $T = 10$ rounds. Section~\ref{sec:dimension}
@@ -1512,7 +1505,7 @@ the aggregator while preserving the structure of the result.
 
 \section*{Data and Code Availability}
 
-The \Fulcrum source code, together with the analysis artefacts underlying every
+The \Fulcrum source code, together with the analysis artifacts underlying every
 table and figure, is publicly archived; the repository is anonymised for review.
 \begin{anonsuppress}
 It is available at \url{https://doi.org/10.5281/zenodo.20507155}.
